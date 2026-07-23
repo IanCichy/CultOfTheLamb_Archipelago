@@ -1,0 +1,48 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <!-- net472: Cult of the Lamb runs on Mono (not IL2CPP), matching COTL_API's target
+         framework. This is not netstandard2.1 like the RoR2 mod - RoR2 modding (R2API/
+         MMHOOK) standardized on netstandard2.1, CotL modding (COTL_API) standardized on
+         net472. Match the ecosystem you're plugging into. -->
+    <TargetFramework>net472</TargetFramework>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <LangVersion>latest</LangVersion>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <VersionPrefix>0.1.0</VersionPrefix>
+    <OutputPath>bin\$(Configuration)</OutputPath>
+  </PropertyGroup>
+
+  <Target Name="CopyMod" AfterTargets="PostBuildEvent">
+    <MakeDir Directories="bin/zip/" />
+    <!-- net472 (unlike RoR2's netstandard2.1) doesn't emit a .deps.json - that's an SDK-style
+         netcore/netstandard dependency manifest, not a .NET Framework concept. -->
+    <Copy SourceFiles="$(TargetPath);$(TargetDir)/$(TargetName).pdb" DestinationFolder="bin/Build/" />
+    <Copy SourceFiles="$(OutputPath)/Archipelago.MultiClient.Net.dll;$(OutputPath)/Newtonsoft.Json.dll;" DestinationFolder="bin/Build/" />
+    <Copy SourceFiles="../README.md;../manifest.json;../CHANGELOG.md" DestinationFolder="bin/Build/" />
+    <Copy Condition="'$(ModFolder)' != ''" SourceFiles="$(TargetPath);$(TargetDir)/$(TargetName).pdb" DestinationFolder="$(ModFolder)" />
+    <Copy Condition="'$(ModFolder)' != ''" SourceFiles="$(OutputPath)/Archipelago.MultiClient.Net.dll;$(OutputPath)/Newtonsoft.Json.dll;" DestinationFolder="$(ModFolder)" />
+    <ZipDirectory SourceDirectory="bin/Build" DestinationFile="bin/zip/Archipelago.CultOfTheLamb-$(VersionPrefix).zip" Overwrite="true" />
+  </Target>
+
+  <ItemGroup>
+    <PackageReference Include="BepInEx.Analyzers" Version="1.0.*">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="BepInEx.Core" Version="5.4.21" />
+    <PackageReference Include="BepInEx.PluginInfoProps" Version="2.1.0" />
+    <PackageReference Include="Archipelago.MultiClient.Net" Version="6.7.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="UnityEngine.Modules" Version="2021.3.16" IncludeAssets="compile" />
+    <PackageReference Include="CultOfTheLamb.GameLibs" Version="1.4.6.596-r.0" />
+  </ItemGroup>
+
+  <ItemGroup Condition="Exists('..\lib\COTL_API.dll')">
+    <!-- Optional: xhayper/COTL_API, the community modding API. Not on NuGet - build it
+         locally or grab the DLL from Thunderstore and drop it in lib/. See lib/README.md. -->
+    <Reference Include="COTL_API">
+      <HintPath>..\lib\COTL_API.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+</Project>

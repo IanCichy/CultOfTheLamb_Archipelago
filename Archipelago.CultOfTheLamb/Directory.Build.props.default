@@ -1,0 +1,10 @@
+<Project>
+  <!-- Fallback used when Directory.Build.props.user doesn't exist yet. Copy this file to
+       Directory.Build.props.user and point GameFolder at your local install so the build
+       can find BepInEx's core libs. Compiling against the game assembly itself uses the
+       CultOfTheLamb.GameLibs NuGet package (see the .csproj), so GameFolder is only needed
+       for local deploy of the built plugin. -->
+  <PropertyGroup>
+    <GameFolder>C:\Program Files (x86)\Steam\steamapps\common\Cult of the Lamb</GameFolder>
+  </PropertyGroup>
+</Project>
