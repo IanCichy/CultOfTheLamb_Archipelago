@@ -1,23 +1,32 @@
 from dataclasses import dataclass
 
-from Options import Choice, PerGameCommonOptions, Toggle
+from Options import Choice, PerGameCommonOptions, Range, Toggle
 
 
 class Goal(Choice):
     """
-    All Bishops: Defeat Leshy, Heket, Kallamar, and Shamura.
-    The One Who Waits: Defeat all four Bishops, then Narinder (The One Who Waits).
+    Bishops: Defeat Required Count of the four Bishops (Leshy, Heket, Kallamar, Shamura).
+    Witnesses: Defeat Required Count of the four Witnesses (Agares, Bathin, Astaroth,
+    Allocer) - each Witness only becomes fightable after its region's Bishop is defeated.
     """
     display_name = "Goal"
-    option_all_bishops = 0
-    option_the_one_who_waits = 1
-    default = 1
+    option_bishops = 0
+    option_witnesses = 1
+    default = 0
+
+
+class RequiredCount(Range):
+    """How many of the Goal's four encounters must be defeated to win."""
+    display_name = "Required Count"
+    range_start = 1
+    range_end = 4
+    default = 4
 
 
 class RandomizeRegionAccess(Toggle):
-    """If enabled, Anura, Anchordeep, and Silk Cradle each require their matching Access
-    item before they can be visited. Darkwood is always open - it's the game's own
-    starting/tutorial region."""
+    """If enabled, one of Darkwood/Anura/Anchordeep/Silk Cradle is randomly free from the
+    start each seed, and the other three require the Progressive Bishop's Domain item (one
+    more copy each, in a random per-seed order) before they can be visited."""
     display_name = "Randomize Region Access"
     default = True
 
@@ -25,4 +34,5 @@ class RandomizeRegionAccess(Toggle):
 @dataclass
 class CultOfTheLambOptions(PerGameCommonOptions):
     goal: Goal
+    required_count: RequiredCount
     randomize_region_access: RandomizeRegionAccess

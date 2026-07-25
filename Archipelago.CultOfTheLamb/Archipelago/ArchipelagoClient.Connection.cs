@@ -3,8 +3,10 @@ using Archipelago.CultOfTheLamb.Services;
 using Archipelago.MultiClient.Net;
 using Archipelago.MultiClient.Net.Enums;
 using Archipelago.MultiClient.Net.MessageLog.Messages;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using UnityEngine;
 
@@ -92,8 +94,24 @@ public partial class ArchipelagoClient
 
         cachedSlotData = new Dictionary<string, object>(successResult.SlotData);
 
-        // TODO: parse Cult of the Lamb-specific slot data here (victory condition,
-        // dungeon randomization options, etc.) once options.py defines them. See
+        // "regionOrder": which region is free at start, followed by the unlock order of
+        // the other 3 - set in worlds/cult_of_the_lamb/__init__.py's generate_early() and
+        // sent via fill_slot_data(). Comes through as a JArray (Newtonsoft.Json, the
+        // library's underlying serializer), not a native List<string>.
+        var regionOrder = new List<string>();
+        if (successResult.SlotData.TryGetValue("regionOrder", out var regionOrderObj)
+            && regionOrderObj is JArray regionOrderArray)
+        {
+            regionOrder = regionOrderArray.ToObject<List<string>>();
+        }
+        else
+        {
+            Log.LogWarning("[AP] No regionOrder in slot data - region unlocking won't work this session.");
+        }
+
+        // TODO: parse remaining Cult of the Lamb-specific slot data here (goal,
+        // requiredCount, victory condition) once LocationCheckService covers enough of the
+        // location table to check a real goal against. See
         // ArchipelagoClient.RiskOfRain2's equivalent for the pattern - this project's
         // README links to it as a reference.
 
@@ -106,10 +124,10 @@ public partial class ArchipelagoClient
 
         LocationCheckService = new LocationCheckService(session);
         LocationCheckService.Register();
-        RegionUnlockService = new RegionUnlockService(session);
+        RegionUnlockService = new RegionUnlockService(regionOrder);
         RegionUnlockService.Register();
 
-        ItemLogic = new ArchipelagoItemLogicController(session);
+        ItemLogic = new ArchipelagoItemLogicController(session, RegionUnlockService);
         ItemLogic.Register();
     }
 

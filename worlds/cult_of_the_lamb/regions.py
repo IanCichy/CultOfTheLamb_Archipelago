@@ -7,7 +7,9 @@ from .locations import CultOfTheLambLocation, get_locations_for_region, location
 if TYPE_CHECKING:
     from . import CultOfTheLambWorld
 
-# Real story order (Darkwood is first/ungated - see rules.py).
+# The four base regions. Which one is free at seed start (and the unlock order of the
+# other three) is randomized per-seed in CultOfTheLambWorld.generate_early - this list is
+# just used to build the region graph, not to imply any fixed order.
 REGION_NAMES = ["Darkwood", "Anura", "Anchordeep", "Silk Cradle"]
 
 

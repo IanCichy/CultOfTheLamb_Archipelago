@@ -18,10 +18,12 @@
          netcore/netstandard dependency manifest, not a .NET Framework concept. -->
     <Copy SourceFiles="$(TargetPath);$(TargetDir)/$(TargetName).pdb" DestinationFolder="bin/Build/" />
     <Copy SourceFiles="$(OutputPath)/Archipelago.MultiClient.Net.dll;$(OutputPath)/Newtonsoft.Json.dll;" DestinationFolder="bin/Build/" />
-    <Copy SourceFiles="../README.md;../manifest.json;../CHANGELOG.md" DestinationFolder="bin/Build/" />
+    <!-- manifest.json + icon.png + README.md at the zip root are Thunderstore/r2modman
+         package requirements, not decoration - r2modman's "Import local mod" reads them. -->
+    <Copy SourceFiles="../README.md;../manifest.json;../CHANGELOG.md;../icon.png" DestinationFolder="bin/Build/" />
     <Copy Condition="'$(ModFolder)' != ''" SourceFiles="$(TargetPath);$(TargetDir)/$(TargetName).pdb" DestinationFolder="$(ModFolder)" />
     <Copy Condition="'$(ModFolder)' != ''" SourceFiles="$(OutputPath)/Archipelago.MultiClient.Net.dll;$(OutputPath)/Newtonsoft.Json.dll;" DestinationFolder="$(ModFolder)" />
-    <ZipDirectory SourceDirectory="bin/Build" DestinationFile="bin/zip/Archipelago.CultOfTheLamb-$(VersionPrefix).zip" Overwrite="true" />
+    <ZipDirectory SourceDirectory="bin/Build" DestinationFile="bin/zip/Archipelago_CultOfTheLamb-$(VersionPrefix).zip" Overwrite="true" />
   </Target>
 
   <ItemGroup>

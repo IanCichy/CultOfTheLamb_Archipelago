@@ -1,0 +1,17 @@
+description: Cult of the Lamb - Archipelago example/test settings
+name: IanCotL
+game: Cult of the Lamb
+
+Cult of the Lamb:
+  # bishops:   defeat N of Leshy / Heket / Kallamar / Shamura
+  # witnesses: defeat N of Agares / Bathin / Astaroth / Allocer
+  #            (each Witness only becomes fightable after its region's Bishop is beaten)
+  goal: bishops
+
+  # How many of the goal's four encounters are required to win (1-4).
+  required_count: 4
+
+  # true:  one of the four regions is randomly free at seed start, the other three each
+  #        need a "Progressive Bishop's Domain" item (random per-seed unlock order).
+  # false: all four regions open from the start.
+  randomize_region_access: true
