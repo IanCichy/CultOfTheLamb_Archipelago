@@ -22,6 +22,7 @@ public partial class ArchipelagoClient : IDisposable
 
     internal LocationCheckService LocationCheckService { get; private set; }
     internal RegionUnlockService RegionUnlockService { get; private set; }
+    internal GoalService GoalService { get; private set; }
 
     public ArchipelagoItemLogicController ItemLogic;
 
