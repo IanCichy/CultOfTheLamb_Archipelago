@@ -113,11 +113,18 @@ public partial class ArchipelagoClient
             Log.LogWarning("[AP] No regionOrder in slot data - region unlocking won't work this session.");
         }
 
-        // TODO: parse remaining Cult of the Lamb-specific slot data here (goal,
-        // requiredCount, victory condition) once LocationCheckService covers enough of the
-        // location table to check a real goal against. See
-        // ArchipelagoClient.RiskOfRain2's equivalent for the pattern - this project's
-        // README links to it as a reference.
+        // Win condition, from worlds/cult_of_the_lamb/options.py (Goal / RequiredCount).
+        var goal = GoalService.GoalBishops;
+        var requiredCount = 4;
+        if (successResult.SlotData.TryGetValue("goal", out var goalObj))
+        {
+            goal = Convert.ToInt32(goalObj);
+        }
+        if (successResult.SlotData.TryGetValue("requiredCount", out var requiredCountObj))
+        {
+            requiredCount = Convert.ToInt32(requiredCountObj);
+        }
+        Log.LogInfo($"[AP] Goal: {(goal == GoalService.GoalWitnesses ? "witnesses" : "bishops")}, required: {requiredCount}");
 
         ConnectedPlayerName = session.Players.GetPlayerName(session.ConnectionInfo.Slot);
 
@@ -130,6 +137,8 @@ public partial class ArchipelagoClient
         LocationCheckService.Register();
         RegionUnlockService = new RegionUnlockService(regionOrder);
         RegionUnlockService.Register();
+        GoalService = new GoalService(session, goal, requiredCount);
+        GoalService.Register();
 
         ItemLogic = new ArchipelagoItemLogicController(session, RegionUnlockService);
         ItemLogic.Register();
@@ -152,6 +161,8 @@ public partial class ArchipelagoClient
         LocationCheckService = null;
         RegionUnlockService?.Unregister();
         RegionUnlockService = null;
+        GoalService?.Unregister();
+        GoalService = null;
         ItemLogic?.Unregister();
         ItemLogic = null;
 
