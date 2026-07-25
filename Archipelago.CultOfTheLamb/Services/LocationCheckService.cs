@@ -1,36 +1,45 @@
+using Archipelago.CultOfTheLamb.Patches;
 using Archipelago.MultiClient.Net;
 
 namespace Archipelago.CultOfTheLamb.Services;
 
 /// <summary>
-/// Watches game events and reports Archipelago location checks when the player does the
-/// in-game equivalent (converts a follower, defeats a bishop, completes a doctrine, etc.).
-/// TODO: wire up the actual game hooks (Harmony patches or COTL_API events) once the
-/// relevant Assembly-CSharp types are identified. Location ids should come from
-/// worlds/cult_of_the_lamb/locations.py so the two sides can't drift apart.
+/// Sends AP location checks in response to InteractionMonsterHeartPatch's OnBossDefeated
+/// event (see that file, and DecompiledGamesViaDnSpy/Cotl/AI_INDEX.md §3). Only Bishop
+/// kills are wired up for now - the 3 minibosses and the Witness fight per region aren't
+/// disambiguated from FollowerLocation alone (it only identifies the region, not which
+/// specific encounter within it), so those location entries in locations.py don't have a
+/// send-check hook yet. TODO once a per-encounter identifier is found.
 /// </summary>
 internal class LocationCheckService : IService
 {
     private readonly ArchipelagoSession session;
 
-    public LocationCheckService(ArchipelagoSession session)
+    internal LocationCheckService(ArchipelagoSession session)
     {
         this.session = session;
     }
 
     public void Register()
     {
-        // TODO: subscribe to game events here.
+        InteractionMonsterHeartPatch.OnBossDefeated += HandleBossDefeated;
     }
 
     public void Unregister()
     {
-        // TODO: unsubscribe from game events here.
+        InteractionMonsterHeartPatch.OnBossDefeated -= HandleBossDefeated;
     }
 
-    /// <summary>Reports a single location check by its AP location id.</summary>
-    public void SendLocationCheck(long locationId)
+    private void HandleBossDefeated(FollowerLocation location)
     {
-        session.Locations.CompleteLocationChecks(locationId);
+        if (!RegionMapping.BishopLocationToCheckId.TryGetValue(location, out var checkId))
+        {
+            // Not one of the 4 base Bishops (e.g. Woolhaven's Wolf/Yngya, or a location we
+            // don't have a check for yet) - nothing to send.
+            return;
+        }
+
+        Log.LogInfo($"[AP] Bishop defeated at {location}, sending check {checkId}");
+        session.Locations.CompleteLocationChecks(checkId);
     }
 }

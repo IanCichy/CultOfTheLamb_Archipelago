@@ -15,35 +15,37 @@ class LocationData(NamedTuple):
     category: str
 
 
-# Starter set: a handful of locations per region so regions.py/rules.py have something
-# real to attach to. "Follower Rescue N" are still generic placeholders (crusade encounters
-# are procedurally generated per-run, so there's no fixed "rescue spot" to name - TODO
-# replace with whatever check-worthy events actually make sense for a randomized dungeon,
-# e.g. per-run milestones rather than named locations). Bishop and Witness fights ARE real,
-# named, one-time story beats confirmed via DecompiledGamesViaDnSpy/Cotl/wiki/ - safe to
-# treat as fixed locations. See docs/architecture.md.
+# Each region path is 4 chunks (3 regular crusades against a named miniboss, then the
+# Bishop crusade) plus a 5th bonus chunk (the Witness, a miniboss fight that becomes
+# available after the Bishop is defeated). All names and the region/Bishop/Witness
+# groupings are real - confirmed independently via the decompiled FollowerLocation enum's
+# Dungeon{tier}_{region} pattern, the wiki's per-region boss rosters, and williambsm's
+# COTL.Archipelago prototype's own Check enum. See
+# DecompiledGamesViaDnSpy/Cotl/wiki/bishops_regions_and_dlc.md.
+# Witnesses are part of the free "Relics of the Old Faith" update, not the paid Woolhaven
+# DLC, so they're included unconditionally rather than behind a DLC option.
 location_table: Dict[str, LocationData] = {
-    # Region -> Bishop -> Witness (post-Bishop miniboss), confirmed via the game's actual
-    # story/boss sequence (DecompiledGamesViaDnSpy/Cotl/wiki/bishops_regions_and_dlc.md):
-    # Darkwood/Leshy/Agares -> Anura/Heket/Bathin -> Anchordeep/Kallamar/Astaroth ->
-    # Silk Cradle/Shamura/Allocer.
-    "Darkwood - Follower Rescue 1": LocationData("Darkwood", "Follower"),
-    "Darkwood - Follower Rescue 2": LocationData("Darkwood", "Follower"),
+    "Darkwood - Amdusias": LocationData("Darkwood", "Miniboss"),
+    "Darkwood - Valefar": LocationData("Darkwood", "Miniboss"),
+    "Darkwood - Barbatos": LocationData("Darkwood", "Miniboss"),
     "Darkwood - Leshy": LocationData("Darkwood", "Bishop"),
     "Darkwood - Witness Agares": LocationData("Darkwood", "Witness"),
 
-    "Anura - Follower Rescue 1": LocationData("Anura", "Follower"),
-    "Anura - Follower Rescue 2": LocationData("Anura", "Follower"),
+    "Anura - Gusion": LocationData("Anura", "Miniboss"),
+    "Anura - Eligos": LocationData("Anura", "Miniboss"),
+    "Anura - Zepar": LocationData("Anura", "Miniboss"),
     "Anura - Heket": LocationData("Anura", "Bishop"),
     "Anura - Witness Bathin": LocationData("Anura", "Witness"),
 
-    "Anchordeep - Follower Rescue 1": LocationData("Anchordeep", "Follower"),
-    "Anchordeep - Follower Rescue 2": LocationData("Anchordeep", "Follower"),
+    "Anchordeep - Saleos": LocationData("Anchordeep", "Miniboss"),
+    "Anchordeep - Haborym": LocationData("Anchordeep", "Miniboss"),
+    "Anchordeep - Baalzebub": LocationData("Anchordeep", "Miniboss"),
     "Anchordeep - Kallamar": LocationData("Anchordeep", "Bishop"),
     "Anchordeep - Witness Astaroth": LocationData("Anchordeep", "Witness"),
 
-    "Silk Cradle - Follower Rescue 1": LocationData("Silk Cradle", "Follower"),
-    "Silk Cradle - Follower Rescue 2": LocationData("Silk Cradle", "Follower"),
+    "Silk Cradle - Focalor": LocationData("Silk Cradle", "Miniboss"),
+    "Silk Cradle - Vephar": LocationData("Silk Cradle", "Miniboss"),
+    "Silk Cradle - Hauras": LocationData("Silk Cradle", "Miniboss"),
     "Silk Cradle - Shamura": LocationData("Silk Cradle", "Bishop"),
     "Silk Cradle - Witness Allocer": LocationData("Silk Cradle", "Witness"),
 }

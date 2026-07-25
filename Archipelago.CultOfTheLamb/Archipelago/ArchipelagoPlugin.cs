@@ -2,6 +2,7 @@ using Archipelago.CultOfTheLamb.Console;
 using Archipelago.CultOfTheLamb.UI;
 using BepInEx;
 using BepInEx.Configuration;
+using HarmonyLib;
 
 namespace Archipelago.CultOfTheLamb;
 
@@ -26,11 +27,15 @@ public class ArchipelagoPlugin : BaseUnityPlugin
     internal static string apPassword;
 
     private ArchipelagoClient AP;
+    private Harmony harmony;
     private bool isReconnecting;
 
     public void Awake()
     {
         Log.Init(Logger);
+
+        harmony = new Harmony(PluginGUID);
+        harmony.PatchAll();
 
         CreateConfigurations();
         DebugCommands.Init(Config);
@@ -44,6 +49,7 @@ public class ArchipelagoPlugin : BaseUnityPlugin
         AP = new ArchipelagoClient();
 
         ArchipelagoConnectButtonController.OnConnectClick += OnClick_ConnectToArchipelago;
+        DebugCommands.OnConnectKeyPressed += OnClick_ConnectToArchipelago;
         AP.OnClientDisconnect += AP_OnClientDisconnect;
         ArchipelagoConsoleCommand.OnArchipelagoCommandCalled += ArchipelagoConsoleCommand_OnArchipelagoCommandCalled;
         ArchipelagoConsoleCommand.OnArchipelagoDisconnectCommandCalled += () => AP.Disconnect();

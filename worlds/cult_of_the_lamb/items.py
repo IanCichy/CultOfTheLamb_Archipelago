@@ -22,13 +22,15 @@ class CultOfTheLambItem(Item):
 # Structure names are still placeholders - the wiki page for Doctrines wasn't sourced yet,
 # and StructureBrain.cs's full base-game enum hasn't been read (see AI_INDEX.md open
 # questions). Don't treat "Doctrine Unlock"/"Structure Unlock" as anything but stand-ins.
+
+# Which of the 4 regions is free at seed start (and the order the other 3 unlock in) is
+# randomized per-seed - see regions.REGION_NAMES/CultOfTheLambWorld.region_order and
+# rules.py. So instead of 3 separately-named "X Access" items, there's a single progressive
+# item: the Nth copy received opens the Nth-still-locked region in that seed's random order.
+PROGRESSIVE_REGION_ACCESS = "Progressive Bishop's Domain"
+
 item_table: Dict[str, ItemData] = {
-    # Progression: region access, mirrors RoR2's per-environment unlock items.
-    # Darkwood has no access item - see rules.py for why (it's the always-reachable tutorial
-    # region, and generation needs at least one free region to bootstrap the fill).
-    "Anura Access": ItemData(offset + 1, ItemClassification.progression, "Region"),
-    "Anchordeep Access": ItemData(offset + 3, ItemClassification.progression, "Region"),
-    "Silk Cradle Access": ItemData(offset + 4, ItemClassification.progression, "Region"),
+    PROGRESSIVE_REGION_ACCESS: ItemData(offset + 1, ItemClassification.progression, "Region"),
 
     # Useful-but-not-required unlocks. "Doctrine Unlock"/"Structure Unlock" are still
     # generic placeholders (see module docstring above); Weapons/Tarot/Relics are real names.

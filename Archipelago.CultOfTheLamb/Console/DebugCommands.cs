@@ -13,6 +13,7 @@ namespace Archipelago.CultOfTheLamb.Console;
 internal static class DebugCommands
 {
     private static ConfigEntry<KeyboardShortcut> debugKey;
+    private static ConfigEntry<KeyboardShortcut> connectKey;
 
     internal static void Init(ConfigFile config)
     {
@@ -21,6 +22,17 @@ internal static class DebugCommands
             "DumpStateKey",
             new KeyboardShortcut(KeyCode.F9),
             "Dumps current Archipelago client state to the BepInEx log.");
+
+        // There's no in-game UI to connect yet (ArchipelagoConnectButtonController is a
+        // stub) and no native dev console to type a command into, so this keybind - using
+        // the SlotName/ServerName/Port/Password values from the BepInEx config file - is
+        // the only way to connect/disconnect for testing right now.
+        connectKey = config.Bind(
+            "Debug",
+            "ConnectKey",
+            new KeyboardShortcut(KeyCode.F5),
+            "Connects to (or disconnects from) Archipelago using the SlotName/ServerName/"
+            + "Port/Password values below.");
     }
 
     internal static void Update()
@@ -29,7 +41,13 @@ internal static class DebugCommands
         {
             OnDebugKeyPressed?.Invoke();
         }
+
+        if (connectKey != null && connectKey.Value.IsDown())
+        {
+            OnConnectKeyPressed?.Invoke();
+        }
     }
 
     internal static event System.Action OnDebugKeyPressed;
+    internal static event System.Action OnConnectKeyPressed;
 }

@@ -2,40 +2,42 @@ from typing import TYPE_CHECKING
 
 from worlds.generic.Rules import set_rule
 
+from .items import PROGRESSIVE_REGION_ACCESS
+
 if TYPE_CHECKING:
     from . import CultOfTheLambWorld
 
-# Darkwood is the game's tutorial region and is always reachable (confirmed via the actual
-# story sequence - see DecompiledGamesViaDnSpy/Cotl/wiki/bishops_regions_and_dlc.md) - it's
-# also the only always-accessible location the fill algorithm has to place the *first*
-# progression item, so it must stay ungated or generation deadlocks (nothing reachable at
-# game start to hold it).
-REGION_ACCESS_ITEMS = {
-    "Anura": "Anura Access",
-    "Anchordeep": "Anchordeep Access",
-    "Silk Cradle": "Silk Cradle Access",
+# Region -> Bishop / Witness location names, confirmed real (see locations.py header).
+BISHOP_LOCATIONS = {
+    "Darkwood": "Darkwood - Leshy",
+    "Anura": "Anura - Heket",
+    "Anchordeep": "Anchordeep - Kallamar",
+    "Silk Cradle": "Silk Cradle - Shamura",
 }
-
-# Reaching a bishop's location implies being equipped to beat them (the standard AP
-# assumption that "can reach" == "can complete"), so victory is defined by reachability
-# rather than a separate synthetic "defeated" item.
-BISHOP_LOCATIONS = [
-    "Darkwood - Leshy",
-    "Anura - Heket",
-    "Anchordeep - Kallamar",
-    "Silk Cradle - Shamura",
-]
+WITNESS_LOCATIONS = {
+    "Darkwood": "Darkwood - Witness Agares",
+    "Anura": "Anura - Witness Bathin",
+    "Anchordeep": "Anchordeep - Witness Astaroth",
+    "Silk Cradle": "Silk Cradle - Witness Allocer",
+}
 
 
 def set_rules(world: "CultOfTheLambWorld") -> None:
     player = world.player
     multiworld = world.multiworld
 
+    # world.region_order[0] is free (set in generate_early); each region after that needs
+    # one more copy of the progressive access item than the one before it.
     if world.options.randomize_region_access:
-        for region_name, item_name in REGION_ACCESS_ITEMS.items():
+        for i, region_name in enumerate(world.region_order[1:], start=1):
             entrance = multiworld.get_entrance(f"Cult -> {region_name}", player)
-            set_rule(entrance, lambda state, item=item_name: state.has(item, player))
+            set_rule(entrance, lambda state, count=i: state.has(PROGRESSIVE_REGION_ACCESS, player, count))
 
-    multiworld.completion_condition[player] = lambda state: all(
-        state.can_reach_location(location_name, player) for location_name in BISHOP_LOCATIONS
-    )
+    # Reaching a Bishop/Witness location implies being equipped to beat them (the standard
+    # AP assumption that "can reach" == "can complete"), so victory is defined by reachable
+    # count rather than a separate synthetic "defeated" item.
+    track = BISHOP_LOCATIONS if world.options.goal == "bishops" else WITNESS_LOCATIONS
+    required = world.options.required_count.value
+    multiworld.completion_condition[player] = lambda state: sum(
+        1 for location_name in track.values() if state.can_reach_location(location_name, player)
+    ) >= required

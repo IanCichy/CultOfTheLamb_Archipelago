@@ -3,11 +3,11 @@ from typing import Any, Dict, List
 from BaseClasses import Tutorial
 from worlds.AutoWorld import WebWorld, World
 
-from .items import CultOfTheLambItem, create_item, filler_table, item_table
+from .items import CultOfTheLambItem, PROGRESSIVE_REGION_ACCESS, create_item, filler_table, item_table
 from .locations import location_name_to_id, location_table
 from .options import CultOfTheLambOptions
-from .regions import create_regions
-from .rules import REGION_ACCESS_ITEMS, set_rules
+from .regions import REGION_NAMES, create_regions
+from .rules import set_rules
 
 
 class CultOfTheLambWeb(WebWorld):
@@ -34,13 +34,20 @@ class CultOfTheLambWorld(World):
     item_name_to_id = {name: data.code for name, data in item_table.items()}
     location_name_to_id = location_name_to_id
     item_name_groups = {
-        "Regions": set(REGION_ACCESS_ITEMS.values()),
         "Weapons": {name for name, data in item_table.items() if data.category == "Weapon"},
         "Tarot Cards": {name for name, data in item_table.items() if data.category == "Tarot"},
         "Relics": {name for name, data in item_table.items() if data.category == "Relic"},
     }
 
     web = CultOfTheLambWeb()
+
+    # The region that's free from seed start, followed by the other three in the order
+    # they unlock via Progressive Bishop's Domain. Set once in generate_early so
+    # create_regions/set_rules/fill_slot_data all agree on the same per-seed order.
+    region_order: List[str]
+
+    def generate_early(self) -> None:
+        self.region_order = self.random.sample(REGION_NAMES, len(REGION_NAMES))
 
     def create_regions(self) -> None:
         create_regions(self)
@@ -52,11 +59,13 @@ class CultOfTheLambWorld(World):
         item_pool: List[CultOfTheLambItem] = []
 
         if self.options.randomize_region_access:
-            for item_name in REGION_ACCESS_ITEMS.values():
-                item_pool.append(self.create_item(item_name))
+            # One fewer copy than there are regions - the first region in region_order is
+            # always free, so only the remaining N-1 need to be unlocked.
+            for _ in range(len(REGION_NAMES) - 1):
+                item_pool.append(self.create_item(PROGRESSIVE_REGION_ACCESS))
 
         remaining = len(location_table) - len(item_pool)
-        fillable_names = [name for name in item_table if name not in REGION_ACCESS_ITEMS.values()]
+        fillable_names = [name for name in item_table if name != PROGRESSIVE_REGION_ACCESS]
         for _ in range(remaining):
             item_pool.append(self.create_item(self.random.choice(fillable_names)))
 
@@ -71,5 +80,9 @@ class CultOfTheLambWorld(World):
     def fill_slot_data(self) -> Dict[str, Any]:
         return {
             "goal": self.options.goal.value,
+            "requiredCount": self.options.required_count.value,
             "randomizeRegionAccess": bool(self.options.randomize_region_access.value),
+            # Tells the C# client which region to force-open at start, and the order the
+            # remaining three unlock in as Progressive Bishop's Domain copies arrive.
+            "regionOrder": self.region_order,
         }

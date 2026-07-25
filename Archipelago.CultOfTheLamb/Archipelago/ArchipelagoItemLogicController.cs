@@ -1,3 +1,4 @@
+using Archipelago.CultOfTheLamb.Services;
 using Archipelago.MultiClient.Net;
 using Archipelago.MultiClient.Net.Helpers;
 using System.Collections.Concurrent;
@@ -13,11 +14,13 @@ namespace Archipelago.CultOfTheLamb;
 public partial class ArchipelagoItemLogicController : IService
 {
     private readonly ArchipelagoSession session;
+    private readonly RegionUnlockService regionUnlockService;
     private readonly ConcurrentQueue<long> pendingItemIds = new();
 
-    public ArchipelagoItemLogicController(ArchipelagoSession session)
+    internal ArchipelagoItemLogicController(ArchipelagoSession session, RegionUnlockService regionUnlockService)
     {
         this.session = session;
+        this.regionUnlockService = regionUnlockService;
     }
 
     public void Register()
@@ -49,14 +52,18 @@ public partial class ArchipelagoItemLogicController : IService
     }
 
     /// <summary>
-    /// TODO: this is where receiving an AP item turns into an actual game effect -
-    /// granting a follower, unlocking a doctrine/structure, opening a dungeon region, etc.
-    /// Needs the real item id table from worlds/cult_of_the_lamb/items.py and the matching
-    /// game-side API (COTL_API's Custom* systems, or direct save-data/Harmony patches once
-    /// the relevant Assembly-CSharp types are identified via decompilation).
+    /// Turns a received AP item into an actual game effect. Only region access is wired up
+    /// so far - the rest of items.py (weapons/tarot/relics/doctrines/filler/traps) still
+    /// needs real game-side hooks. See RegionUnlockService and
+    /// DecompiledGamesViaDnSpy/Cotl/AI_INDEX.md for what's confirmed so far.
     /// </summary>
     private void ApplyItem(long itemId)
     {
         Log.LogInfo($"[AP] Received item: {session.Items.GetItemName(itemId)} (id {itemId})");
+
+        if (itemId == CultOfTheLambIds.ProgressiveRegionAccessItemId)
+        {
+            regionUnlockService?.UnlockNextRegion();
+        }
     }
 }
