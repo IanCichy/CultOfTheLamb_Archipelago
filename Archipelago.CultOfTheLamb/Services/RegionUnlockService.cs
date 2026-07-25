@@ -22,17 +22,23 @@ internal class RegionUnlockService : IService
     public void Register()
     {
         unlockedCount = 0;
+        RegionLockState.Reset();
         if (regionOrder == null || regionOrder.Count == 0)
         {
             Log.LogWarning("[AP] RegionUnlockService: no regionOrder in slot data, nothing to unlock.");
             return;
         }
+        // Enforce locking only once we know the seed's region order - otherwise the door
+        // patches would hold every managed region shut with no way to open them.
+        RegionLockState.Active = true;
         UnlockRegion(regionOrder[0]);
         unlockedCount = 1;
     }
 
     public void Unregister()
     {
+        // Stop enforcing locks on disconnect so the save is playable as vanilla again.
+        RegionLockState.Reset();
     }
 
     /// <summary>Call when a Progressive Bishop's Domain item is received.</summary>
@@ -63,6 +69,10 @@ internal class RegionUnlockService : IService
             Log.LogWarning($"[AP] RegionUnlockService: DataManager.Instance is null, can't unlock {regionName} yet.");
             return;
         }
+
+        // Record it first: the door patches read RegionLockState, and marking it unlocked
+        // is what stops them from stripping the entry back out again.
+        RegionLockState.MarkUnlocked(location);
 
         if (!DataManager.Instance.UnlockedDungeonDoor.Contains(location))
         {
