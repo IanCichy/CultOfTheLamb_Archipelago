@@ -62,12 +62,16 @@ public partial class ArchipelagoClient
             return null;
         }
 
-        // TODO: bump the client version to match manifest.json as the mod matures.
+        // NOTE: this Version is the **Archipelago network protocol version** we claim to
+        // speak - NOT this mod's version. The server rejects the login with
+        // 'IncompatibleVersion' if it's below its minimum supported client version, so it
+        // has to track the AP releases we support (currently generating/hosting on 0.6.6).
+        // Don't "helpfully" sync this to manifest.json's mod version.
         return session.TryConnectAndLogin(
             "Cult of the Lamb",
             slotName,
             ItemsHandlingFlags.AllItems,
-            new Version(0, 1, 0),
+            new Version(0, 6, 6),
             password: password);
     }
 

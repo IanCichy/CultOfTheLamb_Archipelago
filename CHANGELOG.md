@@ -4,6 +4,12 @@
 - First real Harmony patch and working gameplay hooks: `RegionUnlockService` force-opens
   regions via `DataManager.Instance.UnlockedDungeonDoor`; `LocationCheckService` sends real
   checks for the 4 base Bishop kills via a patch on `Interaction_MonsterHeart`.
+- Region *locking* (`Patches/BaseDungeonDoorPatch.cs`): unlocking alone left every other
+  region openable, since vanilla opens doors on the follower-count requirement without ever
+  checking the unlocked-door save state. Now blocked at both the interaction and the
+  physical-collider route.
+- Fixed the AP handshake announcing the mod version (0.1.0) as the Archipelago protocol
+  version, which the server rejected with `IncompatibleVersion`.
 - Python world redesigned: single `Progressive Bishop's Domain` region-access item (one of
   four regions free per-seed, order randomized), 20 real per-region locations (3 named
   minibosses + Bishop + Witness), two-track X/4 goal (Bishops or Witnesses).

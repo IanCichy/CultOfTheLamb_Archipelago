@@ -42,12 +42,23 @@ Same convention as RoR2: each cross-cutting concern is a class implementing
   region aren't disambiguated from `FollowerLocation` alone yet (it only identifies the
   region, not which specific encounter) — those location table entries have no send-check
   hook until a per-encounter identifier is found.
-- `RegionUnlockService` — **wired up.** Writes directly to
+- `RegionUnlockService` — **wired up and verified in-game.** Writes directly to
   `DataManager.Instance.UnlockedDungeonDoor` (see
   `DecompiledGamesViaDnSpy/Cotl/AI_INDEX.md` §3 - this is the real, confirmed unlock state,
   found by reading `Interaction_BaseDungeonDoor`). Region 0 in the seed's `regionOrder`
   unlocks on connect; each further region unlocks as a `Progressive Bishop's Domain` copy
-  arrives, routed through `ArchipelagoItemLogicController.ApplyItem`.
+  arrives, routed through `ArchipelagoItemLogicController.ApplyItem`. Also owns
+  `Utilities/RegionLockState.cs`, the static view the door patches read.
+- **Locking is a separate problem from unlocking** (learned the hard way in testing):
+  writing to `UnlockedDungeonDoor` makes a door open, but does nothing to keep other doors
+  shut, because vanilla `Interaction_BaseDungeonDoor.OnInteract()` starts the open ritual
+  based *only* on the follower-count requirement (`HaveFollowers`) and never consults
+  `UnlockedDungeonDoor`. `Patches/BaseDungeonDoorPatch.cs` closes both routes: a prefix on
+  `OnInteract` refuses the ritual, and a prefix on `OnEnableInteraction` strips AP-locked
+  regions back out of `UnlockedDungeonDoor` before the door reads it (otherwise `Unlocked`
+  goes true and `OpenDoor()` disables the blocking collider, letting the player just walk
+  through). Enforcement is gated on `RegionLockState.Active` so a disconnected session
+  plays as vanilla instead of having every region permanently locked.
 - `Patches/InteractionMonsterHeartPatch.cs` — the one Harmony patch so far. Postfixes
   `Interaction_MonsterHeart.Start()` to subscribe to that instance's public `OnHeartTaken`
   event (fires right after the game itself records a boss kill) rather than patching the
