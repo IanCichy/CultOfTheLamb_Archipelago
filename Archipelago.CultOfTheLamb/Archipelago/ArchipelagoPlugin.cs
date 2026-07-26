@@ -50,6 +50,7 @@ public class ArchipelagoPlugin : BaseUnityPlugin
 
         ArchipelagoConnectButtonController.OnConnectClick += OnClick_ConnectToArchipelago;
         DebugCommands.OnConnectKeyPressed += OnClick_ConnectToArchipelago;
+        DebugCommands.OnDebugKeyPressed += () => DebugActions.DumpState(AP);
         AP.OnClientDisconnect += AP_OnClientDisconnect;
         ArchipelagoConsoleCommand.OnArchipelagoCommandCalled += ArchipelagoConsoleCommand_OnArchipelagoCommandCalled;
         ArchipelagoConsoleCommand.OnArchipelagoDisconnectCommandCalled += () => AP.Disconnect();
