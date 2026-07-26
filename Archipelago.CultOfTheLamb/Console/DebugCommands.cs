@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using BepInEx.Configuration;
 using UnityEngine;
 
@@ -6,33 +8,69 @@ namespace Archipelago.CultOfTheLamb.Console;
 /// <summary>
 /// Keybind-driven debug helpers. RoR2 has a native dev console (RoR2.Console) that the
 /// RiskOfRain2 mod hooks with [ConCommand]; Cult of the Lamb doesn't expose an equivalent
-/// out of the box (TODO: confirm - COTL_API may add one), so this uses a BepInEx keybind
-/// instead. Wire real debug behavior into OnDebugKeyPressed once there's something worth
-/// inspecting (received item queue, region unlock state, etc.).
+/// out of the box (TODO: confirm - COTL_API may add one), so this uses BepInEx keybinds
+/// instead. The bodies live in DebugActions; ArchipelagoPlugin does the wiring.
+///
+/// The feature keys (F6-F11) exist to prove out candidate AP features in one debug build
+/// rather than one build/test cycle per feature - see docs/sprints/sprint-2-feature-slice.md.
+/// They're developer tooling, not player-facing, and should be removed or gated once the
+/// features they test are real.
 /// </summary>
 internal static class DebugCommands
 {
+    private static readonly List<(ConfigEntry<KeyboardShortcut> Key, Action Handler)> bindings = new();
+
     private static ConfigEntry<KeyboardShortcut> debugKey;
     private static ConfigEntry<KeyboardShortcut> connectKey;
 
     internal static void Init(ConfigFile config)
     {
-        debugKey = config.Bind(
-            "Debug",
-            "DumpStateKey",
-            new KeyboardShortcut(KeyCode.F9),
-            "Dumps current Archipelago client state to the BepInEx log.");
+        debugKey = Bind(config, "DumpStateKey", KeyCode.F9,
+            "Dumps Archipelago client state, the game's boss-kill records, and every "
+            + "MiniBossController in the current scene (internal name -> display name) to the log.");
 
         // There's no in-game UI to connect yet (ArchipelagoConnectButtonController is a
         // stub) and no native dev console to type a command into, so this keybind - using
         // the SlotName/ServerName/Port/Password values from the BepInEx config file - is
         // the only way to connect/disconnect for testing right now.
-        connectKey = config.Bind(
-            "Debug",
-            "ConnectKey",
-            new KeyboardShortcut(KeyCode.F5),
+        connectKey = Bind(config, "ConnectKey", KeyCode.F5,
             "Connects to (or disconnects from) Archipelago using the SlotName/ServerName/"
             + "Port/Password values below.");
+
+        BindFeatureKey(config, "DumpNamesKey", KeyCode.F4,
+            "Writes the internal-name -> display-name table for upgrades, tarot, fleeces, "
+            + "crown abilities and doctrines to BepInEx/ap_unlockable_names.txt.",
+            DebugActions.DumpUnlockableNames);
+
+        BindFeatureKey(config, "GiveResourcesKey", KeyCode.F6,
+            "Grants a few resource items (tests filler-item grants).",
+            DebugActions.GiveResources);
+
+        BindFeatureKey(config, "UnlockSermonKey", KeyCode.F7,
+            "Unlocks one sermon/ability upgrade (tests sermon-upgrade item grants).",
+            DebugActions.UnlockSampleSermon);
+
+        BindFeatureKey(config, "UnlockTarotKey", KeyCode.F8,
+            "Unlocks one tarot card (tests tarot item grants).",
+            DebugActions.UnlockSampleTarot);
+
+        BindFeatureKey(config, "UnlockFleeceKey", KeyCode.F10,
+            "Unlocks one fleece (tests fleece item grants).",
+            DebugActions.UnlockSampleFleece);
+
+        BindFeatureKey(config, "ShowNotificationKey", KeyCode.F11,
+            "Shows sample Archipelago notifications (tests the notification pipeline).",
+            DebugActions.ShowSampleNotification);
+    }
+
+    private static ConfigEntry<KeyboardShortcut> Bind(
+        ConfigFile config, string name, KeyCode key, string description) =>
+        config.Bind("Debug", name, new KeyboardShortcut(key), description);
+
+    private static void BindFeatureKey(
+        ConfigFile config, string name, KeyCode key, string description, Action handler)
+    {
+        bindings.Add((Bind(config, name, key, description), handler));
     }
 
     internal static void Update()
@@ -46,8 +84,25 @@ internal static class DebugCommands
         {
             OnConnectKeyPressed?.Invoke();
         }
+
+        foreach (var (key, handler) in bindings)
+        {
+            if (!key.Value.IsDown()) continue;
+
+            // A debug keybind must never take the game down with it - these call into game
+            // APIs that may not be initialized depending on where the player is (main menu,
+            // mid-crusade, etc).
+            try
+            {
+                handler();
+            }
+            catch (Exception e)
+            {
+                Log.LogError($"[AP] Debug key '{key.Definition.Key}' threw: {e}");
+            }
+        }
     }
 
-    internal static event System.Action OnDebugKeyPressed;
-    internal static event System.Action OnConnectKeyPressed;
+    internal static event Action OnDebugKeyPressed;
+    internal static event Action OnConnectKeyPressed;
 }
