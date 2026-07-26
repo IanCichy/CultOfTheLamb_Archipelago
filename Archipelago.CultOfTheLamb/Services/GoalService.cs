@@ -8,11 +8,12 @@ namespace Archipelago.CultOfTheLamb.Services;
 /// <summary>
 /// Watches for the seed's win condition and reports it to the server.
 ///
-/// Progress is counted from DataManager.Instance.BossesCompleted rather than from a
-/// session-local tally: Interaction_MonsterHeart adds the kill to BossesCompleted *before*
-/// raising OnHeartTaken (see AI_INDEX.md §3), so the game's own record is already correct
-/// when our handler runs. Reading it means the count is also right after a reconnect, or if
-/// the player beat Bishops before ever connecting.
+/// Progress is counted from the game's own save state rather than a session-local tally -
+/// BossesCompleted for Bishops, KilledBosses for Witnesses. Both are already updated by the
+/// time our handlers run (Interaction_MonsterHeart adds to BossesCompleted before raising
+/// OnHeartTaken; our AddKilledBoss patch is a postfix), so reading them means the count is
+/// also right after a reconnect, or if the player beat bosses before ever connecting.
+/// See AI_INDEX.md §3 and §3a.
 /// </summary>
 internal class GoalService : IService
 {
@@ -24,7 +25,6 @@ internal class GoalService : IService
     private readonly int goal;
     private readonly int requiredCount;
     private bool goalSent;
-    private bool warnedUnsupportedGoal;
 
     internal GoalService(ArchipelagoSession session, int goal, int requiredCount)
     {
@@ -36,6 +36,7 @@ internal class GoalService : IService
     public void Register()
     {
         InteractionMonsterHeartPatch.OnBossDefeated += HandleBossDefeated;
+        DataManagerKilledBossPatch.OnBossKillRecorded += HandleBossKillRecorded;
         // Re-check immediately: the player may already satisfy the goal from a previous
         // session before this connect.
         CheckGoal();
@@ -44,33 +45,23 @@ internal class GoalService : IService
     public void Unregister()
     {
         InteractionMonsterHeartPatch.OnBossDefeated -= HandleBossDefeated;
+        DataManagerKilledBossPatch.OnBossKillRecorded -= HandleBossKillRecorded;
         goalSent = false;
-        warnedUnsupportedGoal = false;
     }
 
     private void HandleBossDefeated(FollowerLocation location) => CheckGoal();
+
+    private void HandleBossKillRecorded(string bossKey) => CheckGoal();
 
     private void CheckGoal()
     {
         if (goalSent) return;
 
-        if (goal != GoalBishops)
-        {
-            // The Witness fights aren't detectable yet - FollowerLocation only identifies
-            // the region, not which encounter within it (same limitation that blocks
-            // miniboss/Witness location checks in LocationCheckService).
-            if (!warnedUnsupportedGoal)
-            {
-                warnedUnsupportedGoal = true;
-                Log.LogWarning(
-                    "[AP] Goal is set to 'witnesses', which this client can't detect yet - "
-                    + "victory will NOT be reported automatically. Use the Bishops goal for now.");
-            }
-            return;
-        }
+        var isWitnessGoal = goal == GoalWitnesses;
+        var defeated = isWitnessGoal ? CountDefeatedWitnesses() : CountDefeatedBishops();
+        var noun = isWitnessGoal ? "Witnesses" : "Bishops";
 
-        var defeated = CountDefeatedBishops();
-        Log.LogInfo($"[AP] Goal progress: {defeated}/{requiredCount} Bishops defeated.");
+        Log.LogInfo($"[AP] Goal progress: {defeated}/{requiredCount} {noun} defeated.");
 
         if (defeated >= requiredCount)
         {
@@ -87,6 +78,25 @@ internal class GoalService : IService
         foreach (var bishopLocation in RegionMapping.BishopLocationToCheckId.Keys)
         {
             if (dataManager.BossesCompleted.Contains(bishopLocation)) count++;
+        }
+        return count;
+    }
+
+    /// <summary>
+    /// Counts the base-game Witnesses only, deliberately ignoring the "_P2" post-game
+    /// re-fights - a Purged-run kill shouldn't count toward a goal the player hasn't met in
+    /// the base run. Reads KilledBosses directly rather than DataManager's
+    /// BeatenWitnessDungeon1..4 booleans, which are only refreshed at specific points.
+    /// </summary>
+    private int CountDefeatedWitnesses()
+    {
+        var dataManager = DataManager.Instance;
+        if (dataManager == null || dataManager.KilledBosses == null) return 0;
+
+        var count = 0;
+        foreach (var witnessKey in BossKeyMapping.WitnessKeys)
+        {
+            if (dataManager.KilledBosses.Contains(witnessKey)) count++;
         }
         return count;
     }
