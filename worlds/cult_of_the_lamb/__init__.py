@@ -3,8 +3,11 @@ from typing import Any, Dict, List
 from BaseClasses import Tutorial
 from worlds.AutoWorld import WebWorld, World
 
-from .items import CultOfTheLambItem, PROGRESSIVE_REGION_ACCESS, create_item, filler_table, item_table
-from .locations import location_name_to_id, location_table
+from .items import (
+    SERMON_ITEM_OFFSET, SERMON_ITEM_UPGRADES, CultOfTheLambItem, PROGRESSIVE_REGION_ACCESS,
+    create_item, filler_table, item_table, offset, sermon_item_counts,
+)
+from .locations import location_name_to_id
 from .options import CultOfTheLambOptions
 from .regions import REGION_NAMES, create_regions
 from .rules import set_rules
@@ -37,6 +40,7 @@ class CultOfTheLambWorld(World):
         "Weapons": {name for name, data in item_table.items() if data.category == "Weapon"},
         "Tarot Cards": {name for name, data in item_table.items() if data.category == "Tarot"},
         "Relics": {name for name, data in item_table.items() if data.category == "Relic"},
+        "Sermon Upgrades": {name for name, data in item_table.items() if data.category == "Sermon"},
     }
 
     web = CultOfTheLambWeb()
@@ -64,10 +68,18 @@ class CultOfTheLambWorld(World):
             for _ in range(len(REGION_NAMES) - 1):
                 item_pool.append(self.create_item(PROGRESSIVE_REGION_ACCESS))
 
-        remaining = len(location_table) - len(item_pool)
-        fillable_names = [name for name in item_table if name != PROGRESSIVE_REGION_ACCESS]
+        if self.options.randomize_sermon_upgrades:
+            counts = sermon_item_counts(bool(self.options.include_woolhaven))
+            for name, count in counts.items():
+                for _ in range(count):
+                    item_pool.append(self.create_item(name))
+
+        # Count the locations actually created rather than the whole table: options can
+        # disable whole blocks (sermons, DLC content), and padding to the table size would
+        # overfill the pool and fail generation.
+        remaining = len(self.multiworld.get_unfilled_locations(self.player)) - len(item_pool)
         for _ in range(remaining):
-            item_pool.append(self.create_item(self.random.choice(fillable_names)))
+            item_pool.append(self.create_item(self.get_filler_item_name()))
 
         self.multiworld.itempool += item_pool
 
@@ -85,4 +97,20 @@ class CultOfTheLambWorld(World):
             # Tells the C# client which region to force-open at start, and the order the
             # remaining three unlock in as Progressive Bishop's Domain copies arrive.
             "regionOrder": self.region_order,
+
+            "includeWoolhaven": bool(self.options.include_woolhaven.value),
+            "randomizeSermonUpgrades": bool(self.options.randomize_sermon_upgrades.value),
+            # Sermon item name -> the UpgradeSystem.Type names it unlocks, in order. A
+            # single-entry list is a standalone upgrade; a longer one is a progressive chain
+            # where the Nth copy received unlocks the Nth entry. Sending the mapping instead
+            # of hardcoding it client-side means adding or reordering upgrades can't
+            # silently desync the two sides the way the hardcoded location ids in
+            # CultOfTheLambIds.cs can.
+            "sermonUpgrades": {
+                name: [
+                    internal for internal, dlc in tiers
+                    if self.options.include_woolhaven or not dlc
+                ]
+                for name, tiers in SERMON_ITEM_UPGRADES.items()
+            },
         }

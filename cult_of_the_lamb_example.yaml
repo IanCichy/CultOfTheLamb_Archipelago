@@ -15,3 +15,18 @@ Cult of the Lamb:
   #        need a "Progressive Bishop's Domain" item (random per-seed unlock order).
   # false: all four regions open from the start.
   randomize_region_access: true
+
+  # Randomize the Temple sermon upgrades. When on, filling the sermon bar sends a check
+  # instead of opening the upgrade-choice screen, and the upgrades arrive as Archipelago
+  # items. Adds 32 checks (38 with Woolhaven).
+  #
+  # Might of the Devout, Hearts of the Faithful and Fervour of the Righteous are progressive
+  # (the Nth copy grants the Nth tier); everything else - the weapon affixes, curse packs,
+  # Heavy Attack masteries and relic unlocks - is its own named item.
+  randomize_sermon_upgrades: true
+
+  # Include content from the paid Woolhaven DLC.
+  #
+  # Only enable this if you actually own Woolhaven. The client cannot grant DLC content you
+  # don't have, so a seed generated with this on and played without the DLC is unbeatable.
+  include_woolhaven: false
