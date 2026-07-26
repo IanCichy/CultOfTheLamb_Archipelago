@@ -101,25 +101,65 @@ doesn't gets dropped or rethought before we invest in it.
 
 ---
 
-## After the slice (ordered, from `feature-viability.md`)
+## After the slice
 
-1. Sermon upgrades as ~35 locations + ~35 items — **the biggest single win**; roughly
-   triples the location count from one system. Open design question: AP may grant e.g.
-   "Sword Mastery" before "Weapon Mastery" — either mirror the prereq graph in `rules.py`
-   or make them progressive items.
-2. **Miniboss + Witness checks** — fills in the 15 locations that already exist in
-   `locations.py` but send nothing. Now that per-boss names are known to exist (see "Known
-   gaps"), this is probably the cheapest large win, not a blocker.
-3. Tarot cards as locations + items. Shops are *fixed, identifiable* interactions, so this
-   is still a good additional location source.
-3. AP logo in shop slots. Texture is ready at
-   `Archipelago.CultOfTheLamb/Assets/ap_icon.png` (converted from WebP — Unity's
-   `Texture2D.LoadImage` only decodes PNG/JPG, so the original would have silently failed).
-   Use `session.Locations.ScoutLocationsAsync()` for the remote item name/player.
-4. Connect UI — build a plain BepInEx IMGUI panel. **Do not** try to reuse the cult-naming
-   dialog: `CheatConsole.NameCult()` just sets `DataManager.Instance.OnboardedCultName =
-   false` to re-trigger onboarding; it is not a reusable text input.
-5. Pacing multipliers as `options.py` YAML settings (not AP items).
+### Done
+- ~~Miniboss + Witness checks~~ — shipped. `DataManager.AddKilledBoss(string)` is the single
+  write site for `KilledBosses` and covers all 12 minibosses, 4 Witnesses and their `_P2`
+  post-game variants. Verified end-to-end in-game. See `AI_INDEX.md` §3a.
+- ~~Sermon upgrades~~ (Python side) — 38 upgrades, 32 base + 6 Woolhaven, verified against
+  the game's own `UpgradePlayerConfiguration.AllUpgrades`. **C# side still to do**: grant on
+  item receive, send check on sermon-bar fill, suppress the upgrade-choice screen.
+
+### Next
+1. **Tarot cards** — 85 in `DataManager.AllTrinkets` (46 realistically randomizable: minus 19
+   Woolhaven, 5 co-op, 15 unlocked at game start). `TarotCards.UnlockTrinket(Card)` grants and
+   raises the game's own alert for free. Blocked only on display names (F4 dump has them).
+2. **AP logo in shop slots / marketplace.** Texture ready at `Assets/ap_icon.png` (converted
+   from WebP — Unity's `Texture2D.LoadImage` only decodes PNG/JPG). Use
+   `session.Locations.ScoutLocationsAsync()` for the remote item name/player. Real vendors
+   exist: `MarketPlaceWeapons/Clothes/Chef/Animal/Cat/Spider`, `MarketplaceBlacksmith`,
+   `MarketPlacePostGame`, plus `AnimalMarketplaceManager`. **Highest technical risk of
+   anything remaining — worth prototyping early rather than late.**
+3. **Follower recruitment milestones (1..20).** Cheapest check source left:
+   `FollowerRecruit.OnFollowerRecruited` / `OnRecruitFinalised` are **public static events**,
+   so no Harmony patch is needed. Must be high-water-mark ("recruited N total"), not current
+   count — followers die, and a current-count check would become unreachable after a plague.
+4. **Structure-built checks.** `Structures_BuildSite.OnBuildComplete` is a public `Action`
+   and `StructureBrain.TYPES` says which structure. Needs curating: the enum includes scenery
+   (`TREE`, `ROCK`, `POOP`) alongside real buildables.
+5. **Doctrines** — ~48 base (6 categories x 8, ~10 levels each). `DoctrineUpgradeSystem`
+   has the full unlock API; `GetSermonReward(category, level, firstChoice)` gives the two
+   options offered per level.
+6. **Achievements** — 48 enumerable via `AchievementsWrapper.Achievements`, queryable with
+   `UnlockedAchievement()`. ~28 are event-shaped and make good checks; the ~12 "collect all
+   X" ones are effectively goal-tier and the `*_NODAMAGE` ones are skill-gated, so both
+   groups want a YAML toggle.
+7. **Crown abilities** — 14, bought with Monster Hearts via
+   `UIPlayerUpgradesMenuController.UpgradeItemSelected` -> `UnlockAbility`. Grapple Hook /
+   Fishing Rod / Special Key are traversal, so these are the best `progression` candidates
+   in the game.
+8. **Fleeces** — 12 base / 15 Woolhaven. Proven working (there is no unlock API;
+   `DataManager.UnlockedFleeces` is a plain `List<int>` of enum values).
+9. Connect UI — plain BepInEx IMGUI panel. **Do not** try to reuse the cult-naming dialog:
+   `CheatConsole.NameCult()` just sets `DataManager.Instance.OnboardedCultName = false` to
+   re-trigger onboarding; it is not a reusable text input.
+10. Pacing multipliers as `options.py` YAML settings (not AP items). `CultFaithManager.GetFaith`
+    is the single choke point for faith; don't scale the stored value, it's clamped to [0, 85].
+
+### Researched but rejected
+- **"Complete path 1/2/3/4" per region** — redundant with the miniboss checks.
+  `MiniBossManager` picks the encounter *by* dungeon layer (`:52`) and advances the layer *on*
+  its death (`:327-330`), so layer N completing and miniboss N dying are the same event.
+  Paired locations that can never be reached independently add no routing freedom.
+
+### Open questions
+- **"Broom upgrades"** (user request) — no such system found. The only matches in the whole
+  assembly are two audio events (`broom_away_spin`, `broom_in_spin`); "sweep"/"cleaning" only
+  turn up combat sweep attacks and follower cleaning tasks. Needs clarifying before it can be
+  scoped.
+- Which marketplace shape is wanted: purchases-as-checks (easy) vs AP items in shop slots
+  (the item #2 above).
 
 ## Standing constraints
 
@@ -128,4 +168,10 @@ doesn't gets dropped or rethought before we invest in it.
 - Item/location ids in `Utilities/CultOfTheLambIds.cs` are hardcoded to mirror the Python
   side's offset scheme. They **will silently drift** if `items.py`/`locations.py` dict order
   changes. Adding a lot of items/locations is a good moment to replace this with a real AP
-  datapackage name→id lookup.
+  datapackage name→id lookup. (The sermon feature avoids this entirely by sending the
+  name→`UpgradeSystem.Type` mapping through `fill_slot_data` instead — prefer that pattern.)
+- The project compiles against `CultOfTheLamb.GameLibs 1.4.6.596-r.0`, which is **older than
+  the installed game**: e.g. `GameManager.DLCUpgradeTreeConfiguration` exists at runtime but
+  not at compile time (reached by reflection in `DebugActions`). Bumping to `1.5.15.979-r.0`
+  currently fails because Windows Defender blocks reading `Rewired_Core.dll` out of the NuGet
+  cache as a false positive; needs a Defender exclusion before the bump can land.
