@@ -26,6 +26,25 @@ public partial class ArchipelagoItemLogicController : IService
     public void Register()
     {
         session.Items.ItemReceived += Items_ItemReceived;
+
+        // The server replays every item the slot has ever received as part of login, and that
+        // lands *before* this subscription exists - so reacting only to the live event drops
+        // the entire backlog. That silently breaks any reconnect (previously-unlocked regions
+        // stay locked) and breaks connecting to a seed already in progress.
+        //
+        // Draining is safe against a concurrent live event: both paths consume the same
+        // underlying queue via DequeueItem(), so an item goes to exactly one of them.
+        var backlog = 0;
+        while (session.Items.Any())
+        {
+            pendingItemIds.Enqueue(session.Items.DequeueItem().ItemId);
+            backlog++;
+        }
+
+        if (backlog > 0)
+        {
+            Log.LogInfo($"[AP] Replaying {backlog} previously-received item(s) from this slot.");
+        }
     }
 
     public void Unregister()
