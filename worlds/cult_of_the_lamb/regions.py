@@ -17,17 +17,27 @@ def create_regions(world: "CultOfTheLambWorld") -> None:
     player = world.player
     multiworld = world.multiworld
 
+    include_dlc = bool(world.options.include_woolhaven)
+
     menu = Region("Menu", player, multiworld)
     cult = Region("Cult", player, multiworld)
     multiworld.regions.append(menu)
     multiworld.regions.append(cult)
     menu.connect(cult)
 
+    # Home-base checks (sermon upgrades). Only added when the matching option is on, so a
+    # seed that isn't randomizing them doesn't carry unreachable locations.
+    if world.options.randomize_sermon_upgrades:
+        add_locations(cult, get_locations_for_region("Cult", include_dlc), player)
+
     for region_name in REGION_NAMES:
         region = Region(region_name, player, multiworld)
-        for location_name in get_locations_for_region(region_name):
-            location = CultOfTheLambLocation(
-                player, location_name, location_name_to_id[location_name], region)
-            region.locations.append(location)
+        add_locations(region, get_locations_for_region(region_name, include_dlc), player)
         multiworld.regions.append(region)
         cult.connect(region, f"Cult -> {region_name}")
+
+
+def add_locations(region: Region, location_names, player: int) -> None:
+    for location_name in location_names:
+        region.locations.append(CultOfTheLambLocation(
+            player, location_name, location_name_to_id[location_name], region))

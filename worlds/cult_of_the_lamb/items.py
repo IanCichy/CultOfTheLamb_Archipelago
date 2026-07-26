@@ -1,4 +1,4 @@
-from typing import Dict, NamedTuple, Optional
+from typing import Dict, List, NamedTuple, Optional, Tuple
 
 from BaseClasses import Item, ItemClassification
 
@@ -11,6 +11,9 @@ class ItemData(NamedTuple):
     code: Optional[int]
     classification: ItemClassification
     category: str
+    # Woolhaven (the game's only major gameplay DLC) content. Excluded from the pool unless
+    # the Include Woolhaven DLC option is on - see options.py for why that matters.
+    dlc: bool = False
 
 
 class CultOfTheLambItem(Item):
@@ -28,6 +31,122 @@ class CultOfTheLambItem(Item):
 # rules.py. So instead of 3 separately-named "X Access" items, there's a single progressive
 # item: the Nth copy received opens the Nth-still-locked region in that seed's random order.
 PROGRESSIVE_REGION_ACCESS = "Progressive Bishop's Domain"
+
+# The Temple sermon upgrades, in the wiki's tier order. Display names are the real in-game
+# names; the second element is the UpgradeSystem.Type the C# client passes to
+# UpgradeSystem.UnlockAbility(). Order here defines the item ids (SERMON_ITEM_OFFSET + index)
+# and must stay append-only - the client hardcodes the same offsets.
+#
+# The three numbered chains below are progressive; everything else is its own named item.
+#
+# Out-of-order delivery wouldn't *break* anything - UpgradeSystem.UnlockAbility ignores
+# prerequisites entirely (verified: it's a bare Contains-then-Add), and the client grants
+# upgrades directly rather than through the tree UI. The reason to make these progressive is
+# pacing: Might of the Devout sets your starting weapon level, so receiving VI before I is a
+# power spike arriving out of sequence. Hearts and Fervour are additive, so their tiers are
+# interchangeable and progressive is just tidier.
+#
+# The distinctly-named sequences (the five curse packs) stay individual - each adds three
+# *different* curses, and "Curse of the Beguiler" reads far better in someone else's
+# multiworld than "Progressive Curse Pack".
+SERMON_ITEM_OFFSET = 400
+
+# (display name, UpgradeSystem.Type, is_woolhaven_dlc)
+SERMON_UPGRADES = [
+    # Tier 1
+    ("Hearts of the Faithful", "PUpgrade_Heart_1", False),
+    ("Bane Weapons", "PUpgrade_WeaponPoison", False),
+    ("Curse of the Horde", "PUpgrade_CursePack2", False),
+    # Tier 2
+    ("Might of the Devout I", "PUpgrade_StartingWeapon_1", False),
+    ("Kudaai's Blessing", "PUpgrade_ResummonWeapon", False),
+    ("Vampiric Weapons", "PUpgrade_WeaponHeal", False),
+    ("Curse of the Occultist", "PUpgrade_CursePack5", False),
+    ("Fervour of the Righteous I", "PUpgrade_Ammo_1", False),
+    # Tier 3
+    ("Hearts of the Faithful II", "PUpgrade_Heart_2", False),
+    ("Weapon Mastery", "PUpgrade_HeavyAttacks", False),
+    ("Necromantic Weapons", "PUpgrade_WeaponNecromancy", False),
+    ("Curse of the Tundra", "PUpgrade_CursePack1", False),
+    # Tier 4
+    ("Might of the Devout II", "PUpgrade_StartingWeapon_2", False),
+    ("Zealous Weapons", "PUpgrade_WeaponFervor", False),
+    ("Curse of the Necromancer", "PUpgrade_CursePack4", False),
+    ("Fervour of the Righteous II", "PUpgrade_Ammo_2", False),
+    # Tier 5
+    ("Might of the Devout III", "PUpgrade_StartingWeapon_3", False),
+    ("Merciless Weapons", "PUpgrade_WeaponCritHit", False),
+    ("Curse of the Beguiler", "PUpgrade_CursePack3", False),
+    # Tier 6
+    ("Might of the Devout IV", "PUpgrade_StartingWeapon_4", False),
+    ("Eyes of the Lost Relics", "Relic_Pack1", False),
+    ("Blessings of the Relics", "Relics_Blessed_1", False),
+    ("Damnation of the Relics", "Relics_Dammed_1", False),
+    ("Sword Mastery", "PUpgrade_HA_Sword", False),
+    ("Axe Mastery", "PUpgrade_HA_Axe", False),
+    ("Dagger Mastery", "PUpgrade_HA_Dagger", False),
+    ("Gauntlets Mastery", "PUpgrade_HA_Gauntlets", False),
+    ("Hammer Mastery", "PUpgrade_HA_Hammer", False),
+    ("Blunderbuss Mastery", "PUpgrade_HA_Blunderbuss", False),
+    ("Godly Weapons", "PUpgrade_WeaponGodly", False),
+    ("Might of the Devout V", "PUpgrade_StartingWeapon_5", False),
+    ("Might of the Devout VI", "PUpgrade_StartingWeapon_6", False),
+    # Woolhaven DLC tier
+    ("Might of the Devout VII", "PUpgrade_StartingWeapon_7", True),
+    ("Relics of the Freezing", "Relics_Ice", True),
+    ("Relics of the Burning", "Relics_Fire", True),
+    ("Flail Mastery", "PUpgrade_HA_Chain", True),
+    ("Burning Curses", "Curses_Fire", True),
+    ("Teleport Curses", "Curses_Teleport", True),
+]
+
+BASE_SERMON_COUNT = sum(1 for _, _, dlc in SERMON_UPGRADES if not dlc)
+
+# Display-name prefixes that collapse into one progressive item. Order within a chain is
+# taken from SERMON_UPGRADES above, so the Nth copy received unlocks the Nth tier.
+PROGRESSIVE_SERMON_CHAINS = {
+    "Might of the Devout": "Progressive Might of the Devout",
+    "Hearts of the Faithful": "Progressive Hearts of the Faithful",
+    "Fervour of the Righteous": "Progressive Fervour of the Righteous",
+}
+
+
+def _chain_for(display_name: str):
+    """The progressive item a given upgrade belongs to, or None if it stands alone."""
+    for prefix, item_name in PROGRESSIVE_SERMON_CHAINS.items():
+        # Guard against a future upgrade whose name merely starts the same way: every real
+        # chain member is "<prefix> <roman numeral>", never the bare prefix plus a word.
+        if display_name == prefix or display_name.startswith(prefix + " "):
+            return item_name
+    return None
+
+
+def build_sermon_items() -> Dict[str, List[Tuple[str, bool]]]:
+    """Maps sermon AP item name -> ordered [(UpgradeSystem.Type name, is_dlc), ...].
+
+    A single-element list is a standalone upgrade; a longer one is a progressive chain whose
+    Nth copy unlocks the Nth entry. Uniform shape so the client needs only one code path.
+
+    The per-tier DLC flag has to survive into the chain, because Might of the Devout is a
+    base-game chain with a DLC-only final tier: the item belongs in every seed, but it needs
+    6 copies without Woolhaven and 7 with it.
+    """
+    items: Dict[str, List[Tuple[str, bool]]] = {}
+    for display_name, internal, dlc in SERMON_UPGRADES:
+        item_name = _chain_for(display_name) or display_name
+        items.setdefault(item_name, []).append((internal, dlc))
+    return items
+
+
+SERMON_ITEM_UPGRADES = build_sermon_items()
+
+
+def sermon_item_counts(include_dlc: bool) -> Dict[str, int]:
+    """How many copies of each sermon item this seed's pool needs. Zero means excluded."""
+    return {
+        name: sum(1 for _, dlc in tiers if include_dlc or not dlc)
+        for name, tiers in SERMON_ITEM_UPGRADES.items()
+    }
 
 item_table: Dict[str, ItemData] = {
     PROGRESSIVE_REGION_ACCESS: ItemData(offset + 1, ItemClassification.progression, "Region"),
@@ -62,6 +181,22 @@ item_table: Dict[str, ItemData] = {
     # Trap - placeholder, needs a real negative-effect hook before it's usable.
     "Dissent Trap": ItemData(offset + 300, ItemClassification.trap, "Trap"),
 }
+
+# Sermon upgrades are 'useful', not 'progression': nothing in rules.py requires them, and an
+# item should only be progression if some rule actually references it - over-marking bloats
+# the progression pool and constrains fill for no benefit.
+#
+# Ids follow SERMON_ITEM_UPGRADES' insertion order, which follows SERMON_UPGRADES' tier
+# order, so this stays stable as long as that list is only appended to.
+item_table.update({
+    name: ItemData(
+        offset + SERMON_ITEM_OFFSET + i,
+        ItemClassification.useful,
+        "Sermon",
+        all(dlc for _, dlc in tiers),
+    )
+    for i, (name, tiers) in enumerate(SERMON_ITEM_UPGRADES.items())
+})
 
 filler_table = [name for name, data in item_table.items() if data.category == "Filler"]
 

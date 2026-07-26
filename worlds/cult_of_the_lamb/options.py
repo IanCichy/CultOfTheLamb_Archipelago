@@ -31,8 +31,31 @@ class RandomizeRegionAccess(Toggle):
     default = True
 
 
+class IncludeWoolhaven(Toggle):
+    """Include content from the paid Woolhaven DLC (the game's only major gameplay DLC).
+
+    Enable this ONLY if you own Woolhaven - the client cannot grant DLC content you don't
+    own, so a seed generated with this on and played without the DLC will be unbeatable.
+    Affects the sermon upgrades (6 extra), and later the tarot/fleece/doctrine pools."""
+    display_name = "Include Woolhaven DLC"
+    default = False
+
+
+class RandomizeSermonUpgrades(Toggle):
+    """Randomize the Temple sermon upgrades (Hearts of the Faithful, Might of the Devout,
+    the weapon affixes and curse packs, the Heavy Attack masteries...).
+
+    When enabled, filling the sermon bar sends a check instead of opening the upgrade-choice
+    screen, and the upgrades themselves arrive as Archipelago items. 32 upgrades, or 38 with
+    Include Woolhaven DLC."""
+    display_name = "Randomize Sermon Upgrades"
+    default = True
+
+
 @dataclass
 class CultOfTheLambOptions(PerGameCommonOptions):
     goal: Goal
     required_count: RequiredCount
     randomize_region_access: RandomizeRegionAccess
+    include_woolhaven: IncludeWoolhaven
+    randomize_sermon_upgrades: RandomizeSermonUpgrades
