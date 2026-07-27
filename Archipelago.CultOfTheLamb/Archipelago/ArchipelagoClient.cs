@@ -25,6 +25,8 @@ public partial class ArchipelagoClient : IDisposable
     internal GoalService GoalService { get; private set; }
     internal SermonService SermonService { get; private set; }
     internal FollowerMilestoneService FollowerMilestoneService { get; private set; }
+    internal TarotShopService TarotShopService { get; private set; }
+    internal SnailShrineService SnailShrineService { get; private set; }
 
     public ArchipelagoItemLogicController ItemLogic;
 

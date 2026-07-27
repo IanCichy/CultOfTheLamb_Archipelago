@@ -161,6 +161,22 @@ public partial class ArchipelagoClient
             FollowerMilestoneService.Register();
         }
 
+        if (GetBool(successResult.SlotData, "tarotShopChecks"))
+        {
+            TarotShopService = new TarotShopService(
+                session, ParseTarotShopLocations(successResult.SlotData));
+            TarotShopService.Register();
+        }
+
+        if (GetBool(successResult.SlotData, "snailShrineChecks"))
+        {
+            SnailShrineService = new SnailShrineService(
+                session,
+                GetLong(successResult.SlotData, "snailLocationBaseId"),
+                (int)GetLong(successResult.SlotData, "snailLocationCount"));
+            SnailShrineService.Register();
+        }
+
         ItemLogic = new ArchipelagoItemLogicController(session, RegionUnlockService, SermonService);
         ItemLogic.Register();
     }
@@ -188,6 +204,30 @@ public partial class ArchipelagoClient
             {
                 result[entry.Key] = upgrades.ToObject<List<string>>();
             }
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// TarotCards.Card enum name -> location id. Keyed by enum name because that's what a
+    /// BuyEntry exposes; display names differ completely ("The Burning Dead" is Skull).
+    /// </summary>
+    private static Dictionary<string, long> ParseTarotShopLocations(
+        IReadOnlyDictionary<string, object> slotData)
+    {
+        var result = new Dictionary<string, long>();
+
+        if (!slotData.TryGetValue("tarotShopLocations", out var raw) || raw is not JObject mapping)
+        {
+            Log.LogWarning("[AP] Tarot shop checks are on but slot data has no "
+                + "tarotShopLocations mapping - shop purchases won't send checks.");
+            return result;
+        }
+
+        foreach (var entry in mapping)
+        {
+            result[entry.Key] = entry.Value.ToObject<long>();
         }
 
         return result;
@@ -222,6 +262,10 @@ public partial class ArchipelagoClient
         SermonService = null;
         FollowerMilestoneService?.Unregister();
         FollowerMilestoneService = null;
+        TarotShopService?.Unregister();
+        TarotShopService = null;
+        SnailShrineService?.Unregister();
+        SnailShrineService = null;
         ItemLogic?.Unregister();
         ItemLogic = null;
 
