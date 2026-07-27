@@ -140,9 +140,64 @@ public partial class ArchipelagoClient
         GoalService = new GoalService(session, goal, requiredCount);
         GoalService.Register();
 
-        ItemLogic = new ArchipelagoItemLogicController(session, RegionUnlockService);
+        // Sermon randomization is optional per seed; when it's off we leave the vanilla
+        // pick-an-upgrade flow completely untouched rather than registering an inert service.
+        if (GetBool(successResult.SlotData, "randomizeSermonUpgrades"))
+        {
+            SermonService = new SermonService(
+                session,
+                ParseSermonUpgrades(successResult.SlotData),
+                GetLong(successResult.SlotData, "sermonLocationBaseId"),
+                (int)GetLong(successResult.SlotData, "sermonLocationCount"));
+            SermonService.Register();
+        }
+
+        if (GetBool(successResult.SlotData, "followerMilestoneChecks"))
+        {
+            FollowerMilestoneService = new FollowerMilestoneService(
+                session,
+                GetLong(successResult.SlotData, "followerLocationBaseId"),
+                (int)GetLong(successResult.SlotData, "followerLocationCount"));
+            FollowerMilestoneService.Register();
+        }
+
+        ItemLogic = new ArchipelagoItemLogicController(session, RegionUnlockService, SermonService);
         ItemLogic.Register();
     }
+
+    /// <summary>
+    /// Sermon item name -> the UpgradeSystem.Type names it unlocks, in order (see
+    /// worlds/cult_of_the_lamb/__init__.py's fill_slot_data). Comes through as a JObject of
+    /// JArrays, since Newtonsoft is the library's serializer - not native .NET collections.
+    /// </summary>
+    private static Dictionary<string, List<string>> ParseSermonUpgrades(
+        IReadOnlyDictionary<string, object> slotData)
+    {
+        var result = new Dictionary<string, List<string>>();
+
+        if (!slotData.TryGetValue("sermonUpgrades", out var raw) || raw is not JObject mapping)
+        {
+            Log.LogWarning("[AP] Sermon randomization is on but slot data has no sermonUpgrades "
+                + "mapping - sermon items won't grant anything.");
+            return result;
+        }
+
+        foreach (var entry in mapping)
+        {
+            if (entry.Value is JArray upgrades)
+            {
+                result[entry.Key] = upgrades.ToObject<List<string>>();
+            }
+        }
+
+        return result;
+    }
+
+    private static bool GetBool(IReadOnlyDictionary<string, object> slotData, string key) =>
+        slotData.TryGetValue(key, out var value) && Convert.ToBoolean(value);
+
+    private static long GetLong(IReadOnlyDictionary<string, object> slotData, string key) =>
+        slotData.TryGetValue(key, out var value) ? Convert.ToInt64(value) : 0L;
 
     /// <summary>
     /// Unsubscribes session-level events and nulls the session.
@@ -163,6 +218,10 @@ public partial class ArchipelagoClient
         RegionUnlockService = null;
         GoalService?.Unregister();
         GoalService = null;
+        SermonService?.Unregister();
+        SermonService = null;
+        FollowerMilestoneService?.Unregister();
+        FollowerMilestoneService = null;
         ItemLogic?.Unregister();
         ItemLogic = null;
 
