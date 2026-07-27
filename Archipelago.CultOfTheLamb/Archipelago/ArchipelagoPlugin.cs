@@ -3,6 +3,7 @@ using Archipelago.CultOfTheLamb.UI;
 using BepInEx;
 using BepInEx.Configuration;
 using HarmonyLib;
+using UnityEngine;
 
 namespace Archipelago.CultOfTheLamb;
 
@@ -62,7 +63,21 @@ public class ArchipelagoPlugin : BaseUnityPlugin
     {
         DebugCommands.Update();
         AP?.ItemLogic?.ProcessQueue();
+
+        // Throttled: recruit events fire before the Follower data lands, and there are
+        // several recruitment paths, so the milestone count is polled as a backstop rather
+        // than trusted to events alone. Once a second is far more often than a Follower can
+        // realistically be recruited, and the check is three list-count reads.
+        followerPollTimer += Time.unscaledDeltaTime;
+        if (followerPollTimer >= FollowerPollIntervalSeconds)
+        {
+            followerPollTimer = 0f;
+            AP?.FollowerMilestoneService?.Tick();
+        }
     }
+
+    private const float FollowerPollIntervalSeconds = 1f;
+    private float followerPollTimer;
 
     private void OnClick_ConnectToArchipelago()
     {
