@@ -5,9 +5,10 @@ from worlds.AutoWorld import WebWorld, World
 
 from .items import (
     SERMON_ITEM_OFFSET, SERMON_ITEM_UPGRADES, CultOfTheLambItem, PROGRESSIVE_REGION_ACCESS,
-    create_item, filler_table, item_table, offset, sermon_item_counts,
+    create_item, filler_table, item_table, offset, sermon_item_counts, trap_table,
+    weighted_filler_names,
 )
-from .locations import location_name_to_id
+from .locations import FOLLOWER_MILESTONE_COUNT, location_name_to_id, location_table
 from .options import CultOfTheLambOptions
 from .regions import REGION_NAMES, create_regions
 from .rules import set_rules
@@ -52,6 +53,8 @@ class CultOfTheLambWorld(World):
 
     def generate_early(self) -> None:
         self.region_order = self.random.sample(REGION_NAMES, len(REGION_NAMES))
+        # Expand once rather than per filler item - this is sampled dozens of times per seed.
+        self.weighted_filler = weighted_filler_names()
 
     def create_regions(self) -> None:
         create_regions(self)
@@ -87,7 +90,15 @@ class CultOfTheLambWorld(World):
         set_rules(self)
 
     def get_filler_item_name(self) -> str:
-        return self.random.choice(filler_table)
+        """Weighted filler, with traps mixed in per the Trap Percentage option.
+
+        Rolled per item rather than by carving an exact slice off the pool, so the trap count
+        varies naturally between seeds instead of being identical every time.
+        """
+        if self.options.trap_percentage.value > 0 and trap_table:
+            if self.random.randint(1, 100) <= self.options.trap_percentage.value:
+                return self.random.choice(trap_table)
+        return self.random.choice(self.weighted_filler)
 
     def fill_slot_data(self) -> Dict[str, Any]:
         return {
@@ -100,6 +111,19 @@ class CultOfTheLambWorld(World):
 
             "includeWoolhaven": bool(self.options.include_woolhaven.value),
             "randomizeSermonUpgrades": bool(self.options.randomize_sermon_upgrades.value),
+            # "Sermon Upgrade N" location ids are contiguous from here, so the client can
+            # turn DataManager.Doctrine_PlayerUpgrade_Level into a check id directly.
+            "sermonLocationBaseId": location_name_to_id["Sermon Upgrade 1"],
+            "sermonLocationCount": sum(
+                1 for name, data in location_table.items()
+                if data.category == "Sermon" and (self.options.include_woolhaven or not data.dlc)
+            ),
+
+            "followerMilestoneChecks": bool(self.options.follower_milestone_checks.value),
+            # "Followers Recruited N" ids are contiguous from here, so the client turns a
+            # recruit count straight into a check id.
+            "followerLocationBaseId": location_name_to_id["Followers Recruited 1"],
+            "followerLocationCount": FOLLOWER_MILESTONE_COUNT,
             # Sermon item name -> the UpgradeSystem.Type names it unlocks, in order. A
             # single-entry list is a standalone upgrade; a longer one is a progressive chain
             # where the Nth copy received unlocks the Nth entry. Sending the mapping instead

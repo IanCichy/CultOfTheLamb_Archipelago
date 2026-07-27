@@ -15,12 +15,17 @@ public partial class ArchipelagoItemLogicController : IService
 {
     private readonly ArchipelagoSession session;
     private readonly RegionUnlockService regionUnlockService;
+    private readonly SermonService sermonService;
     private readonly ConcurrentQueue<long> pendingItemIds = new();
 
-    internal ArchipelagoItemLogicController(ArchipelagoSession session, RegionUnlockService regionUnlockService)
+    internal ArchipelagoItemLogicController(
+        ArchipelagoSession session,
+        RegionUnlockService regionUnlockService,
+        SermonService sermonService)
     {
         this.session = session;
         this.regionUnlockService = regionUnlockService;
+        this.sermonService = sermonService;
     }
 
     public void Register()
@@ -78,11 +83,25 @@ public partial class ArchipelagoItemLogicController : IService
     /// </summary>
     private void ApplyItem(long itemId)
     {
-        Log.LogInfo($"[AP] Received item: {session.Items.GetItemName(itemId)} (id {itemId})");
+        var itemName = session.Items.GetItemName(itemId);
+        Log.LogInfo($"[AP] Received item: {itemName} (id {itemId})");
 
         if (itemId == CultOfTheLambIds.ProgressiveRegionAccessItemId)
         {
             regionUnlockService?.UnlockNextRegion();
+            return;
         }
+
+        // Sermon upgrades are matched by name, not id: the item -> upgrade mapping comes from
+        // slot data, which is keyed by name, and that indirection is what keeps the two sides
+        // from drifting when upgrades get added or reordered.
+        if (sermonService != null && sermonService.TryApplyItem(itemName)) return;
+
+        if (FillerService.TryApplyItem(itemName)) return;
+
+        // Loud rather than silent: an unhandled item is an item the player earned and didn't
+        // get, and filler is ~half of a seed - a quiet drop here is the most likely way this
+        // mod feels broken while looking fine.
+        Log.LogWarning($"[AP] No handler for item '{itemName}' (id {itemId}) - nothing granted.");
     }
 }
