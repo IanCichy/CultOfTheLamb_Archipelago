@@ -120,6 +120,13 @@ public partial class ArchipelagoItemLogicController : IService
             Log.LogInfo($"[AP] Received item: {itemName} (id {itemId})");
             appliedCount++;
             AppliedItemStore.Set(storeKey, appliedCount);
+
+            // Sends were announced but receives weren't, so an incoming item was only
+            // visible in the AP terminal unless the game happened to show its own banner
+            // (resources do; an unlocked upgrade doesn't). Announce every genuinely new
+            // item - replays are deliberately silent, since the player already saw them.
+            ApNotification.Show($"Archipelago: received {itemName}",
+                NotificationBase.Flair.Positive);
         }
 
         // --- idempotent, always applied (including on replay) ---
