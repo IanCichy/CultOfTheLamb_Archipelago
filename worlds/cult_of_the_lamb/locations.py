@@ -1,4 +1,4 @@
-from typing import Dict, List, NamedTuple
+from typing import Dict, List, NamedTuple, Optional, Set
 
 from BaseClasses import Location
 
@@ -67,6 +67,14 @@ location_table: Dict[str, LocationData] = {
 for _i, (_name, _internal, _dlc) in enumerate(SERMON_UPGRADES):
     location_table[f"Sermon Upgrade {_i + 1}"] = LocationData("Cult", "Sermon", _dlc)
 
+# Follower recruitment milestones. Counted as "ever recruited" (living + dead) rather than
+# current flock size, so a plague or a sacrifice spree can't make an already-passed milestone
+# unreachable again.
+FOLLOWER_MILESTONE_COUNT = 20
+
+for _n in range(1, FOLLOWER_MILESTONE_COUNT + 1):
+    location_table[f"Followers Recruited {_n}"] = LocationData("Cult", "Follower")
+
 # Append-only: ids come from enumeration order, and the C# client hardcodes the same
 # offsets (see Utilities/CultOfTheLambIds.cs). Reordering this dict silently repoints every
 # id after the change.
@@ -75,8 +83,18 @@ location_name_to_id: Dict[str, int] = {
 }
 
 
-def get_locations_for_region(region: str, include_dlc: bool = True) -> List[str]:
+def get_locations_for_region(
+    region: str, include_dlc: bool = True, categories: Optional[Set[str]] = None
+) -> List[str]:
+    """Locations in a region, optionally narrowed to specific categories.
+
+    The category filter exists because "Cult" holds several independently-toggleable blocks
+    (sermon upgrades, follower milestones), and a disabled block must not create locations -
+    unreachable ones would fail generation.
+    """
     return [
         name for name, data in location_table.items()
-        if data.region == region and (include_dlc or not data.dlc)
+        if data.region == region
+        and (include_dlc or not data.dlc)
+        and (categories is None or data.category in categories)
     ]

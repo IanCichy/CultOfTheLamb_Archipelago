@@ -27,8 +27,14 @@ def create_regions(world: "CultOfTheLambWorld") -> None:
 
     # Home-base checks (sermon upgrades). Only added when the matching option is on, so a
     # seed that isn't randomizing them doesn't carry unreachable locations.
+    cult_categories = set()
     if world.options.randomize_sermon_upgrades:
-        add_locations(cult, get_locations_for_region("Cult", include_dlc), player)
+        cult_categories.add("Sermon")
+    if world.options.follower_milestone_checks:
+        cult_categories.add("Follower")
+    if cult_categories:
+        add_locations(cult, get_locations_for_region(
+            "Cult", include_dlc, categories=cult_categories), player)
 
     for region_name in REGION_NAMES:
         region = Region(region_name, player, multiworld)

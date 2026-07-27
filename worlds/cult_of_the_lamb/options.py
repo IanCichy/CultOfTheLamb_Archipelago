@@ -52,6 +52,26 @@ class RandomizeSermonUpgrades(Toggle):
     default = True
 
 
+class FollowerMilestoneChecks(Toggle):
+    """Send a check for each of your first 20 recruited Followers.
+
+    Counted as Followers ever recruited, not current flock size, so losing Followers can't
+    make a milestone you already passed unreachable."""
+    display_name = "Follower Milestone Checks"
+    default = True
+
+
+class TrapPercentage(Range):
+    """What percentage of the filler items in your seed are traps instead.
+
+    0 disables traps entirely. Traps replace filler only - they never take the place of a
+    real item, so raising this can't make a seed harder to complete, only more annoying."""
+    display_name = "Trap Percentage"
+    range_start = 0
+    range_end = 50
+    default = 5
+
+
 @dataclass
 class CultOfTheLambOptions(PerGameCommonOptions):
     goal: Goal
@@ -59,3 +79,5 @@ class CultOfTheLambOptions(PerGameCommonOptions):
     randomize_region_access: RandomizeRegionAccess
     include_woolhaven: IncludeWoolhaven
     randomize_sermon_upgrades: RandomizeSermonUpgrades
+    follower_milestone_checks: FollowerMilestoneChecks
+    trap_percentage: TrapPercentage
