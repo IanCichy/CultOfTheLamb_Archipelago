@@ -29,7 +29,7 @@ def set_rules(world: "CultOfTheLambWorld") -> None:
 
     # world.region_order[0] is free (set in generate_early); each region after that needs
     # one more copy of the progressive access item than the one before it.
-    if world.options.randomize_region_access:
+    if world.regions_are_gated:
         for i, region_name in enumerate(world.region_order[1:], start=1):
             entrance = multiworld.get_entrance(f"Cult -> {region_name}", player)
             set_rule(entrance, lambda state, count=i: state.has(PROGRESSIVE_REGION_ACCESS, player, count))
