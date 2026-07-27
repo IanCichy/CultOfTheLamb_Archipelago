@@ -64,15 +64,16 @@ public class ArchipelagoPlugin : BaseUnityPlugin
         DebugCommands.Update();
         AP?.ItemLogic?.ProcessQueue();
 
-        // Throttled: recruit events fire before the Follower data lands, and there are
-        // several recruitment paths, so the milestone count is polled as a backstop rather
-        // than trusted to events alone. Once a second is far more often than a Follower can
-        // realistically be recruited, and the check is three list-count reads.
+        // Throttled polling for the two systems derived from save state: Follower counts
+        // (recruit events fire before the data lands) and Snail Shrines (five save booleans
+        // with no event at all). Once a second is far more often than either can change, and
+        // both checks are a handful of field reads.
         followerPollTimer += Time.unscaledDeltaTime;
         if (followerPollTimer >= FollowerPollIntervalSeconds)
         {
             followerPollTimer = 0f;
             AP?.FollowerMilestoneService?.Tick();
+            AP?.SnailShrineService?.Tick();
         }
     }
 
