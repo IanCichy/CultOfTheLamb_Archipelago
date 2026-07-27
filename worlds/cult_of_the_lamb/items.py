@@ -174,11 +174,17 @@ item_table: Dict[str, ItemData] = {
     "Beads of the Anchorite": ItemData(offset + 130, ItemClassification.useful, "Relic"),
     "Clauneck's Mirror": ItemData(offset + 131, ItemClassification.useful, "Relic"),
 
-    # Filler.
+    # Filler. Ids 200/201 kept for the two original placeholder names so older seeds don't
+    # repoint; everything from 202 is new.
     "Gold Tithe": ItemData(offset + 200, ItemClassification.filler, "Filler"),
     "Fervour": ItemData(offset + 201, ItemClassification.filler, "Filler"),
+    "Bundle of Lumber": ItemData(offset + 202, ItemClassification.filler, "Filler"),
+    "Pile of Stone": ItemData(offset + 203, ItemClassification.filler, "Filler"),
+    "Basket of Berries": ItemData(offset + 204, ItemClassification.filler, "Filler"),
+    "Bag of Bones": ItemData(offset + 205, ItemClassification.filler, "Filler"),
+    "Follower Level Up": ItemData(offset + 206, ItemClassification.filler, "Filler"),
 
-    # Trap - placeholder, needs a real negative-effect hook before it's usable.
+    # Trap.
     "Dissent Trap": ItemData(offset + 300, ItemClassification.trap, "Trap"),
 }
 
@@ -199,11 +205,32 @@ item_table.update({
 })
 
 filler_table = [name for name, data in item_table.items() if data.category == "Filler"]
+trap_table = [name for name, data in item_table.items() if data.category == "Trap"]
 
+# Relative frequency in the filler pool. Filler is roughly half of a seed's items right now,
+# so an even split would make the common case feel repetitive - resources are deliberately
+# the bulk, with Follower Level Up rarer because it compounds (each level permanently raises
+# that Follower's sermon-point contribution, so it accelerates every later sermon).
+#
+# Any Filler-category item missing from this dict falls back to weight 1 rather than being
+# dropped, so adding an item and forgetting to weight it can't silently remove it from seeds.
 item_pool_weights: Dict[str, int] = {
-    "Gold Tithe": 10,
-    "Fervour": 10,
+    "Bundle of Lumber": 10,
+    "Pile of Stone": 10,
+    "Basket of Berries": 8,
+    "Bag of Bones": 8,
+    "Gold Tithe": 8,
+    "Fervour": 6,
+    "Follower Level Up": 4,
 }
+
+
+def weighted_filler_names() -> List[str]:
+    """filler_table expanded by weight, for random.choice to sample from."""
+    expanded: List[str] = []
+    for name in filler_table:
+        expanded.extend([name] * item_pool_weights.get(name, 1))
+    return expanded
 
 
 def create_item(name: str, player: int) -> CultOfTheLambItem:
