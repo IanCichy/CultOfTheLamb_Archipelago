@@ -31,6 +31,8 @@ internal class RegionUnlockService : IService
         // Enforce locking only once we know the seed's region order - otherwise the door
         // patches would hold every managed region shut with no way to open them.
         RegionLockState.Active = true;
+        Log.LogInfo($"[AP] Region order this seed: {string.Join(" -> ", regionOrder.ToArray())} "
+            + "(first is free, the rest open in that order).");
         UnlockRegion(regionOrder[0]);
         unlockedCount = 1;
     }
@@ -78,6 +80,13 @@ internal class RegionUnlockService : IService
         {
             DataManager.Instance.UnlockedDungeonDoor.Add(location);
             Log.LogInfo($"[AP] Unlocked region: {regionName} ({location})");
+        }
+        else
+        {
+            // Log this case too. Staying silent when the door was already in the save made
+            // "did that item actually do anything?" impossible to answer from the log.
+            Log.LogInfo($"[AP] Region {regionName} ({location}) was already open in the save "
+                + "- now also unlocked by Archipelago.");
         }
     }
 }

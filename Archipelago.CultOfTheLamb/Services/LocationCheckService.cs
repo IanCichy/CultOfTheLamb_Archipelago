@@ -44,6 +44,7 @@ internal class LocationCheckService : IService
 
         Log.LogInfo($"[AP] Bishop defeated at {location}, sending check {checkId}");
         session.Locations.CompleteLocationChecks(checkId);
+        CheckNotifier.Announce(session, new[] { checkId });
     }
 
     private void HandleBossKillRecorded(string bossKey)
@@ -68,5 +69,6 @@ internal class LocationCheckService : IService
 
         Log.LogInfo($"[AP] Boss \"{bossKey}\" defeated, sending check {checkId}");
         session.Locations.CompleteLocationChecks(checkId);
+        CheckNotifier.Announce(session, new[] { checkId });
     }
 }
