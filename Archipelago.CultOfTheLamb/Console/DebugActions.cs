@@ -408,6 +408,38 @@ internal static class DebugActions
         }
     }
 
+    /// <summary>
+    /// Which Snail Shrines are lit, and the ShrineNumber of any shrine in the current scene.
+    ///
+    /// The second part is the point: locations.py currently puts all five shrines in "Cult"
+    /// (always reachable) because which ShrineNumber sits in which hub is a serialized prefab
+    /// field the decompile can't show. Four of the five are actually behind hub access, so
+    /// Archipelago believes them reachable earlier than they are. Standing in a hub and
+    /// pressing F9 records the mapping needed to region-scope them properly.
+    /// </summary>
+    private static void DumpSnailShrines()
+    {
+        var dataManager = DataManager.Instance;
+        if (dataManager != null)
+        {
+            Log.LogInfo("[AP] Snail shrines lit: "
+                + $"0={dataManager.ShellsGifted_0} 1={dataManager.ShellsGifted_1} "
+                + $"2={dataManager.ShellsGifted_2} 3={dataManager.ShellsGifted_3} "
+                + $"4={dataManager.ShellsGifted_4}");
+        }
+
+        var shrines = Resources.FindObjectsOfTypeAll<Snail_Interaction>();
+        Log.LogInfo($"[AP] Snail_Interaction in scene ({shrines?.Length ?? 0}) - "
+            + $"current scene: {UnityEngine.SceneManagement.SceneManager.GetActiveScene().name}");
+
+        if (shrines == null) return;
+        foreach (var shrine in shrines)
+        {
+            if (shrine == null) continue;
+            Log.LogInfo($"[AP]   ShrineNumber={shrine.ShrineNumber}  (object: {shrine.name})");
+        }
+    }
+
     /// <summary>F9 - dump client + game boss state to the log.</summary>
     internal static void DumpState(ArchipelagoClient ap)
     {
@@ -425,6 +457,7 @@ internal static class DebugActions
 
         DumpGameBossState();
         DumpMiniBossesInScene();
+        DumpSnailShrines();
         Log.LogInfo("[AP] ---- end dump ----");
     }
 
