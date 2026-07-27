@@ -75,6 +75,66 @@ FOLLOWER_MILESTONE_COUNT = 20
 for _n in range(1, FOLLOWER_MILESTONE_COUNT + 1):
     location_table[f"Followers Recruited {_n}"] = LocationData("Cult", "Follower")
 
+# Tarot Card shop purchases. Every hub has a shop selling a fixed, named set of cards - not
+# randomised stock - so each purchase is a stable, identifiable check.
+#
+# These live in the *paired crusade region* rather than "Cult" on purpose: each hub is reached
+# through its region's progression (Midas's Cave opens after the golden tree in Silk Cradle,
+# Pilgrim's Passage's shops need the Lighthouse lit), so putting them here makes them gate
+# naturally instead of all landing in sphere 1 the way the Cult-region blocks do.
+#
+# Display names differ wildly from TarotCards.Card enum names - "The Burning Dead" is Skull,
+# "The Path" is MovementSpeed - so the enum name is carried alongside for the client.
+# (display name, TarotCards.Card enum name)
+TAROT_SHOP_CARDS = {
+    "Darkwood": [            # Pilgrim's Passage
+        ("Hands of Rage", "HandsOfRage"),
+        ("Nature's Boon", "NaturesGift"),
+        ("All Seeing Sun", "Sun"),
+    ],
+    "Anura": [               # Spore Grotto
+        ("Blazing Trail", "DamageOnRoll"),
+        ("Weeping Moon", "Moon"),
+        ("Kin of Turua", "TentacleOnDamaged"),
+        ("The Path", "MovementSpeed"),
+    ],
+    "Anchordeep": [          # Smuggler's Sanctuary
+        ("The Bomb", "BombOnRoll"),
+        ("Ichor Lingered", "GoopOnRoll"),
+        ("Soul Snatcher", "HealChance"),
+    ],
+    "Silk Cradle": [         # Midas's Cave
+        ("The Burning Dead", "Skull"),
+        ("The Deal", "TheDeal"),
+        ("Ichor Earned", "GoopOnDamaged"),
+        ("Godly Moment", "InvincibilityPerRoom"),
+    ],
+}
+
+TAROT_SHOP_HUBS = {
+    "Darkwood": "Pilgrim's Passage",
+    "Anura": "Spore Grotto",
+    "Anchordeep": "Smuggler's Sanctuary",
+    "Silk Cradle": "Midas's Cave",
+}
+
+# Snail shrines - one per hub, each accepting a single Shell offering. The game tracks them
+# as DataManager.ShellsGifted_0.._4, and lighting all five unlocks the Snail Follower form.
+#
+# Kept in "Cult" rather than region-gated because which ShrineNumber sits in which hub isn't
+# known yet - the index is a serialized field on the prefab, not something the decompile
+# exposes. Depth rules apply to them so they still spread across spheres.
+SNAIL_SHRINE_COUNT = 5
+
+for _n in range(1, SNAIL_SHRINE_COUNT + 1):
+    location_table[f"Snail Shrine {_n}"] = LocationData("Cult", "Snail")
+
+
+for _region, _cards in TAROT_SHOP_CARDS.items():
+    for _display, _internal in _cards:
+        location_table[f"{TAROT_SHOP_HUBS[_region]} - {_display}"] = \
+            LocationData(_region, "TarotShop")
+
 # Append-only: ids come from enumeration order, and the C# client hardcodes the same
 # offsets (see Utilities/CultOfTheLambIds.cs). Reordering this dict silently repoints every
 # id after the change.

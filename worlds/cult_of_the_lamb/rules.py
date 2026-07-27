@@ -38,6 +38,8 @@ def set_rules(world: "CultOfTheLambWorld") -> None:
             set_depth_rules(world, "Sermon")
         if world.options.follower_milestone_checks:
             set_depth_rules(world, "Follower")
+        if world.options.snail_shrine_checks:
+            set_depth_rules(world, "Snail")
 
     # Reaching a Bishop/Witness location implies being equipped to beat them (the standard
     # AP assumption that "can reach" == "can complete"), so victory is defined by reachable

@@ -32,13 +32,21 @@ def create_regions(world: "CultOfTheLambWorld") -> None:
         cult_categories.add("Sermon")
     if world.options.follower_milestone_checks:
         cult_categories.add("Follower")
+    if world.options.snail_shrine_checks:
+        cult_categories.add("Snail")
     if cult_categories:
         add_locations(cult, get_locations_for_region(
             "Cult", include_dlc, categories=cult_categories), player)
 
+    # Boss checks always; Tarot shop checks only when that option is on.
+    region_categories = {"Miniboss", "Bishop", "Witness"}
+    if world.options.tarot_shop_checks:
+        region_categories.add("TarotShop")
+
     for region_name in REGION_NAMES:
         region = Region(region_name, player, multiworld)
-        add_locations(region, get_locations_for_region(region_name, include_dlc), player)
+        add_locations(region, get_locations_for_region(
+            region_name, include_dlc, categories=region_categories), player)
         multiworld.regions.append(region)
         cult.connect(region, f"Cult -> {region_name}")
 
