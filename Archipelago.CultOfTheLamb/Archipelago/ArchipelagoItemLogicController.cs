@@ -39,6 +39,10 @@ public partial class ArchipelagoItemLogicController : IService
         //
         // Draining is safe against a concurrent live event: both paths consume the same
         // underlying queue via DequeueItem(), so an item goes to exactly one of them.
+        storeKey = AppliedItemStore.BuildKey(session.RoomState?.Seed, session.ConnectionInfo.Slot);
+        appliedCount = AppliedItemStore.Get(storeKey);
+        replaysRemaining = appliedCount;
+
         var backlog = 0;
         while (session.Items.Any())
         {
@@ -48,7 +52,10 @@ public partial class ArchipelagoItemLogicController : IService
 
         if (backlog > 0)
         {
-            Log.LogInfo($"[AP] Replaying {backlog} previously-received item(s) from this slot.");
+            var toGrant = backlog - appliedCount;
+            Log.LogInfo($"[AP] {backlog} item(s) received on this slot; {appliedCount} already "
+                + $"applied to this save, so {(toGrant > 0 ? toGrant : 0)} will be granted. "
+                + $"[{storeKey}]");
         }
     }
 
@@ -75,16 +82,47 @@ public partial class ArchipelagoItemLogicController : IService
         }
     }
 
+    /// <summary>Identifies this save+seed+slot in AppliedItemStore.</summary>
+    private string storeKey;
+
+    /// <summary>How many items have actually been granted to this save.</summary>
+    private int appliedCount;
+
     /// <summary>
-    /// Turns a received AP item into an actual game effect. Only region access is wired up
-    /// so far - the rest of items.py (weapons/tarot/relics/doctrines/filler/traps) still
-    /// needs real game-side hooks. See RegionUnlockService and
-    /// DecompiledGamesViaDnSpy/Cotl/AI_INDEX.md for what's confirmed so far.
+    /// How many queued items are a replay of ones this save already got. The server resends
+    /// the full history on connect and we must drain it, but re-granting stacks anything
+    /// non-idempotent - Inventory.AddItem in particular, which made reconnect-spamming an
+    /// infinite resource generator.
+    /// </summary>
+    private int replaysRemaining;
+
+    /// <summary>
+    /// Turns a received AP item into an actual game effect.
+    ///
+    /// Replayed items are NOT skipped wholesale. Region access and sermon upgrades must be
+    /// re-applied on every connect: RegionUnlockService resets to the seed's first region on
+    /// Register, so without replaying the progressive items the other regions would lock
+    /// themselves again, and SermonService rebuilds its per-chain tier counters the same way.
+    /// Both are idempotent, so replaying them costs nothing.
+    ///
+    /// Only the stacking grants - filler resources, Follower Level Up - are suppressed on
+    /// replay.
     /// </summary>
     private void ApplyItem(long itemId)
     {
         var itemName = session.Items.GetItemName(itemId);
-        Log.LogInfo($"[AP] Received item: {itemName} (id {itemId})");
+
+        var isReplay = replaysRemaining > 0;
+        if (isReplay) replaysRemaining--;
+
+        if (!isReplay)
+        {
+            Log.LogInfo($"[AP] Received item: {itemName} (id {itemId})");
+            appliedCount++;
+            AppliedItemStore.Set(storeKey, appliedCount);
+        }
+
+        // --- idempotent, always applied (including on replay) ---
 
         if (itemId == CultOfTheLambIds.ProgressiveRegionAccessItemId)
         {
@@ -92,16 +130,24 @@ public partial class ArchipelagoItemLogicController : IService
             return;
         }
 
-        // Sermon upgrades are matched by name, not id: the item -> upgrade mapping comes from
-        // slot data, which is keyed by name, and that indirection is what keeps the two sides
-        // from drifting when upgrades get added or reordered.
+        // Matched by name, not id: the item -> upgrade mapping comes from slot data, which is
+        // keyed by name, and that indirection is what keeps the two sides from drifting when
+        // upgrades get added or reordered.
         if (sermonService != null && sermonService.TryApplyItem(itemName)) return;
+
+        // --- non-idempotent, suppressed on replay ---
+
+        if (isReplay)
+        {
+            Log.LogInfo($"[AP] Already granted to this save, not re-granting: {itemName}");
+            return;
+        }
 
         if (FillerService.TryApplyItem(itemName)) return;
 
-        // Loud rather than silent: an unhandled item is an item the player earned and didn't
-        // get, and filler is ~half of a seed - a quiet drop here is the most likely way this
-        // mod feels broken while looking fine.
+        // Loud rather than silent: an unhandled item is one the player earned and didn't get,
+        // and filler is ~half of a seed - a quiet drop here is the most likely way this mod
+        // feels broken while looking fine.
         Log.LogWarning($"[AP] No handler for item '{itemName}' (id {itemId}) - nothing granted.");
     }
 }
