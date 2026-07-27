@@ -72,6 +72,25 @@ class TrapPercentage(Range):
     default = 5
 
 
+class TarotShopChecks(Toggle):
+    """Send a check for each Tarot Card bought from a hub shop.
+
+    Every hub (Pilgrim's Passage, Spore Grotto, Smuggler's Sanctuary, Midas's Cave) sells a
+    fixed set of named cards - 14 in total. Because the hubs are reached through their
+    region's progression, these spread across spheres rather than all being available at
+    once."""
+    display_name = "Tarot Shop Checks"
+    default = True
+
+
+class SnailShrineChecks(Toggle):
+    """Send a check for each of the 5 Snail Shrines you make a Shell offering at.
+
+    Lighting all five is what unlocks the Snail Follower form in the base game."""
+    display_name = "Snail Shrine Checks"
+    default = True
+
+
 @dataclass
 class CultOfTheLambOptions(PerGameCommonOptions):
     goal: Goal
@@ -80,4 +99,6 @@ class CultOfTheLambOptions(PerGameCommonOptions):
     include_woolhaven: IncludeWoolhaven
     randomize_sermon_upgrades: RandomizeSermonUpgrades
     follower_milestone_checks: FollowerMilestoneChecks
+    tarot_shop_checks: TarotShopChecks
+    snail_shrine_checks: SnailShrineChecks
     trap_percentage: TrapPercentage

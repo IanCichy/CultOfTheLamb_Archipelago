@@ -8,7 +8,11 @@ from .items import (
     create_item, filler_table, item_table, offset, sermon_item_counts, trap_table,
     weighted_filler_names,
 )
-from .locations import FOLLOWER_MILESTONE_COUNT, location_name_to_id, location_table
+from .locations import (
+    FOLLOWER_MILESTONE_COUNT, SNAIL_SHRINE_COUNT, TAROT_SHOP_CARDS, TAROT_SHOP_HUBS,
+    location_name_to_id,
+    location_table,
+)
 from .options import CultOfTheLambOptions
 from .regions import REGION_NAMES, create_regions
 from .rules import set_rules
@@ -124,6 +128,21 @@ class CultOfTheLambWorld(World):
             # recruit count straight into a check id.
             "followerLocationBaseId": location_name_to_id["Followers Recruited 1"],
             "followerLocationCount": FOLLOWER_MILESTONE_COUNT,
+
+            "snailShrineChecks": bool(self.options.snail_shrine_checks.value),
+            # ShellsGifted_0.._4 map to contiguous ids from here.
+            "snailLocationBaseId": location_name_to_id["Snail Shrine 1"],
+            "snailLocationCount": SNAIL_SHRINE_COUNT,
+
+            "tarotShopChecks": bool(self.options.tarot_shop_checks.value),
+            # TarotCards.Card enum name -> location id. Keyed by enum name because that's
+            # what the client can read off a BuyEntry; display names differ completely
+            # ("The Burning Dead" is Skull) and would be useless to match on.
+            "tarotShopLocations": {
+                internal: location_name_to_id[f"{TAROT_SHOP_HUBS[region]} - {display}"]
+                for region, cards in TAROT_SHOP_CARDS.items()
+                for display, internal in cards
+            },
             # Sermon item name -> the UpgradeSystem.Type names it unlocks, in order. A
             # single-entry list is a standalone upgrade; a longer one is a progressive chain
             # where the Nth copy received unlocks the Nth entry. Sending the mapping instead
