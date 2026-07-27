@@ -1,7 +1,9 @@
+using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using BepInEx;
 using I2.Loc;
+using Lamb.UI;
 using Lamb.UI.Assets;
 using UnityEngine;
 
@@ -41,6 +43,79 @@ internal static class DebugActions
     {
         Inventory.AddItem(type, quantity, forceNormalInventory: true);
         Log.LogInfo($"[AP] Debug: gave {quantity}x {type}");
+    }
+
+    /// <summary>
+    /// F2 - list the sermon upgrades you currently own, to the log.
+    ///
+    /// Randomizing sermons removes the game's own way of showing this tree: it's opened from
+    /// exactly two places, SermonController.PlayerUpgrade() (which we suppress) and the Flock
+    /// of the Faithful ritual. The Shrine shows the *building* tree, a different thing.
+    ///
+    /// This deliberately does NOT open UIUpgradePlayerTreeMenuController. That menu overrides
+    /// OnCancelButtonInput() with an empty body - it cannot be dismissed - because it's only
+    /// ever meant to be entered when the player is owed a pick. The single way out is
+    /// DoUnlock(), which calls UpgradeSystem.UnlockAbility directly. So opening it to "just
+    /// look" hands out a free upgrade the randomizer never granted, whatever DisciplePoints
+    /// happens to be.
+    ///
+    /// TODO: a real in-game viewer needs to be our own UI, not the game's. Until then this is
+    /// log-only, which is safe but not player-facing.
+    /// </summary>
+    internal static void ListOwnedSermonUpgrades()
+    {
+        // Filter against the game's own sermon tree rather than guessing by name prefix.
+        // Prefix matching was wrong: "Relic_Pack_Default" starts with "Relic" but isn't a
+        // sermon upgrade at all, and showed up in the list as an untranslated term.
+        var tree = GameManager.GetInstance()?.UpgradePlayerConfiguration?.AllUpgrades;
+        if (tree == null)
+        {
+            Log.LogWarning("[AP] Debug: sermon tree unavailable - can't list upgrades.");
+            return;
+        }
+
+        var owned = new List<string>();
+        var missing = new List<string>();
+        foreach (var upgrade in tree)
+        {
+            var line = $"{Safe(() => UpgradeSystem.GetLocalizedName(upgrade))}  [{upgrade}]";
+            if (UpgradeSystem.GetUnlocked(upgrade)) owned.Add(line);
+            else missing.Add(line);
+        }
+
+        Log.LogInfo($"[AP] Sermon upgrades: {owned.Count} owned of {tree.Count}.");
+        foreach (var line in owned) Log.LogInfo($"[AP]   have  {line}");
+        foreach (var line in missing) Log.LogInfo($"[AP]   want  {line}");
+
+        ApNotification.Show($"Archipelago: {owned.Count}/{tree.Count} sermon upgrades - see the log",
+            NotificationBase.Flair.None);
+    }
+
+    /// <summary>
+    /// F3 - fill the sermon bar so the very next sermon pays out immediately.
+    ///
+    /// Exists because testing sermon randomization otherwise means grinding real sermons, one
+    /// per in-game day, each needing a flock's worth of accumulated XP. SermonController reads
+    /// the stored XP when the sermon starts and pays out if it already meets the target
+    /// (SermonController.cs:82), so pre-filling it here is enough - the reward still runs
+    /// through the game's own code path rather than us faking the event.
+    /// </summary>
+    internal static void FillSermonBar()
+    {
+        if (DataManager.Instance == null)
+        {
+            Log.LogWarning("[AP] Debug: DataManager not ready - can't fill the sermon bar.");
+            return;
+        }
+
+        var target = DoctrineUpgradeSystem.GetXPTargetBySermon(SermonCategory.PlayerUpgrade);
+        DoctrineUpgradeSystem.SetXPBySermon(SermonCategory.PlayerUpgrade, target);
+
+        var level = DataManager.Instance.Doctrine_PlayerUpgrade_Level;
+        Log.LogInfo($"[AP] Debug: sermon XP set to target ({target}); currently at level {level}. "
+            + "Give a sermon at the Temple to trigger the payout.");
+        ApNotification.Show("Archipelago: sermon bar filled - give a sermon",
+            NotificationBase.Flair.Positive);
     }
 
     /// <summary>F7 - sermon/ability upgrade. The biggest payoff feature (~35 items + ~35 locations).</summary>
@@ -217,6 +292,15 @@ internal static class DebugActions
             // Fleece terms are keyed by the enum's numeric value, not its name
             // (FleeceSelectionMenu.cs:46, SandboxCategory.cs:40).
             sb.AppendLine($"{f} ({(int)f})\t{Safe(() => LocalizationManager.GetTranslation($"TarotCards/Fleece{(int)f}/Name"))}");
+        }
+
+        sb.AppendLine();
+        sb.AppendLine("## InventoryItem.ITEM_TYPE (resources, meals, currencies, quest items)");
+        foreach (InventoryItem.ITEM_TYPE item in System.Enum.GetValues(typeof(InventoryItem.ITEM_TYPE)))
+        {
+            // Term is "Inventory/{TYPE}" with no /Name suffix, unlike the other systems
+            // (FollowerCommandItems.cs:1354).
+            sb.AppendLine($"{item} ({(int)item})\t{Safe(() => LocalizationManager.GetTranslation($"Inventory/{item}"))}");
         }
 
         sb.AppendLine();

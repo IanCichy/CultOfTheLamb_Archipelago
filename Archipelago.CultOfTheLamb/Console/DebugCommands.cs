@@ -37,6 +37,17 @@ internal static class DebugCommands
             "Connects to (or disconnects from) Archipelago using the SlotName/ServerName/"
             + "Port/Password values below.");
 
+        BindFeatureKey(config, "ListSermonUpgradesKey", KeyCode.F2,
+            "Lists the sermon upgrades you own to the log. Does NOT open the game's upgrade "
+            + "tree - that menu can't be dismissed without picking an upgrade, which would "
+            + "hand out one the randomizer never granted.",
+            DebugActions.ListOwnedSermonUpgrades);
+
+        BindFeatureKey(config, "FillSermonBarKey", KeyCode.F3,
+            "Fills the sermon XP bar so the next sermon at the Temple immediately pays out "
+            + "(tests sermon checks without grinding real sermons).",
+            DebugActions.FillSermonBar);
+
         BindFeatureKey(config, "DumpNamesKey", KeyCode.F4,
             "Writes the internal-name -> display-name table for upgrades, tarot, fleeces, "
             + "crown abilities and doctrines to BepInEx/ap_unlockable_names.txt.",
