@@ -13,8 +13,8 @@ from .locations import (
     location_name_to_id,
     location_table,
 )
-from .options import CultOfTheLambOptions
-from .regions import REGION_NAMES, create_regions
+from .options import CultOfTheLambOptions, RegionAccessOrder
+from .regions import REGION_NAMES, SACRIFICE_GATED_REGION, create_regions
 from .rules import set_rules
 
 
@@ -56,9 +56,38 @@ class CultOfTheLambWorld(World):
     region_order: List[str]
 
     def generate_early(self) -> None:
-        self.region_order = self.random.sample(REGION_NAMES, len(REGION_NAMES))
+        self.region_order = self.build_region_order()
         # Expand once rather than per filler item - this is sampled dozens of times per seed.
         self.weighted_filler = weighted_filler_names()
+
+    def build_region_order(self) -> List[str]:
+        """The unlock order for this seed. Index 0 is free; the rest gate behind one more
+        Progressive Bishop's Domain each (see rules.set_rules).
+
+        REGION_NAMES is already in the game's own order, so vanilla_order is just a copy.
+        """
+        order = self.options.region_access_order
+
+        if order in (RegionAccessOrder.option_vanilla_order,
+                     RegionAccessOrder.option_all_unlocked):
+            return list(REGION_NAMES)
+
+        if order == RegionAccessOrder.option_randomized_safe_start:
+            # Silk Cradle's door costs a Follower sacrifice to open, which is a punishing
+            # opening move before there's a flock to spare - so shuffle until it isn't first.
+            # Rejection sampling rather than picking-then-shuffling keeps every other ordering
+            # equally likely.
+            while True:
+                shuffled = self.random.sample(REGION_NAMES, len(REGION_NAMES))
+                if shuffled[0] != SACRIFICE_GATED_REGION:
+                    return shuffled
+
+        return self.random.sample(REGION_NAMES, len(REGION_NAMES))
+
+    @property
+    def regions_are_gated(self) -> bool:
+        """False only for all_unlocked, where no access items exist at all."""
+        return self.options.region_access_order != RegionAccessOrder.option_all_unlocked
 
     def create_regions(self) -> None:
         create_regions(self)
@@ -69,7 +98,7 @@ class CultOfTheLambWorld(World):
     def create_items(self) -> None:
         item_pool: List[CultOfTheLambItem] = []
 
-        if self.options.randomize_region_access:
+        if self.regions_are_gated:
             # One fewer copy than there are regions - the first region in region_order is
             # always free, so only the remaining N-1 need to be unlocked.
             for _ in range(len(REGION_NAMES) - 1):
@@ -108,7 +137,7 @@ class CultOfTheLambWorld(World):
         return {
             "goal": self.options.goal.value,
             "requiredCount": self.options.required_count.value,
-            "randomizeRegionAccess": bool(self.options.randomize_region_access.value),
+            "randomizeRegionAccess": self.regions_are_gated,
             # Tells the C# client which region to force-open at start, and the order the
             # remaining three unlock in as Progressive Bishop's Domain copies arrive.
             "regionOrder": self.region_order,

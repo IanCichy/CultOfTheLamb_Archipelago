@@ -23,12 +23,32 @@ class RequiredCount(Range):
     default = 4
 
 
-class RandomizeRegionAccess(Toggle):
-    """If enabled, one of Darkwood/Anura/Anchordeep/Silk Cradle is randomly free from the
-    start each seed, and the other three require the Progressive Bishop's Domain item (one
-    more copy each, in a random per-seed order) before they can be visited."""
-    display_name = "Randomize Region Access"
-    default = True
+class RegionAccessOrder(Choice):
+    """The order the four crusade regions unlock in, and whether they're gated at all.
+
+    vanilla_order: the game's own order (Darkwood, Anura, Anchordeep, Silk Cradle). Still
+      gated - each after the first needs another Progressive Bishop's Domain - so the region
+      checks stay meaningful, they just arrive in the familiar sequence.
+
+    randomized: any region can be the free starting one, and the other three unlock in a
+      random per-seed order.
+
+    randomized_safe_start: as randomized, but Silk Cradle is never the free starting region.
+      Its door demands sacrificing a Follower to open, which is brutal as a seed's opening
+      move before you have a flock to spare.
+
+    all_unlocked: no gating at all - every region open from the start, and no Progressive
+      Bishop's Domain items in the pool. Note this removes the only progression item the
+      world currently has, so seeds become a single sphere."""
+    display_name = "Region Access Order"
+    option_vanilla_order = 0
+    option_randomized = 1
+    option_randomized_safe_start = 2
+    option_all_unlocked = 3
+    default = 2
+    # Keeps YAMLs written against the old Toggle working.
+    alias_true = 1
+    alias_false = 3
 
 
 class IncludeWoolhaven(Toggle):
@@ -95,7 +115,7 @@ class SnailShrineChecks(Toggle):
 class CultOfTheLambOptions(PerGameCommonOptions):
     goal: Goal
     required_count: RequiredCount
-    randomize_region_access: RandomizeRegionAccess
+    region_access_order: RegionAccessOrder
     include_woolhaven: IncludeWoolhaven
     randomize_sermon_upgrades: RandomizeSermonUpgrades
     follower_milestone_checks: FollowerMilestoneChecks

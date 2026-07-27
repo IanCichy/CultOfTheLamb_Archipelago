@@ -12,6 +12,10 @@ if TYPE_CHECKING:
 # just used to build the region graph, not to imply any fixed order.
 REGION_NAMES = ["Darkwood", "Anura", "Anchordeep", "Silk Cradle"]
 
+# Its home-base door demands sacrificing a Follower to open, so starting a seed here is a
+# rough opening move - the randomized_safe_start option exists to avoid exactly that.
+SACRIFICE_GATED_REGION = "Silk Cradle"
+
 
 def create_regions(world: "CultOfTheLambWorld") -> None:
     player = world.player
