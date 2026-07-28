@@ -27,6 +27,12 @@
   </Target>
 
   <ItemGroup>
+    <!-- Embedded rather than copied next to the DLL: a missing loose file would only show up
+         in-game as a slot with no icon, whereas a bad resource name fails loudly at load. -->
+    <EmbeddedResource Include="Assets\APTarotCard.png" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="BepInEx.Analyzers" Version="1.0.*">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>

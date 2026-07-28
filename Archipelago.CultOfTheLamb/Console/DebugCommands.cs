@@ -72,6 +72,13 @@ internal static class DebugCommands
         BindFeatureKey(config, "ShowNotificationKey", KeyCode.F11,
             "Shows sample Archipelago notifications (tests the notification pipeline).",
             DebugActions.ShowSampleNotification);
+
+        // F1, not F12: Steam binds F12 to screenshots by default, and a debug key that also
+        // fires the overlay is a confusing thing to hand someone testing.
+        BindFeatureKey(config, "DumpShopSlotsKey", KeyCode.F1,
+            "Dumps every shop in the current scene and the renderer behind each of its slots "
+            + "(checks which one ShopIconService should be replacing with the AP logo).",
+            DebugActions.DumpShopSlots);
     }
 
     private static ConfigEntry<KeyboardShortcut> Bind(
