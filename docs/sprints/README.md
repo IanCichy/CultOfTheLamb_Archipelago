@@ -9,6 +9,25 @@ One feature per sprint, and a sprint isn't done until it's **implemented, genera
 verified in-game**. The Sprint 2 pattern worked: research everything first, ship one debug
 build that exercises the feature, then test.
 
+## Target play session — read this before prioritising anything
+
+**A default seed should run 4–6 hours**, with the goal set to N Bishops, N Witnesses, or the
+vanilla final boss (Narinder).
+
+That constraint decides sprint order. Content which *enriches* a base-game run is worth more
+than content which *extends* it:
+
+- **Woolhaven roughly doubles a seed to 12+ hours.** It stays behind `include_woolhaven`
+  (off by default) and is deliberately a late sprint. Adding it early would make the default
+  experience worse, not better.
+- The `_P2` post-game re-clears have the same problem — a second lap through content the
+  player has already seen, landing after the natural goal.
+- Prefer breadth inside the base game (tarot, doctrines, forms, fleeces) over depth past the
+  ending.
+
+Sphere depth still matters but is **secondary to session length**. A flat 5-hour seed beats a
+well-structured 12-hour one for the default player.
+
 ---
 
 ## Where things stand
@@ -31,10 +50,77 @@ exist to fix that; everything after is content.
 
 ---
 
-## Sprint 3 — Endgame & Woolhaven regions
+> **Ordering note.** An earlier draft put endgame + Woolhaven first, optimising purely for
+> sphere depth. That was wrong once the 4–6 hour target was known: it front-loaded the work
+> that makes seeds *longer*. Base-game breadth now comes first, and the sprint numbers below
+> reflect the corrected order.
 
-**Why first**: the only remaining work that adds *late-game structure* rather than more
-sphere-1 locations. Everything else piles into the early game.
+## Sprint 3 — Tarot cards (full system)
+
+**Why first**: the largest content add that fits inside a 4–6 hour seed, and it is
+finalization and testing rather than discovery — everything needed is already researched.
+
+- `DataManager.AllTrinkets` is the real pool: **85 cards**.
+- Realistically randomizable **~46**: minus 19 Woolhaven (`MajorDLCCards`), 5 co-op
+  (`CoopCards`), 15 already unlocked at start (`DefaultCards`).
+- Grant: `TarotCards.UnlockTrinket(Card)` — proven, and it queues the game's own
+  card-unlocked alert for free.
+- Display names already dumped via F4. They differ wildly from enum names — "The Burning
+  Dead" is `Skull`, "The Path" is `MovementSpeed`. **Never guess these.**
+
+Open design decision: what the other ~30 *locations* are. The 14 shop purchases already
+exist. First-find in a crusade is the obvious source — but see the softlock note in the
+Sprint 2 doc: if the find-event and the grant aren't decoupled, a card AP hands you early
+makes its own location unreachable.
+
+## Sprint 4 — Doctrines
+
+~48 base (6 categories × 8, ~10 levels each). Excludes the 15 Winter/Woolhaven entries and
+the 11 story-granted `Special_*`, which aren't player-chosen.
+
+- `DoctrineUpgradeSystem.UnlockAbility(DoctrineType)` / `GetUnlocked` / `UnlockedUpgrades`.
+- `GetSermonReward(SermonCategory, level, firstChoice)` gives the two options offered per
+  level — that tier structure maps cleanly onto progressive items per category.
+- Full enum in `AI_INDEX.md` §4a.
+
+## Sprint 5 — Follower forms
+
+~50 skins, with `DataManager.SetFollowerSkinUnlocked(string)` as a single static choke point —
+the same system boss skins use (`AI_INDEX.md` §3a). `UIFollowerFormsMenuController` holds
+per-region ordered arrays naming every one.
+
+Hub Follower Form booths sell them by region category, so purchases are natural locations —
+and `Interaction_BuyItem` already covers those, so no new hook is needed.
+
+## Sprint 6 — Fleeces
+
+Small, and already proven live via F10.
+
+- `PlayerFleeceManager.FleeceType`; **no unlock API** — `DataManager.UnlockedFleeces` is a
+  plain `List<int>` of enum values. Guard with `Contains` first.
+- 12 base, 15 Woolhaven (`WoolhavenPackFleeces`), 5 cosmetic-DLC (exclude).
+- Locations: the fleece-purchase interactions (`Interaction_PurchasableFleece`).
+
+## Sprint 7 — Crown abilities & the Narinder goal
+
+Grouped because both shape how a run *ends*.
+
+**Crown abilities** — 14 items. Grapple Hook / Fishing Rod / Special Key are traversal, the
+only genuine logic gates the game offers, making this the one lever that adds sphere depth
+without adding hours.
+- Enum `CrownAbilities.TYPE`; bought at the Temple with Monster Hearts via
+  `UIPlayerUpgradesMenuController.UpgradeItemSelected` → `UpgradeSystem.UnlockAbility`, with a
+  `Cost.CanAfford()` guard in the same method — check and gate in one place.
+- Display names via `CrownAbilities.LocalisedName(TYPE)`.
+
+**Narinder as a goal option** — the vanilla ending, and a natural 4–6 hour target alongside
+Bishops and Witnesses. `EnemyDeathCatBoss` is Narinder; `DataManager.DeathCatBeaten` is the
+flag. This is the *goal*, not a gateway into post-game content.
+
+## Sprint 8 — Woolhaven & post-game (optional, behind the DLC toggle)
+
+**Deliberately late.** Roughly doubles a seed to 12+ hours, so it's opt-in content for players
+who want a long game rather than part of the default experience.
 
 Scope (~30 locations):
 - **The Gateway / Narinder** — `EnemyDeathCatBoss`, uses `PlayerFarming.Location` generically
@@ -54,76 +140,6 @@ Narinder, Woolhaven requires DLC + post-game.
 
 ---
 
-## Sprint 4 — Crown abilities as progression
-
-**Why**: 14 items, and Grapple Hook / Fishing Rod / Special Key are *traversal* — the only
-genuine logic gates the game has. This is the highest-leverage change for sphere depth, and
-the first time `rules.py` gets to express something other than region access.
-
-- Enum: `CrownAbilities.TYPE` (14 values, listed in `AI_INDEX.md`).
-- Bought at the Temple with Monster Hearts via
-  `UIPlayerUpgradesMenuController.UpgradeItemSelected` → `UpgradeSystem.UnlockAbility`, with a
-  `Cost.CanAfford()` guard right there — so both the check and the gate live in one method.
-- Display names via `CrownAbilities.LocalisedName(TYPE)`.
-
-Open design question: which abilities actually gate which content. Needs a pass through the
-region/dungeon requirements before writing rules — don't guess.
-
----
-
-## Sprint 5 — Tarot cards (full system)
-
-**Biggest content add available.** Fully researched; nothing left to discover.
-
-- `DataManager.AllTrinkets` is the real pool: **85 cards**.
-- Realistically randomizable **~46**: minus 19 Woolhaven (`MajorDLCCards`), 5 co-op
-  (`CoopCards`), 15 already unlocked at start (`DefaultCards`).
-- Grant: `TarotCards.UnlockTrinket(Card)` — proven, and it queues the game's own
-  card-unlocked alert for free.
-- Display names are already dumped (F4). They differ wildly from enum names — "The Burning
-  Dead" is `Skull`, "The Path" is `MovementSpeed`. **Never guess these.**
-
-Design decision still open: what the *locations* are. The 14 shop purchases already exist;
-the other ~30 need a source (first-find in a crusade is the obvious one, but see the softlock
-note in the Sprint 2 doc about decoupling find-events from grants).
-
-**This sprint is finalization + testing, not research.**
-
----
-
-## Sprint 6 — Doctrines
-
-~48 base (6 categories × 8, ~10 levels each), plus 15 Winter/Woolhaven and 11 story-granted
-`Special_*` which are **not** player-chosen and should be excluded.
-
-- `DoctrineUpgradeSystem.UnlockAbility(DoctrineType)` / `GetUnlocked` / `UnlockedUpgrades`.
-- `GetSermonReward(SermonCategory, level, firstChoice)` gives the two options offered per
-  level — the tier structure maps cleanly to progressive items per category.
-- Full enum listed in `AI_INDEX.md` §4a.
-
----
-
-## Sprint 7 — Fleeces
-
-Small and already proven (F10 grants one live).
-
-- `PlayerFleeceManager.FleeceType`; **no unlock API** — `DataManager.UnlockedFleeces` is a
-  plain `List<int>` of enum values. Guard with `Contains` first.
-- 12 base, 15 Woolhaven (`WoolhavenPackFleeces`), 5 cosmetic-DLC (exclude).
-- Locations: the fleece-purchase interactions (`Interaction_PurchasableFleece`).
-
----
-
-## Sprint 8 — Follower forms
-
-~50 skins, and `DataManager.SetFollowerSkinUnlocked(string)` is a single static choke point —
-the same system boss skins use (see `AI_INDEX.md` §3a). `UIFollowerFormsMenuController` has
-per-region ordered arrays naming every one.
-
-Hub Follower Form booths sell them by region category, so shop purchases are natural
-locations — and `Interaction_BuyItem` already covers those, no new hook needed.
-
----
 
 ## Sprint 9 — Achievements (toggleable)
 
