@@ -102,20 +102,15 @@ internal class FollowerMilestoneService : IService
             checkIds[i] = locationBaseId + i;
         }
 
-        // Announce only what's actually new. The full 1..N range is re-sent every time for
-        // idempotency, but the player has already seen the earlier ones.
-        var newlySent = new long[highest - highestSent];
-        for (var i = 0; i < newlySent.Length; i++)
-        {
-            newlySent[i] = locationBaseId + highestSent + i;
-        }
-
         highestSent = highest;
         Log.LogInfo($"[AP] {recruited} Follower(s) ever recruited "
             + $"(living {DataManager.Instance?.Followers?.Count ?? 0}, "
             + $"dead {DataManager.Instance?.Followers_Dead?.Count ?? 0}) "
             + $"- sending milestone checks 1-{highest}.");
-        session.Locations.CompleteLocationChecks(checkIds);
-        CheckNotifier.Announce(session, newlySent);
+
+        // The full 1..N range every time, deliberately: CheckSender drops whatever the server
+        // already has, so this can stay a blunt re-derivation without re-announcing old
+        // milestones on connect.
+        CheckSender.Send(session, checkIds);
     }
 }

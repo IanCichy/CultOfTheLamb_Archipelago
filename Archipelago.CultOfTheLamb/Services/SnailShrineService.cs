@@ -56,8 +56,7 @@ internal class SnailShrineService : IService
             sent[i] = true;
             var checkId = locationBaseId + i;
             Log.LogInfo($"[AP] Snail Shrine {i + 1} lit, sending check {checkId}");
-            session.Locations.CompleteLocationChecks(checkId);
-            CheckNotifier.Announce(session, new[] { checkId });
+            CheckSender.Send(session, checkId);
         }
     }
 

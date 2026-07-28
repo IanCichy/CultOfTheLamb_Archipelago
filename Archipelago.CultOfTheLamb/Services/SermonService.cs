@@ -67,8 +67,7 @@ internal class SermonService : IService
 
         var checkId = locationBaseId + (level - 1);
         Log.LogInfo($"[AP] Sermon upgrade #{level}, sending check {checkId}");
-        session.Locations.CompleteLocationChecks(checkId);
-        CheckNotifier.Announce(session, new[] { checkId });
+        CheckSender.Send(session, checkId);
     }
 
     /// <summary>
