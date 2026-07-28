@@ -1,5 +1,11 @@
 # Sprint 2 — Prove the remaining features with one debug build
 
+> **STATUS: COMPLETE.** All five candidate features were proven in-game, and the sprint went
+> well past its original scope: miniboss/Witness checks, sermon randomization, Follower
+> milestones, Tarot shop purchases, Snail Shrines, a real filler pool, sphere depth rules and
+> the region access order option all shipped. See `README.md` in this folder for the roadmap
+> of what's next; the sections below are kept for the research and traps they record.
+
 **Written to survive a context reset.** A fresh session should be able to execute this
 without re-deriving anything. Read the "Cold start" section first.
 
