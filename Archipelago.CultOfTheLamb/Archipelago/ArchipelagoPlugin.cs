@@ -64,6 +64,10 @@ public class ArchipelagoPlugin : BaseUnityPlugin
         DebugCommands.Update();
         AP?.ItemLogic?.ProcessQueue();
 
+        // Unthrottled, and cheap: it returns immediately unless a shop is waiting to be marked,
+        // which only happens for a few frames after walking into one.
+        AP?.ShopIconService?.Tick();
+
         // Throttled polling for the two systems derived from save state: Follower counts
         // (recruit events fire before the data lands) and Snail Shrines (five save booleans
         // with no event at all). Once a second is far more often than either can change, and

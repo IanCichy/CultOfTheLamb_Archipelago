@@ -56,8 +56,11 @@ internal class TarotShopService : IService
             return;
         }
 
+        // Before the check, because the purchase cutscene is already running: the card unlock
+        // lands a couple of seconds from now, and this has to be armed before it does.
+        ShopSlotDisplayPatch.SuppressNextUnlock(entry.Card);
+
         Log.LogInfo($"[AP] Bought tarot card '{cardName}', sending check {checkId}");
-        session.Locations.CompleteLocationChecks(checkId);
-        CheckNotifier.Announce(session, new[] { checkId });
+        CheckSender.Send(session, checkId);
     }
 }

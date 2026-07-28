@@ -529,4 +529,99 @@ internal static class DebugActions
                 + $"[term: {displayTerm}] -> {mapped}");
         }
     }
+
+    private static string Describe(Sprite sprite) =>
+        sprite == null ? "(none)" : $"\"{sprite.name}\" bounds={sprite.bounds.size}";
+
+    /// <summary>
+    /// F1 - dumps every shop in the current scene and the renderer hierarchy behind each slot.
+    ///
+    /// Exists because a shop slot's art has no single source: item and decoration stalls get
+    /// theirs from InventoryItemDisplay.SetImage, but tarot slots never call it - InitTarotShop
+    /// guards that call with itemToBuy != NONE, which is never true for a card - so their card
+    /// art is authored on the prefab and only findable by walking the hierarchy. ShopIconService
+    /// takes the slot's own SpriteRenderer first and the first child one otherwise; this is how
+    /// you check that guess picked the card and not a shadow or a highlight decal.
+    ///
+    /// Press it standing in a hub shop (F1).
+    /// </summary>
+    internal static void DumpShopSlots()
+    {
+        var shops = Object.FindObjectsOfType<shopKeeperManager>();
+        Log.LogInfo($"[AP] shopKeeperManagers in scene: {shops?.Length ?? 0}");
+
+        if (shops == null) return;
+
+        foreach (var shop in shops)
+        {
+            if (shop == null) continue;
+
+            Log.LogInfo($"[AP]   shop \"{shop.name}\" location={shop.Location} "
+                + $"tarot={shop.TarotCardShop} decorations={shop.DecorationsForSale} "
+                + $"daily={shop.DailyShop} slots={shop.itemSlots?.Length ?? 0}");
+
+            if (shop.itemSlots == null) continue;
+
+            foreach (var slot in shop.itemSlots)
+            {
+                if (slot == null)
+                {
+                    Log.LogInfo("[AP]     slot: (null)");
+                    continue;
+                }
+
+                var buyItem = slot.GetComponent<Interaction_BuyItem>();
+                var entry = buyItem?.itemForSale;
+                var sale = entry == null
+                    ? "(no BuyEntry)"
+                    : $"tarot={entry.TarotCard} card={entry.Card} decoration={entry.decorationToBuy} "
+                        + $"item={entry.itemToBuy} bought={entry.Bought}";
+
+                Log.LogInfo($"[AP]     slot \"{slot.name}\" active={slot.activeInHierarchy} {sale}");
+
+                // A slot can draw through three different things and the prefab decides which,
+                // so dump all of them rather than assuming. InventoryItemDisplay's own wiring
+                // goes first: SetImage writes to whichever of its targets is non-null, so the
+                // nulls are as informative as the values.
+                var display = slot.GetComponent<InventoryItemDisplay>();
+                if (display == null)
+                {
+                    Log.LogInfo("[AP]       no InventoryItemDisplay");
+                }
+                else
+                {
+                    Log.LogInfo($"[AP]       InventoryItemDisplay: "
+                        + $"spriteRenderer={Describe(display.spriteRenderer?.sprite)} "
+                        + $"image={Describe(display.image?.sprite)} "
+                        + $"outline={Describe(display.outline?.sprite)}");
+                }
+
+                // includeInactive: the hidden slots are exactly the interesting ones when a
+                // card turns out to be already unlocked.
+                foreach (var renderer in slot.GetComponentsInChildren<SpriteRenderer>(true))
+                {
+                    Log.LogInfo($"[AP]       SpriteRenderer on \"{renderer.gameObject.name}\" "
+                        + $"(same object: {renderer.gameObject == slot}) "
+                        + $"active={renderer.gameObject.activeInHierarchy} "
+                        + $"enabled={renderer.enabled} sprite={Describe(renderer.sprite)}");
+                }
+
+                foreach (var image in slot.GetComponentsInChildren<UnityEngine.UI.Image>(true))
+                {
+                    Log.LogInfo($"[AP]       UI.Image on \"{image.gameObject.name}\" "
+                        + $"(same object: {image.gameObject == slot}) "
+                        + $"active={image.gameObject.activeInHierarchy} "
+                        + $"enabled={image.enabled} sprite={Describe(image.sprite)}");
+                }
+
+                // Catches the case where the art is neither: a Spine skeleton or a mesh.
+                foreach (var renderer in slot.GetComponentsInChildren<Renderer>(true))
+                {
+                    if (renderer is SpriteRenderer) continue;
+                    Log.LogInfo($"[AP]       {renderer.GetType().Name} on "
+                        + $"\"{renderer.gameObject.name}\" enabled={renderer.enabled}");
+                }
+            }
+        }
+    }
 }

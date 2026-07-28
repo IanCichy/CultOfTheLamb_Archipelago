@@ -163,9 +163,15 @@ public partial class ArchipelagoClient
 
         if (GetBool(successResult.SlotData, "tarotShopChecks"))
         {
-            TarotShopService = new TarotShopService(
-                session, ParseTarotShopLocations(successResult.SlotData));
+            var tarotShopLocations = ParseTarotShopLocations(successResult.SlotData);
+
+            TarotShopService = new TarotShopService(session, tarotShopLocations);
             TarotShopService.Register();
+
+            // Same mapping, different job: TarotShopService sends the check, ShopIconService
+            // makes the slot look like one beforehand.
+            ShopIconService = new ShopIconService(session, tarotShopLocations);
+            ShopIconService.Register();
         }
 
         if (GetBool(successResult.SlotData, "snailShrineChecks"))
@@ -264,6 +270,8 @@ public partial class ArchipelagoClient
         FollowerMilestoneService = null;
         TarotShopService?.Unregister();
         TarotShopService = null;
+        ShopIconService?.Unregister();
+        ShopIconService = null;
         SnailShrineService?.Unregister();
         SnailShrineService = null;
         ItemLogic?.Unregister();
