@@ -45,25 +45,27 @@ internal static class MenuButtonPatch
     [HarmonyPostfix]
     private static void PauseMenu_Start_Postfix(UIPauseMenuController __instance)
     {
-        TryAddButton(TwitchButtonField(__instance), "pause menu");
+        // Twitch Settings carries a glyph beside its label, so the clone gets ours.
+        TryAddButton(TwitchButtonField(__instance), "pause menu", donorHasGlyph: true);
     }
 
     [HarmonyPatch(typeof(MainMenu), "Start")]
     [HarmonyPostfix]
     private static void MainMenu_Start_Postfix(MainMenu __instance)
     {
-        TryAddButton(SettingsButtonField(__instance), "main menu");
+        // The main menu is text-only - no button there has a glyph to replace.
+        TryAddButton(SettingsButtonField(__instance), "main menu", donorHasGlyph: false);
     }
 
     /// <summary>
     /// Never lets a UI failure take a menu down with it: a thrown exception in a Start postfix
     /// leaves the menu half-initialised, which is a far worse outcome than a missing button.
     /// </summary>
-    private static void TryAddButton(Selectable donor, string where)
+    private static void TryAddButton(Button donor, string where, bool donorHasGlyph)
     {
         try
         {
-            AddButton(donor, where);
+            AddButton(donor, where, donorHasGlyph);
         }
         catch (Exception e)
         {
@@ -71,7 +73,7 @@ internal static class MenuButtonPatch
         }
     }
 
-    private static void AddButton(Selectable donor, string where)
+    private static void AddButton(Button donor, string where, bool donorHasGlyph)
     {
         if (donor == null)
         {
@@ -93,39 +95,36 @@ internal static class MenuButtonPatch
         // Directly below the donor, so it reads as belonging to the same group.
         clone.transform.SetSiblingIndex(donor.transform.GetSiblingIndex() + 1);
 
-        var button = clone.GetComponent<Button>();
-        if (button == null)
-        {
-            Log.LogWarning($"[AP] Cloned {where} button has no Button component - skipping.");
-            UnityEngine.Object.Destroy(clone);
-            return;
-        }
-
         // The clone carries the donor's listeners, which would open Twitch settings.
+        var button = clone.GetComponent<Button>();
         button.onClick.RemoveAllListeners();
         button.onClick.AddListener(() => OnArchipelagoButtonPressed?.Invoke());
 
         SetLabel(clone, ButtonLabel);
-        SetIcon(clone);
+        if (donorHasGlyph) SetIcon(clone, where);
 
         Log.LogInfo($"[AP] Added the Archipelago button to the {where}.");
     }
 
     /// <summary>
-    /// Swaps the donor's glyph for the AP logo.
+    /// Swaps the donor's glyph for the AP logo. Only called for donors declared to have one.
     ///
     /// Matched on the existing sprite's *name* rather than by object name or child index: a
     /// menu button is several Images deep - ribbon, glyph, highlight - and replacing the wrong
     /// one wipes the button's background. The name is the only thing that identifies the glyph
-    /// unambiguously, and if the prefab ever changes we get a warning instead of a mangled
-    /// button. Buttons with no glyph (the main menu's) are left alone.
+    /// unambiguously today.
+    ///
+    /// It is still a weaker handle than the AccessTools.FieldRefAccess this file uses
+    /// everywhere else - a sprite asset name survives neither an art pass nor a rename. Finding
+    /// nothing is therefore a *warning*, not an outcome: the caller said there was a glyph, so
+    /// its absence means this needs revisiting, not that the button is fine as-is.
     /// </summary>
-    private static void SetIcon(GameObject button)
+    private static void SetIcon(GameObject button, string where)
     {
         var icon = ApAssets.IconSprite();
         if (icon == null) return;
 
-        var replaced = 0;
+        var replacedAny = false;
         foreach (var image in button.GetComponentsInChildren<Image>(true))
         {
             if (image.sprite == null) continue;
@@ -135,12 +134,13 @@ internal static class MenuButtonPatch
             // The AP logo isn't the same shape as the glyph it replaces, and the slot it sits
             // in was sized for that one.
             image.preserveAspect = true;
-            replaced++;
+            replacedAny = true;
         }
 
-        if (replaced == 0)
+        if (!replacedAny)
         {
-            Log.LogInfo("[AP] No donor glyph on the Archipelago button - leaving it text-only.");
+            Log.LogWarning($"[AP] Expected a glyph on the {where} donor button and found none - "
+                + "the Archipelago button will be text-only. The sprite may have been renamed.");
         }
     }
 
