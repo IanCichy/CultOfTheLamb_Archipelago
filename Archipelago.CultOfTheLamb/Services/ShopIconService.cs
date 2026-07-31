@@ -68,7 +68,7 @@ internal class ShopIconService : IService
         ShopSlotDisplayPatch.OnShopInitialised += HandleShopInitialised;
         ShopSlotDisplayPatch.OnLabelBuilt += HandleLabelBuilt;
         ShopSlotDisplayPatch.OnTarotDisplayBuilt += HandleTarotDisplayBuilt;
-        ShopSlotDisplayPatch.IsOpenCheck = IsOpenCheck;
+        ShopSlotDisplayPatch.SlotIsSpent = SlotIsSpent;
 
         ScoutShopLocations();
         foreach (var manager in UnityEngine.Object.FindObjectsOfType<shopKeeperManager>())
@@ -84,7 +84,7 @@ internal class ShopIconService : IService
         ShopSlotDisplayPatch.OnShopInitialised -= HandleShopInitialised;
         ShopSlotDisplayPatch.OnLabelBuilt -= HandleLabelBuilt;
         ShopSlotDisplayPatch.OnTarotDisplayBuilt -= HandleTarotDisplayBuilt;
-        ShopSlotDisplayPatch.IsOpenCheck = null;
+        ShopSlotDisplayPatch.SlotIsSpent = null;
 
         pending.Clear();
         RestoreSwappedSprites();
@@ -395,12 +395,16 @@ internal class ShopIconService : IService
     /// Dead" is Skull) and localised besides.
     /// </summary>
     /// <summary>
-    /// Whether a card's shop location is still worth offering - mapped this seed, and not yet
-    /// sent. Used by the TrinketUnlocked override to decide which slots stay on the shelf.
+    /// Whether a card's shop slot has been spent, for the TrinketUnlocked override: true once
+    /// its check is sent, false while it's still there to buy, and null for cards this seed
+    /// doesn't map at all - those are left entirely to the game.
     /// </summary>
-    private bool IsOpenCheck(TarotCards.Card card) =>
-        cardToCheckId.TryGetValue(card.ToString(), out var checkId)
-        && !session.Locations.AllLocationsChecked.Contains(checkId);
+    private bool? SlotIsSpent(TarotCards.Card card)
+    {
+        if (!cardToCheckId.TryGetValue(card.ToString(), out var checkId)) return null;
+
+        return session.Locations.AllLocationsChecked.Contains(checkId);
+    }
 
     private bool TryGetCheckId(Interaction_BuyItem buyItem, out long checkId)
     {
