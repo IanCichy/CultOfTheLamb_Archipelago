@@ -8,6 +8,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using UnityEngine;
 
@@ -59,28 +60,39 @@ public partial class ArchipelagoClient
 
         LoginResult result = null;
         Exception thrown = null;
+        var finished = new StrongBox<bool>();
 
         // ConnectToServer touches no Unity API, which is what makes this safe to run off the
         // main thread; ProcessLoginResult below very much does, so it stays on it.
-        using (var connectSignal = new ManualResetEventSlim(false))
+        //
+        // A dedicated thread rather than Task.Run: this parks on a blocking socket call for as
+        // long as the timeout, and tying up a thread-pool worker for seconds is what pools are
+        // worst at. IsBackground so a hung connect to a mistyped address - now the expected
+        // failure, not a dev typo - can't keep the process alive at quit.
+        new Thread(() =>
         {
-            new Thread(() =>
+            try
             {
-                try
-                {
-                    result = ConnectToServer(url, slotName, password);
-                }
-                catch (Exception e)
-                {
-                    thrown = e;
-                }
-                connectSignal.Set();
-            }).Start();
-
-            while (!connectSignal.IsSet)
-            {
-                yield return null;
+                result = ConnectToServer(url, slotName, password);
             }
+            catch (Exception e)
+            {
+                thrown = e;
+            }
+            Volatile.Write(ref finished.Value, true);
+        })
+        {
+            IsBackground = true,
+            Name = "Archipelago connect",
+        }.Start();
+
+        // The coroutine only ever polls this, never blocks on it, so a synchronisation
+        // primitive would be doing nothing - a write the main thread is guaranteed to observe
+        // is the whole requirement. Boxed because a captured local can't be declared volatile,
+        // and kept local rather than a field so two overlapping connects can't share it.
+        while (!Volatile.Read(ref finished.Value))
+        {
+            yield return null;
         }
 
         Connecting = false;
