@@ -22,11 +22,12 @@ internal static class ApAssets
     private const string CardResourceName = "Archipelago.CultOfTheLamb.Assets.APTarotCard.png";
     private const string IconResourceName = "Archipelago.CultOfTheLamb.Assets.ap_icon.png";
 
-    private static Texture2D cardTexture;
-    private static bool cardLoadAttempted;
+    // Memoised by resource name, failures included: a null entry means "already tried, and it
+    // isn't there", so a bad resource name costs one trip through the manifest stream rather
+    // than one per call.
+    private static readonly Dictionary<string, Texture2D> textures = new();
 
     private static Sprite iconSprite;
-    private static bool iconLoadAttempted;
 
     // Sprites are built per size and pivot so a card can stand exactly where the one it replaced
     // did. Keyed on hundredths of a world unit, finer than any visible difference.
@@ -77,14 +78,7 @@ internal static class ApAssets
             + $"_{Mathf.RoundToInt(pivot.x * 100f)}_{Mathf.RoundToInt(pivot.y * 100f)}";
         if (cardSprites.TryGetValue(key, out var cached) && cached != null) return cached;
 
-        // pixelsPerUnit is what sets a sprite's world size: height / PPU = units tall.
-        var sprite = Sprite.Create(
-            texture,
-            new Rect(0f, 0f, texture.width, texture.height),
-            pivot,
-            texture.height / worldHeight);
-        sprite.name = $"ArchipelagoTarot_{key}";
-        sprite.hideFlags = HideFlags.HideAndDontSave;
+        var sprite = MakeSprite(texture, pivot, texture.height / worldHeight, $"ArchipelagoTarot_{key}");
 
         cardSprites[key] = sprite;
         return sprite;
@@ -96,30 +90,39 @@ internal static class ApAssets
     /// </summary>
     internal static Sprite IconSprite()
     {
-        if (iconLoadAttempted) return iconSprite;
-        iconLoadAttempted = true;
+        if (iconSprite != null) return iconSprite;
 
-        var texture = LoadTexture(IconResourceName);
+        var texture = Texture(IconResourceName);
         if (texture == null) return null;
 
-        iconSprite = Sprite.Create(
-            texture,
-            new Rect(0f, 0f, texture.width, texture.height),
-            new Vector2(0.5f, 0.5f),
-            100f);
-        iconSprite.name = "ArchipelagoIcon";
-        iconSprite.hideFlags = HideFlags.HideAndDontSave;
-
+        iconSprite = MakeSprite(texture, new Vector2(0.5f, 0.5f), 100f, "ArchipelagoIcon");
         return iconSprite;
     }
 
-    private static Texture2D CardTexture()
+    /// <summary>
+    /// Builds a sprite from a whole texture. The hideFlags matter for the same reason they do on
+    /// the texture itself - without them Unity treats it as scene content and destroys it on
+    /// scene load, and every renderer holding it silently draws nothing.
+    /// </summary>
+    private static Sprite MakeSprite(Texture2D texture, Vector2 pivot, float pixelsPerUnit, string name)
     {
-        if (cardLoadAttempted) return cardTexture;
-        cardLoadAttempted = true;
+        // pixelsPerUnit is what sets a sprite's world size: height / PPU = units tall.
+        var sprite = Sprite.Create(
+            texture, new Rect(0f, 0f, texture.width, texture.height), pivot, pixelsPerUnit);
+        sprite.name = name;
+        sprite.hideFlags = HideFlags.HideAndDontSave;
+        return sprite;
+    }
 
-        cardTexture = LoadTexture(CardResourceName);
-        return cardTexture;
+    private static Texture2D CardTexture() => Texture(CardResourceName);
+
+    private static Texture2D Texture(string resourceName)
+    {
+        if (textures.TryGetValue(resourceName, out var cached)) return cached;
+
+        var texture = LoadTexture(resourceName);
+        textures[resourceName] = texture;
+        return texture;
     }
 
     private static Texture2D LoadTexture(string resourceName)
