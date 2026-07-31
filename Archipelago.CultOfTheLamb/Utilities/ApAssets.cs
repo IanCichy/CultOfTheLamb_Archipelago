@@ -20,9 +20,13 @@ internal static class ApAssets
 {
     // Default logical name for an EmbeddedResource: RootNamespace + folder path + filename.
     private const string CardResourceName = "Archipelago.CultOfTheLamb.Assets.APTarotCard.png";
+    private const string IconResourceName = "Archipelago.CultOfTheLamb.Assets.ap_icon.png";
 
     private static Texture2D cardTexture;
     private static bool cardLoadAttempted;
+
+    private static Sprite iconSprite;
+    private static bool iconLoadAttempted;
 
     // Sprites are built per size and pivot so a card can stand exactly where the one it replaced
     // did. Keyed on hundredths of a world unit, finer than any visible difference.
@@ -86,12 +90,41 @@ internal static class ApAssets
         return sprite;
     }
 
+    /// <summary>
+    /// The plain AP logo, for UI Images. Size and aspect are the RectTransform's business, so
+    /// unlike the tarot card this needs no fitting - just a centred pivot.
+    /// </summary>
+    internal static Sprite IconSprite()
+    {
+        if (iconLoadAttempted) return iconSprite;
+        iconLoadAttempted = true;
+
+        var texture = LoadTexture(IconResourceName);
+        if (texture == null) return null;
+
+        iconSprite = Sprite.Create(
+            texture,
+            new Rect(0f, 0f, texture.width, texture.height),
+            new Vector2(0.5f, 0.5f),
+            100f);
+        iconSprite.name = "ArchipelagoIcon";
+        iconSprite.hideFlags = HideFlags.HideAndDontSave;
+
+        return iconSprite;
+    }
+
     private static Texture2D CardTexture()
     {
         if (cardLoadAttempted) return cardTexture;
         cardLoadAttempted = true;
 
-        var bytes = ReadResource(CardResourceName);
+        cardTexture = LoadTexture(CardResourceName);
+        return cardTexture;
+    }
+
+    private static Texture2D LoadTexture(string resourceName)
+    {
+        var bytes = ReadResource(resourceName);
         if (bytes == null) return null;
 
         // The 2x2 size is a placeholder - LoadImage resizes the texture to the decoded image.
@@ -106,15 +139,13 @@ internal static class ApAssets
 
         if (!texture.LoadImage(bytes))
         {
-            Log.LogWarning($"[AP] Could not decode {CardResourceName} - shop slots keep their "
-                + "vanilla art.");
+            Log.LogWarning($"[AP] Could not decode {resourceName} - falling back to vanilla art.");
             Object.Destroy(texture);
             return null;
         }
 
-        Log.LogInfo($"[AP] Loaded AP tarot card ({texture.width}x{texture.height}).");
-        cardTexture = texture;
-        return cardTexture;
+        Log.LogInfo($"[AP] Loaded {resourceName} ({texture.width}x{texture.height}).");
+        return texture;
     }
 
     private static byte[] ReadResource(string name)

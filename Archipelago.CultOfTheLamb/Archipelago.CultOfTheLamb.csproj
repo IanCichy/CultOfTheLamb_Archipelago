@@ -30,6 +30,7 @@
     <!-- Embedded rather than copied next to the DLL: a missing loose file would only show up
          in-game as a slot with no icon, whereas a bad resource name fails loudly at load. -->
     <EmbeddedResource Include="Assets\APTarotCard.png" />
+    <EmbeddedResource Include="Assets\ap_icon.png" />
   </ItemGroup>
 
   <ItemGroup>

@@ -29,13 +29,12 @@ internal static class DebugCommands
             "Dumps Archipelago client state, the game's boss-kill records, and every "
             + "MiniBossController in the current scene (internal name -> display name) to the log.");
 
-        // There's no in-game UI to connect yet (ArchipelagoConnectButtonController is a
-        // stub) and no native dev console to type a command into, so this keybind - using
-        // the SlotName/ServerName/Port/Password values from the BepInEx config file - is
-        // the only way to connect/disconnect for testing right now.
+        // Kept on its original config name so existing setups don't lose their binding, even
+        // though it now opens the panel rather than connecting outright. The panel is also
+        // reachable from the pause and main menus, so this is a shortcut rather than the only
+        // way in.
         connectKey = Bind(config, "ConnectKey", KeyCode.F5,
-            "Connects to (or disconnects from) Archipelago using the SlotName/ServerName/"
-            + "Port/Password values below.");
+            "Opens (or closes) the Archipelago connection panel.");
 
         BindFeatureKey(config, "ListSermonUpgradesKey", KeyCode.F2,
             "Lists the sermon upgrades you own to the log. Does NOT open the game's upgrade "

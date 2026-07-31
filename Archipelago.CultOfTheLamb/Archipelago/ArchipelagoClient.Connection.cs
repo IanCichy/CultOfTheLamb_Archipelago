@@ -5,6 +5,7 @@ using Archipelago.MultiClient.Net.Enums;
 using Archipelago.MultiClient.Net.MessageLog.Messages;
 using Newtonsoft.Json.Linq;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -19,7 +20,34 @@ namespace Archipelago.CultOfTheLamb;
 /// </summary>
 public partial class ArchipelagoClient
 {
-    public void Connect(string url, string slotName, string password = null)
+    /// <summary>
+    /// Where the connection is up to, for anything that has to show it to a player. The log
+    /// alone isn't enough once there's a UI: "nothing happened" and "still trying" look
+    /// identical from the outside.
+    /// </summary>
+    public enum ConnectionState
+    {
+        Disconnected,
+        Connecting,
+        Connected,
+        Failed,
+    }
+
+    public ConnectionState State { get; private set; } = ConnectionState.Disconnected;
+
+    /// <summary>Why the last attempt failed, in words a player can act on. Null when fine.</summary>
+    public string LastError { get; private set; }
+
+    /// <summary>
+    /// Connects without blocking the game.
+    ///
+    /// The synchronous version of this froze the main thread for as long as the login took,
+    /// which was tolerable when connecting meant pressing a key you already knew worked. Behind
+    /// a form where people mistype addresses, it's a multi-second hang with nothing on screen.
+    ///
+    /// Drive it with StartCoroutine from a MonoBehaviour.
+    /// </summary>
+    public IEnumerator ConnectRoutine(string url, string slotName, string password = null)
     {
         lastServerUrl = url;
         lastSlotName = slotName;
@@ -28,19 +56,68 @@ public partial class ArchipelagoClient
         if (IsConnected)
         {
             Log.LogInfo("[AP] Reusing existing Archipelago session.");
-            return;
+            State = ConnectionState.Connected;
+            yield break;
         }
 
         Log.LogInfo($"[AP] Attempting to connect to Archipelago at {url}.");
+        State = ConnectionState.Connecting;
+        LastError = null;
 
-        var result = ConnectToServer(url, slotName, password);
+        LoginResult result = null;
+        Exception thrown = null;
+
+        // ConnectToServer touches no Unity API, which is what makes this safe to run off the
+        // main thread; ProcessLoginResult below very much does, so it stays on it.
+        using (var connectSignal = new ManualResetEventSlim(false))
+        {
+            new Thread(() =>
+            {
+                try
+                {
+                    result = ConnectToServer(url, slotName, password);
+                }
+                catch (Exception e)
+                {
+                    thrown = e;
+                }
+                connectSignal.Set();
+            }).Start();
+
+            while (!connectSignal.IsSet)
+            {
+                yield return null;
+            }
+        }
+
+        if (thrown != null)
+        {
+            Fail($"Could not reach {url}: {thrown.Message}");
+            yield break;
+        }
+
         if (result == null)
         {
-            OnClientDisconnect?.Invoke("Failed to create session.");
-            return;
+            Fail($"Could not reach {url}.");
+            yield break;
         }
 
         ProcessLoginResult(result);
+
+        if (State == ConnectionState.Connecting)
+        {
+            // ProcessLoginResult sets Failed itself when the server refuses the login, so
+            // reaching here still Connecting means it went through.
+            State = ConnectionState.Connected;
+        }
+    }
+
+    private void Fail(string reason)
+    {
+        LastError = reason;
+        State = ConnectionState.Failed;
+        Log.LogWarning($"[AP] {reason}");
+        OnClientDisconnect?.Invoke(reason);
     }
 
     /// <summary>
@@ -90,6 +167,14 @@ public partial class ArchipelagoClient
                 Log.LogError($"[AP] {err}");
             }
             session = null;
+
+            // The server's own wording is the useful part - "Slot not found", a password
+            // mismatch, an incompatible version - so pass it through rather than flattening
+            // every refusal into one generic message.
+            LastError = failureResult.Errors.Length > 0
+                ? string.Join(" ", failureResult.Errors)
+                : "The server refused the connection.";
+            State = ConnectionState.Failed;
             return;
         }
 
@@ -297,6 +382,8 @@ public partial class ArchipelagoClient
     {
         if (session == null) return;
         Dispose();
+        State = ConnectionState.Disconnected;
+        LastError = null;
         OnClientDisconnect?.Invoke("Disconnected.");
     }
 
@@ -310,10 +397,19 @@ public partial class ArchipelagoClient
     private void Session_SocketClosed(string reason)
     {
         TeardownSession();
+
+        // Dropped rather than asked to stop. Only claim failure if nothing is already trying to
+        // get it back, or the panel would flicker Failed between reconnection attempts.
+        if (!reconnecting)
+        {
+            LastError = reason;
+            State = ConnectionState.Failed;
+        }
+
         OnClientDisconnect?.Invoke(reason);
     }
 
-    public IEnumerator<WaitForSeconds> AttemptReconnection()
+    public IEnumerator AttemptReconnection()
     {
         Log.LogDebug("Attempting to reconnect!");
 
@@ -322,30 +418,9 @@ public partial class ArchipelagoClient
             Log.LogInfo($"[AP] Reconnection attempt #{attempt}");
             yield return new WaitForSeconds(3f);
 
-            LoginResult loginResult = null;
-            using (var connectSignal = new ManualResetEventSlim(false))
-            {
-                new Thread(() =>
-                {
-                    try
-                    {
-                        loginResult = ConnectToServer(lastServerUrl, lastSlotName, lastPassword);
-                    }
-                    catch (Exception ex)
-                    {
-                        Log.LogWarning($"Reconnection attempt {attempt} failed: {ex.Message}");
-                    }
-                    connectSignal.Set();
-                }).Start();
-
-                while (!connectSignal.IsSet)
-                    yield return new WaitForSeconds(0.25f);
-            }
-
-            if (loginResult != null)
-            {
-                ProcessLoginResult(loginResult);
-            }
+            // Same routine the panel's Connect button uses - one code path for "talk to the
+            // server", so a fix to either can't drift away from the other.
+            yield return ConnectRoutine(lastServerUrl, lastSlotName, lastPassword);
 
             if (IsConnected)
             {
@@ -356,8 +431,10 @@ public partial class ArchipelagoClient
         }
 
         Log.LogError("[AP] Failed to reconnect after 5 attempts.");
+        LastError = "Lost the connection and could not get it back after 5 attempts.";
         Dispose();
         reconnecting = false;
+        State = ConnectionState.Failed;
     }
 
     private void Session_OnMessageReceived(LogMessage message)

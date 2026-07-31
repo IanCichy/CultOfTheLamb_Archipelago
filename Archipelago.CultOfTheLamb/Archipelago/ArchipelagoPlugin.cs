@@ -1,4 +1,5 @@
 using Archipelago.CultOfTheLamb.Console;
+using Archipelago.CultOfTheLamb.Patches;
 using Archipelago.CultOfTheLamb.UI;
 using BepInEx;
 using BepInEx.Configuration;
@@ -22,12 +23,8 @@ public class ArchipelagoPlugin : BaseUnityPlugin
     public static ConfigEntry<int> PortEntry { get; set; }
     public static ConfigEntry<string> PasswordEntry { get; set; }
 
-    internal static string apServerUri = "archipelago.gg";
-    internal static int apServerPort = 38281;
-    internal static string apSlotName = "";
-    internal static string apPassword;
-
     private ArchipelagoClient AP;
+    private ArchipelagoConnectPanel connectPanel;
     private Harmony harmony;
     private bool isReconnecting;
 
@@ -41,16 +38,17 @@ public class ArchipelagoPlugin : BaseUnityPlugin
         CreateConfigurations();
         DebugCommands.Init(Config);
 
-        apSlotName = SlotNameEntry.Value;
-        apServerUri = ServerNameEntry.Value;
-        apServerPort = PortEntry.Value;
-        apPassword = PasswordEntry.Value;
-
         Instance = this;
         AP = new ArchipelagoClient();
 
-        ArchipelagoConnectButtonController.OnConnectClick += OnClick_ConnectToArchipelago;
-        DebugCommands.OnConnectKeyPressed += OnClick_ConnectToArchipelago;
+        // The panel reads and writes the config entries itself, so the entered values live in
+        // exactly one place rather than being copied between the form, a set of statics and the
+        // config on every connect.
+        connectPanel = new ArchipelagoConnectPanel(
+            AP, ServerNameEntry, PortEntry, SlotNameEntry, PasswordEntry);
+
+        MenuButtonPatch.OnArchipelagoButtonPressed += () => connectPanel.Open();
+        DebugCommands.OnConnectKeyPressed += () => connectPanel.Toggle();
         DebugCommands.OnDebugKeyPressed += () => DebugActions.DumpState(AP);
         AP.OnClientDisconnect += AP_OnClientDisconnect;
         ArchipelagoConsoleCommand.OnArchipelagoCommandCalled += ArchipelagoConsoleCommand_OnArchipelagoCommandCalled;
@@ -84,23 +82,23 @@ public class ArchipelagoPlugin : BaseUnityPlugin
     private const float FollowerPollIntervalSeconds = 1f;
     private float followerPollTimer;
 
-    private void OnClick_ConnectToArchipelago()
+    /// <summary>
+    /// Draws the connect panel. IMGUI has to run from a MonoBehaviour's OnGUI, and this plugin
+    /// is the only one the mod owns.
+    /// </summary>
+    public void OnGUI()
     {
-        if (AP.IsConnected)
-        {
-            AP.Disconnect();
-            return;
-        }
-
-        var url = $"{apServerUri}:{apServerPort}";
-        Log.LogDebug($"Connecting to {url} as {apSlotName}");
-        AP.Connect(url, apSlotName, apPassword);
-        SlotNameEntry.Value = apSlotName;
+        connectPanel?.Draw();
     }
 
+    /// <summary>
+    /// The single place a connection starts, whatever asked for it - the panel, a keybind, or a
+    /// console command. ArchipelagoConsoleCommand exists to be exactly this seam.
+    /// </summary>
     private void ArchipelagoConsoleCommand_OnArchipelagoCommandCalled(string url, int port, string slot, string password)
     {
-        AP.Connect($"{url}:{port}", slot, password);
+        Log.LogDebug($"Connecting to {url}:{port} as {slot}");
+        StartCoroutine(AP.ConnectRoutine($"{url}:{port}", slot, password));
     }
 
     private void AP_OnClientDisconnect(string reason)
