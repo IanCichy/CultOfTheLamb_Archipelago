@@ -7,14 +7,17 @@ using UnityEngine;
 namespace Archipelago.CultOfTheLamb.Patches;
 
 /// <summary>
-/// The two hooks needed to make a shop slot *look* like an Archipelago check.
+/// Everything needed to turn a tarot shop slot into an Archipelago check: which slots the shop
+/// puts out, what they look like, what they say, and what buying one grants.
 ///
-/// They're paired here because they're one concern - slot presentation - split across two
-/// classes only because the game splits it that way: shopKeeperManager decides what each slot
-/// holds and shows, Interaction_BuyItem writes the prompt text.
+/// Those live together because the game splits one concern across several classes -
+/// shopKeeperManager decides what each slot holds, Interaction_BuyItem writes the prompt,
+/// UITarotDisplay draws the hover panel, TarotCards owns the unlock.
 ///
-/// Nothing here touches AP state; both just re-raise as events so ShopIconService stays the
-/// only place that knows about locations. Same shape as ShopPurchasePatch.
+/// The display hooks re-raise as events, so ShopIconService stays the only place that knows
+/// about locations. The two that can't - the TrinketUnlocked override deciding which slots
+/// exist, and the unlock suppression - ask through delegates it supplies instead, for the same
+/// reason: this file knows about slots, not about Archipelago.
 /// </summary>
 [HarmonyPatch]
 internal static class ShopSlotDisplayPatch
