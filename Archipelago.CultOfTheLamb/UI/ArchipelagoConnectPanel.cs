@@ -41,6 +41,13 @@ internal class ArchipelagoConnectPanel
     // shop purchase - that happened to start while the panel was open.
     private bool frozePlayer;
 
+    // Set while the panel is open, so the game's UI can be handed back exactly what it had.
+    private EventSystem suspendedEventSystem;
+
+    // IMGUI identifies windows by an int the caller picks. Anything stable and unlikely to
+    // collide will do; GetHashCode varies per run and per instance for no benefit.
+    private const int WindowId = 0x0AA7E1;
+
     private Rect window = new(60f, 60f, 460f, 0f);
     private GUIStyle labelStyle;
     private GUIStyle statusStyle;
@@ -117,7 +124,7 @@ internal class ArchipelagoConnectPanel
         // positions run through the same transform the drawing does.
         GUI.matrix = Matrix4x4.TRS(Vector3.zero, Quaternion.identity, new Vector3(scale, scale, 1f));
 
-        window = GUILayout.Window(GetHashCode(), window, DrawContents, "Archipelago");
+        window = GUILayout.Window(WindowId, window, DrawContents, "Archipelago");
 
         GUI.matrix = previousMatrix;
     }
@@ -137,8 +144,11 @@ internal class ArchipelagoConnectPanel
 
         GUILayout.Space(10f);
 
+        // Read once: the button's enabled state and the line explaining it must agree, and IMGUI
+        // needs the Layout and Repaint passes to agree with each other too.
+        var canConnectHere = CanConnectHere();
         var connecting = IsBusy();
-        var canConnect = !connecting && CanConnectHere() && slot.Trim().Length > 0;
+        var canConnect = !connecting && canConnectHere && slot.Trim().Length > 0;
 
         GUILayout.BeginHorizontal();
 
@@ -163,7 +173,7 @@ internal class ArchipelagoConnectPanel
 
         GUILayout.EndHorizontal();
 
-        if (!CanConnectHere())
+        if (!canConnectHere)
         {
             GUILayout.Space(6f);
             GUILayout.Label(
@@ -291,8 +301,6 @@ internal class ArchipelagoConnectPanel
         suspendedEventSystem.enabled = true;
         suspendedEventSystem = null;
     }
-
-    private EventSystem suspendedEventSystem;
 
     private void EnsureStyles()
     {
