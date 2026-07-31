@@ -46,6 +46,7 @@ public class ArchipelagoPlugin : BaseUnityPlugin
         // config on every connect.
         connectPanel = new ArchipelagoConnectPanel(
             AP, ServerNameEntry, PortEntry, SlotNameEntry, PasswordEntry);
+        connectPanel.AttachTo(gameObject.AddComponent<ArchipelagoConnectPanelHost>());
 
         MenuButtonPatch.OnArchipelagoButtonPressed += () => connectPanel.Open();
         DebugCommands.OnConnectKeyPressed += () => connectPanel.Toggle();
@@ -81,15 +82,6 @@ public class ArchipelagoPlugin : BaseUnityPlugin
 
     private const float FollowerPollIntervalSeconds = 1f;
     private float followerPollTimer;
-
-    /// <summary>
-    /// Draws the connect panel. IMGUI has to run from a MonoBehaviour's OnGUI, and this plugin
-    /// is the only one the mod owns.
-    /// </summary>
-    public void OnGUI()
-    {
-        connectPanel?.Draw();
-    }
 
     /// <summary>
     /// The single place a connection starts, whatever asked for it - the panel, a keybind, or a

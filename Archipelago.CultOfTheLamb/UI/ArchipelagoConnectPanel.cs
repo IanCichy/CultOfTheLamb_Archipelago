@@ -78,6 +78,7 @@ internal class ArchipelagoConnectPanel
     {
         if (IsOpen) return;
         IsOpen = true;
+        if (host != null) host.enabled = true;
         FreezePlayer();
         SuspendGameUi();
     }
@@ -86,11 +87,25 @@ internal class ArchipelagoConnectPanel
     {
         if (!IsOpen) return;
         IsOpen = false;
+        if (host != null) host.enabled = false;
         UnfreezePlayer();
         RestoreGameUi();
     }
 
-    /// <summary>Called from the plugin's OnGUI.</summary>
+    /// <summary>
+    /// The component whose OnGUI draws this. Disabled whenever the panel is closed, so Unity's
+    /// IMGUI dispatch costs nothing for the ~99% of a session the panel isn't up.
+    /// </summary>
+    internal void AttachTo(ArchipelagoConnectPanelHost host)
+    {
+        this.host = host;
+        host.Panel = this;
+        host.enabled = IsOpen;
+    }
+
+    private ArchipelagoConnectPanelHost host;
+
+    /// <summary>Called from the host's OnGUI.</summary>
     internal void Draw()
     {
         if (!IsOpen) return;
