@@ -49,10 +49,12 @@ internal static class ShopSlotDisplayPatch
     }
 
     /// <summary>
-    /// Answers "is this card still an unclaimed AP location?". Set by ShopIconService while
-    /// connected; null the rest of the time, which leaves every patch here inert.
+    /// Answers "has this card's shop slot been spent?" - true if its check is already sent,
+    /// false if it's still there to buy, and null for cards that aren't AP locations at all,
+    /// which the game then answers for itself. Set by ShopIconService while connected; null the
+    /// rest of the time, which leaves every patch here inert.
     /// </summary>
-    internal static Func<TarotCards.Card, bool> IsOpenCheck;
+    internal static Func<TarotCards.Card, bool?> SlotIsSpent;
 
     // Set only for the duration of InitTarotShop, so the TrinketUnlocked override below can't
     // leak into the tarot menu, the collection screen, or anything else that asks.
@@ -73,26 +75,36 @@ internal static class ShopSlotDisplayPatch
     }
 
     /// <summary>
-    /// Keeps a shop slot on the shelf when its card is already unlocked but its AP location
-    /// hasn't been sent.
+    /// Decides which tarot slots a shop puts out, by answering the one question it asks.
     ///
-    /// InitTarotShop hides any slot whose card the player owns - it calls AlreadyBought() and
-    /// drops a sold-out sign - which is right for vanilla and wrong for a randomizer: the card
-    /// arrives from the item pool whenever the multiworld decides, and the moment it does, the
-    /// location behind that slot becomes permanently unreachable. That's a seed-breaking
-    /// softlock, not a cosmetic problem.
+    /// InitTarotShop shows a slot if the player doesn't own its card and hides it - via
+    /// AlreadyBought(), plus a sold-out sign - if they do. That's the *only* thing it consults:
+    /// a tarot purchase writes no other state, unlike item and decoration shops which record
+    /// BuyEntry.Bought. Once these slots became AP checks rather than card purchases, that one
+    /// question started giving the wrong answer in both directions:
     ///
-    /// Lying to that one call rather than rebuilding the slot afterwards means the game's own
-    /// initialisation runs normally - cost, quantity, prefab wiring - instead of us
-    /// reconstructing it from outside and getting some detail wrong.
+    /// - **Card owned, check not sent.** Archipelago can hand you a card at any time, and the
+    ///   moment it did, the slot vanished and took its location with it - unreachable for the
+    ///   rest of the seed. A seed-breaking softlock.
+    /// - **Check sent, card not owned.** Since buying no longer grants the card, nothing
+    ///   recorded the sale, so the slot came back on every visit and could be bought again and
+    ///   again for nothing.
+    ///
+    /// So the answer comes from the location's state rather than the card's. Overriding this
+    /// one call rather than rebuilding slots afterwards means the game's own initialisation
+    /// still runs - cost, quantity, prefab wiring, sold-out signs - instead of us reconstructing
+    /// it from outside and getting some detail wrong.
     /// </summary>
     [HarmonyPatch(typeof(DataManager), nameof(DataManager.TrinketUnlocked))]
     [HarmonyPrefix]
     private static bool TrinketUnlocked_Prefix(TarotCards.Card card, ref bool __result)
     {
-        if (!initialisingTarotShop || IsOpenCheck == null || !IsOpenCheck(card)) return true;
+        if (!initialisingTarotShop || SlotIsSpent == null) return true;
 
-        __result = false;
+        var spent = SlotIsSpent(card);
+        if (!spent.HasValue) return true;
+
+        __result = spent.Value;
         return false;
     }
 
