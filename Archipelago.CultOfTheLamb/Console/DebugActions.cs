@@ -444,9 +444,11 @@ internal static class DebugActions
     internal static void DumpState(ArchipelagoClient ap)
     {
         Log.LogInfo("[AP] ---- Archipelago debug state dump ----");
+        // What was actually connected with, rather than what the config currently says - those
+        // differ the moment someone edits the panel without connecting.
         Log.LogInfo($"[AP] Connected: {ap?.IsConnected ?? false}"
-            + $" | slot: '{ArchipelagoPlugin.apSlotName}'"
-            + $" | server: {ArchipelagoPlugin.apServerUri}:{ArchipelagoPlugin.apServerPort}");
+            + $" | slot: '{ap?.lastSlotName}'"
+            + $" | server: {ap?.lastServerUrl}");
         Log.LogInfo($"[AP] Region locking active: {RegionLockState.Active}");
 
         foreach (var pair in RegionMapping.RegionToDungeonLocation)
