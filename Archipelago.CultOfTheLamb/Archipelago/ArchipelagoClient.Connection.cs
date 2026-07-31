@@ -21,19 +21,13 @@ namespace Archipelago.CultOfTheLamb;
 public partial class ArchipelagoClient
 {
     /// <summary>
-    /// Where the connection is up to, for anything that has to show it to a player. The log
-    /// alone isn't enough once there's a UI: "nothing happened" and "still trying" look
-    /// identical from the outside.
+    /// Whether an attempt is in flight. This is the only thing about the connection that
+    /// *isn't* already answerable: IsConnected is computed from the socket and so can't go
+    /// stale, LastError says whether the last attempt failed, and a UI derives everything it
+    /// shows from those three. Tracking a parallel status enum alongside them only creates a
+    /// second answer to "am I connected" that agrees by convention.
     /// </summary>
-    public enum ConnectionState
-    {
-        Disconnected,
-        Connecting,
-        Connected,
-        Failed,
-    }
-
-    public ConnectionState State { get; private set; } = ConnectionState.Disconnected;
+    public bool Connecting { get; private set; }
 
     /// <summary>Why the last attempt failed, in words a player can act on. Null when fine.</summary>
     public string LastError { get; private set; }
@@ -56,12 +50,11 @@ public partial class ArchipelagoClient
         if (IsConnected)
         {
             Log.LogInfo("[AP] Reusing existing Archipelago session.");
-            State = ConnectionState.Connected;
             yield break;
         }
 
         Log.LogInfo($"[AP] Attempting to connect to Archipelago at {url}.");
-        State = ConnectionState.Connecting;
+        Connecting = true;
         LastError = null;
 
         LoginResult result = null;
@@ -90,6 +83,8 @@ public partial class ArchipelagoClient
             }
         }
 
+        Connecting = false;
+
         if (thrown != null)
         {
             Fail($"Could not reach {url}: {thrown.Message}");
@@ -103,19 +98,12 @@ public partial class ArchipelagoClient
         }
 
         ProcessLoginResult(result);
-
-        if (State == ConnectionState.Connecting)
-        {
-            // ProcessLoginResult sets Failed itself when the server refuses the login, so
-            // reaching here still Connecting means it went through.
-            State = ConnectionState.Connected;
-        }
     }
 
     private void Fail(string reason)
     {
         LastError = reason;
-        State = ConnectionState.Failed;
+        Connecting = false;
         Log.LogWarning($"[AP] {reason}");
         OnClientDisconnect?.Invoke(reason);
     }
@@ -174,7 +162,6 @@ public partial class ArchipelagoClient
             LastError = failureResult.Errors.Length > 0
                 ? string.Join(" ", failureResult.Errors)
                 : "The server refused the connection.";
-            State = ConnectionState.Failed;
             return;
         }
 
@@ -382,7 +369,8 @@ public partial class ArchipelagoClient
     {
         if (session == null) return;
         Dispose();
-        State = ConnectionState.Disconnected;
+        // Asked for, so there's nothing to report - this is what distinguishes a clean
+        // disconnect from a failed one.
         LastError = null;
         OnClientDisconnect?.Invoke("Disconnected.");
     }
@@ -398,14 +386,10 @@ public partial class ArchipelagoClient
     {
         TeardownSession();
 
-        // Dropped rather than asked to stop. Only claim failure if nothing is already trying to
-        // get it back, or the panel would flicker Failed between reconnection attempts.
-        if (!reconnecting)
-        {
-            LastError = reason;
-            State = ConnectionState.Failed;
-        }
-
+        // Dropped rather than asked to stop, so this is genuinely the last error. No need to
+        // suppress it while reconnecting: "an attempt is in flight" outranks it wherever the
+        // two are displayed together.
+        LastError = reason;
         OnClientDisconnect?.Invoke(reason);
     }
 
@@ -431,10 +415,9 @@ public partial class ArchipelagoClient
         }
 
         Log.LogError("[AP] Failed to reconnect after 5 attempts.");
-        LastError = "Lost the connection and could not get it back after 5 attempts.";
         Dispose();
         reconnecting = false;
-        State = ConnectionState.Failed;
+        LastError = "Lost the connection and could not get it back after 5 attempts.";
     }
 
     private void Session_OnMessageReceived(LogMessage message)

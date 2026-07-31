@@ -122,7 +122,7 @@ internal class ArchipelagoConnectPanel
 
         GUILayout.Space(10f);
 
-        var connecting = client.State == ArchipelagoClient.ConnectionState.Connecting;
+        var connecting = IsBusy();
         var canConnect = !connecting && CanConnectHere() && slot.Trim().Length > 0;
 
         GUILayout.BeginHorizontal();
@@ -176,15 +176,20 @@ internal class ArchipelagoConnectPanel
         return result;
     }
 
-    private string StatusText() => client.State switch
+    /// <summary>
+    /// An attempt is in flight, whether the player started it or a dropped socket did. Ordered
+    /// ahead of LastError everywhere it's used, so a retry reads as "still trying" rather than
+    /// flickering the previous failure between attempts.
+    /// </summary>
+    private bool IsBusy() => client.Connecting || client.reconnecting;
+
+    private string StatusText()
     {
-        ArchipelagoClient.ConnectionState.Connected =>
-            $"Connected as {ArchipelagoClient.ConnectedPlayerName}.",
-        ArchipelagoClient.ConnectionState.Connecting => "Connecting...",
-        ArchipelagoClient.ConnectionState.Failed =>
-            $"Not connected. {client.LastError}",
-        _ => "Not connected.",
-    };
+        if (client.IsConnected) return $"Connected as {ArchipelagoClient.ConnectedPlayerName}.";
+        if (IsBusy()) return "Connecting...";
+
+        return client.LastError == null ? "Not connected." : $"Not connected. {client.LastError}";
+    }
 
     /// <summary>
     /// Connecting replays the whole item history into save state and unlocks regions through
