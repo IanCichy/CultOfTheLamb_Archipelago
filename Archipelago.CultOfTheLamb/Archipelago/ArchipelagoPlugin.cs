@@ -48,6 +48,8 @@ public class ArchipelagoPlugin : BaseUnityPlugin
             AP, ServerNameEntry, PortEntry, SlotNameEntry, PasswordEntry);
         connectPanel.AttachTo(gameObject.AddComponent<ArchipelagoConnectPanelHost>());
 
+        ArchipelagoHudIndicator.IsConnected = () => AP.IsConnected;
+
         MenuButtonPatch.OnArchipelagoButtonPressed += () => connectPanel.Open();
         DebugCommands.OnConnectKeyPressed += () => connectPanel.Toggle();
         DebugCommands.OnDebugKeyPressed += () => DebugActions.DumpState(AP);
@@ -66,6 +68,13 @@ public class ArchipelagoPlugin : BaseUnityPlugin
         // Unthrottled, and cheap: it returns immediately unless a shop is waiting to be marked,
         // which only happens for a few frames after walking into one.
         AP?.ShopIconService?.Tick();
+
+        // Notifications raised while the HUD was hidden - during a cutscene or a menu - wait
+        // here until the game is willing to show them.
+        ApNotification.Flush();
+
+        // Re-attaches itself after each scene load, since the HUD is rebuilt with the scene.
+        ArchipelagoHudIndicator.EnsureExists();
 
         // Throttled polling for the two systems derived from save state: Follower counts
         // (recruit events fire before the data lands) and Snail Shrines (five save booleans
