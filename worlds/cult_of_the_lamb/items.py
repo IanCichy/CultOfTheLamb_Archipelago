@@ -148,6 +148,119 @@ def sermon_item_counts(include_dlc: bool) -> Dict[str, int]:
         for name, tiers in SERMON_ITEM_UPGRADES.items()
     }
 
+
+# Every tarot card the game has (DataManager.AllTrinkets, 85 of them), whether or not a seed
+# can use it - the flags decide that, not membership of this list.
+#
+# Display names are the real in-game ones, taken from the F4 name dump rather than guessed:
+# they are nothing like the enum names ("The Burning Dead" is Skull, "True Sight" is
+# EyeOfWeakness), and every guess at them has been wrong. The second element is the
+# TarotCards.Card enum name the C# client passes to TarotCards.UnlockTrinket().
+#
+# Order defines the item ids (TAROT_ITEM_OFFSET + index), so this list must stay append-only.
+TAROT_ITEM_OFFSET = 600
+
+
+class TarotCardData(NamedTuple):
+    display: str
+    internal: str
+    # Woolhaven DLC card - only in the pool when Include Woolhaven DLC is on.
+    dlc: bool = False
+    # Co-op only. In AllTrinkets, but meaningless in a solo seed, so never pooled.
+    coop: bool = False
+    # Unlocked from the start of a vanilla run. Archipelago revokes these on connect so they
+    # have to be earned like everything else - see TarotService.
+    default: bool = False
+
+TAROT_CARDS = [
+    TarotCardData("The Hearts I", "Hearts1", default=True),
+    TarotCardData("The Hearts II", "Hearts2"),
+    TarotCardData("The Hearts III", "Hearts3"),
+    TarotCardData("The Lovers I", "Lovers1", default=True),
+    TarotCardData("The Lovers II", "Lovers2"),
+    TarotCardData("All Seeing Sun", "Sun"),
+    TarotCardData("Weeping Moon", "Moon"),
+    TarotCardData("Gift From Below", "GiftFromBelow", default=True),
+    TarotCardData("The Arachnid", "Spider", default=True),
+    TarotCardData("Diseased Heart", "DiseasedHeart", default=True),
+    TarotCardData("True Sight", "EyeOfWeakness", default=True),
+    TarotCardData("Fervour's Host", "Arrows"),
+    TarotCardData("Death's Door", "DeathsDoor", default=True),
+    TarotCardData("The Deal", "TheDeal"),
+    TarotCardData("Telescope", "Telescope", default=True),
+    TarotCardData("Hands of Rage", "HandsOfRage"),
+    TarotCardData("Nature's Boon", "NaturesGift"),
+    TarotCardData("The Burning Dead", "Skull"),
+    TarotCardData("Ambrosia", "Potion"),
+    TarotCardData("The Path", "MovementSpeed"),
+    TarotCardData("Divine Strength", "AttackRate", default=True),
+    TarotCardData("Master of the Art", "IncreasedDamage", default=True),
+    TarotCardData("Fervour's Harvest", "IncreaseBlackSoulsDrop", default=True),
+    TarotCardData("Soul Snatcher", "HealChance"),
+    TarotCardData("Shield of Faith", "NegateDamageChance", default=True),
+    TarotCardData("The Bomb", "BombOnRoll"),
+    TarotCardData("Ichor Earned", "GoopOnDamaged"),
+    TarotCardData("Ichor Lingered", "GoopOnRoll"),
+    TarotCardData("Mithridatism", "PoisonImmune"),
+    TarotCardData("Blazing Trail", "DamageOnRoll"),
+    TarotCardData("Fortune's Blessing", "HealTwiceAmount", default=True),
+    TarotCardData("Divine Curse", "AmmoEfficient", default=True),
+    TarotCardData("Strength from Within", "BlackSoulAutoRecharge"),
+    TarotCardData("Strength from Without", "BlackSoulOnDamage"),
+    TarotCardData("Neptune’s Curse", "NeptunesCurse"),
+    TarotCardData("Rabbits Foot", "RabbitFoot", default=True),
+    TarotCardData("The Collector", "MoreRelics"),
+    TarotCardData("Kin of Turua", "TentacleOnDamaged"),
+    TarotCardData("Godly Moment", "InvincibilityPerRoom"),
+    TarotCardData("Retribution", "BombOnDamaged"),
+    TarotCardData("The Intangible", "ImmuneToTraps"),
+    TarotCardData("Wraith's Will", "WalkThroughBlocks"),
+    TarotCardData("Consecrated Oil of Renewal", "DecreaseRelicCharge"),
+    TarotCardData("The Reaching Tree", "AdventureMapFreedom"),
+    TarotCardData("Spirit Salvager", "Recycle"),
+    TarotCardData("Blind Wrath", "StrikeBack"),
+    TarotCardData("The Vanquisher", "SurpriseAttack"),
+    TarotCardData("Usurper Blessed", "BossHeal"),
+    TarotCardData("Order of Purity", "NoCorruption"),
+    TarotCardData("Temptation's Fate", "Sin"),
+    TarotCardData("Favourable Winds", "ExtraMove"),
+    TarotCardData("The Labyrinth", "ShuffleNode"),
+    TarotCardData("Reckoning", "CorruptedBombsAndHealth"),
+    TarotCardData("Mortal Oath", "CorruptedHeavy"),
+    TarotCardData("Blighted Core", "CorruptedTradeOff"),
+    TarotCardData("The Loathed", "CorruptedBlackHeartForRelic"),
+    TarotCardData("The Hoarder", "CorruptedHealForRelic"),
+    TarotCardData("Renegade Victorious", "CorruptedFullCorruption"),
+    TarotCardData("Poison Taster", "CorruptedPoisonCoins"),
+    TarotCardData("Sullied Oil", "CorruptedRelicCharge"),
+    TarotCardData("Ichor Drained", "CorruptedGoopyTrail"),
+    TarotCardData("The Comrades", "CoopBetterTogether", coop=True),
+    TarotCardData("The Rivals", "CoopBetterApart", coop=True),
+    TarotCardData("Bonds of Battle", "CoopBonded", coop=True),
+    TarotCardData("The Synchronous", "CoopGoodTiming", coop=True),
+    TarotCardData("Flint and Steel", "CoopExplosive", coop=True),
+    TarotCardData("Frozen Heart", "FrostHeart", dlc=True),
+    TarotCardData("Molten Heart", "FlameHeart", dlc=True),
+    TarotCardData("Shearing Blade", "EasyMoney", dlc=True),
+    TarotCardData("Verglas Shard", "HighRoller", dlc=True),
+    TarotCardData("Winter Welcomed", "FrostedEnemies", dlc=True),
+    TarotCardData("Frost's Bite", "LastChance", dlc=True),
+    TarotCardData("The Joker", "Joker", dlc=True),
+    TarotCardData("False Eyes", "MutatedNegateHit", dlc=True),
+    TarotCardData("Lost Bones", "MutatedDropRotburn", dlc=True),
+    TarotCardData("Bared Teeth", "MutatedFreezeOnHit", dlc=True),
+    TarotCardData("Stolen Bile", "MutatedResurrectFullHealth", dlc=True),
+    TarotCardData("Unbent Spirit", "MutatedInvincibility", dlc=True),
+    TarotCardData("Wayward Dreams", "MutatedSpawnRotDemons", dlc=True),
+    TarotCardData("The Faithless", "EmptyFervourCritical", dlc=True),
+    TarotCardData("As Above, So Below", "KillEnemiesOnResurrect", dlc=True),
+    TarotCardData("The Alchemist", "RoomEnterCritter", dlc=True),
+    TarotCardData("The Stray", "HitKillEnemy", dlc=True),
+    TarotCardData("The Bellwether", "SummonGhost", dlc=True),
+    TarotCardData("Solstice Night", "HeartTarotDrawn", dlc=True),
+]
+
+
 item_table: Dict[str, ItemData] = {
     PROGRESSIVE_REGION_ACCESS: ItemData(offset + 1, ItemClassification.progression, "Region"),
 
@@ -162,13 +275,6 @@ item_table: Dict[str, ItemData] = {
     "Warmaker's Hammer": ItemData(offset + 112, ItemClassification.useful, "Weapon"),
     "Tempest's Gauntlets": ItemData(offset + 113, ItemClassification.useful, "Weapon"),
     "Traitor's Razor": ItemData(offset + 114, ItemClassification.useful, "Weapon"),
-
-    # Tarot Cards (85 exist in-game; this is a small representative sample).
-    "The Hearts I": ItemData(offset + 120, ItemClassification.useful, "Tarot"),
-    "The Lovers I": ItemData(offset + 121, ItemClassification.useful, "Tarot"),
-    "Weeping Moon": ItemData(offset + 122, ItemClassification.useful, "Tarot"),
-    "Nature's Boon": ItemData(offset + 123, ItemClassification.useful, "Tarot"),
-    "Fortune's Blessing": ItemData(offset + 124, ItemClassification.useful, "Tarot"),
 
     # Relics (single-carry combat items from the free Relics of the Old Faith update).
     "Beads of the Anchorite": ItemData(offset + 130, ItemClassification.useful, "Relic"),
@@ -203,6 +309,27 @@ item_table.update({
     )
     for i, (name, tiers) in enumerate(SERMON_ITEM_UPGRADES.items())
 })
+
+# Every card gets an id, including the co-op ones no seed pools - an id costs nothing, and
+# handing them out later shouldn't repoint the ids of the cards around them.
+#
+# 'useful' rather than 'progression': nothing in rules.py requires a tarot card, and an item
+# should only be progression if some rule actually references it.
+item_table.update({
+    card.display: ItemData(
+        offset + TAROT_ITEM_OFFSET + i,
+        ItemClassification.useful,
+        "Tarot",
+        card.dlc,
+    )
+    for i, card in enumerate(TAROT_CARDS)
+})
+
+# The cards a seed can actually hand out. Co-op cards never qualify; Woolhaven ones only with
+# the DLC option on, because the client can't grant content the player doesn't own.
+def poolable_tarot_cards(include_woolhaven: bool) -> List[TarotCardData]:
+    return [c for c in TAROT_CARDS if not c.coop and (include_woolhaven or not c.dlc)]
+
 
 filler_table = [name for name, data in item_table.items() if data.category == "Filler"]
 trap_table = [name for name, data in item_table.items() if data.category == "Trap"]

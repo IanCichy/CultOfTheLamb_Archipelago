@@ -16,16 +16,19 @@ public partial class ArchipelagoItemLogicController : IService
     private readonly ArchipelagoSession session;
     private readonly RegionUnlockService regionUnlockService;
     private readonly SermonService sermonService;
+    private readonly TarotService tarotService;
     private readonly ConcurrentQueue<long> pendingItemIds = new();
 
     internal ArchipelagoItemLogicController(
         ArchipelagoSession session,
         RegionUnlockService regionUnlockService,
-        SermonService sermonService)
+        SermonService sermonService,
+        TarotService tarotService)
     {
         this.session = session;
         this.regionUnlockService = regionUnlockService;
         this.sermonService = sermonService;
+        this.tarotService = tarotService;
     }
 
     public void Register()
@@ -141,6 +144,11 @@ public partial class ArchipelagoItemLogicController : IService
         // keyed by name, and that indirection is what keeps the two sides from drifting when
         // upgrades get added or reordered.
         if (sermonService != null && sermonService.TryApplyItem(itemName)) return;
+
+        // Idempotent too - UnlockTrinket is a Contains-then-Add - and it has to replay, because
+        // TarotService empties the collection on connect and the item history is what rebuilds
+        // it.
+        if (tarotService != null && tarotService.TryApplyItem(itemName)) return;
 
         // --- non-idempotent, suppressed on replay ---
 

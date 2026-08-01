@@ -267,7 +267,20 @@ public partial class ArchipelagoClient
             SnailShrineService.Register();
         }
 
-        ItemLogic = new ArchipelagoItemLogicController(session, RegionUnlockService, SermonService);
+        // Before ItemLogic: registering empties the collection, and ItemLogic's backlog drain
+        // immediately replays whatever the player has already been sent back into it.
+        if (GetBool(successResult.SlotData, "randomizeTarotCards"))
+        {
+            TarotService = new TarotService(
+                session,
+                TarotService.ParseCards(successResult.SlotData),
+                TarotService.ParseCardLocations(successResult.SlotData),
+                TarotService.ParseStartingCards(successResult.SlotData));
+            TarotService.Register();
+        }
+
+        ItemLogic = new ArchipelagoItemLogicController(
+            session, RegionUnlockService, SermonService, TarotService);
         ItemLogic.Register();
     }
 
@@ -356,6 +369,8 @@ public partial class ArchipelagoClient
         TarotShopService = null;
         ShopIconService?.Unregister();
         ShopIconService = null;
+        TarotService?.Unregister();
+        TarotService = null;
         SnailShrineService?.Unregister();
         SnailShrineService = null;
         ItemLogic?.Unregister();

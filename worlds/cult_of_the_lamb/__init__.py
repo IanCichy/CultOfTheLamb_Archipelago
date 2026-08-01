@@ -1,19 +1,19 @@
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 
 from BaseClasses import Tutorial
 from worlds.AutoWorld import WebWorld, World
 
 from .items import (
     SERMON_ITEM_OFFSET, SERMON_ITEM_UPGRADES, CultOfTheLambItem, PROGRESSIVE_REGION_ACCESS,
-    create_item, filler_table, item_table, offset, sermon_item_counts, trap_table,
-    weighted_filler_names,
+    TarotCardData, create_item, filler_table, item_table, offset, poolable_tarot_cards,
+    sermon_item_counts, trap_table, weighted_filler_names,
 )
 from .locations import (
     FOLLOWER_MILESTONE_COUNT, SNAIL_SHRINE_COUNT, TAROT_SHOP_CARDS, TAROT_SHOP_HUBS,
     location_name_to_id,
     location_table,
 )
-from .options import CultOfTheLambOptions, RegionAccessOrder
+from .options import CultOfTheLambOptions, RegionAccessOrder, StartingTarotPool
 from .regions import REGION_NAMES, SACRIFICE_GATED_REGION, create_regions
 from .rules import set_rules
 
@@ -55,10 +55,37 @@ class CultOfTheLambWorld(World):
     # create_regions/set_rules/fill_slot_data all agree on the same per-seed order.
     region_order: List[str]
 
+    # The Tarot Cards this seed hands out, and the subset the player begins with. Starting
+    # cards get neither a check nor an item - you can't earn a card you already have - so
+    # create_regions, create_items and fill_slot_data all have to agree on the same pick,
+    # which is why it happens once here.
+    tarot_cards: List[TarotCardData]
+    starting_tarot_cards: List[TarotCardData]
+
     def generate_early(self) -> None:
         self.region_order = self.build_region_order()
         # Expand once rather than per filler item - this is sampled dozens of times per seed.
         self.weighted_filler = weighted_filler_names()
+        self.tarot_cards, self.starting_tarot_cards = self.pick_tarot_cards()
+
+    def pick_tarot_cards(self) -> Tuple[List[TarotCardData], List[TarotCardData]]:
+        """The seed's card set, and which of them the player starts holding."""
+        if not self.options.randomize_tarot_cards:
+            return [], []
+
+        cards = poolable_tarot_cards(bool(self.options.include_woolhaven))
+
+        if self.options.starting_tarot_pool == StartingTarotPool.option_vanilla_defaults:
+            candidates = [c for c in cards if c.default]
+        else:
+            candidates = list(cards)
+
+        # Clamped rather than an error: asking for 20 of the game's 15 defaults is a
+        # reasonable thing to type, and giving all 15 is the obvious reading of it.
+        count = min(self.options.starting_tarot_cards.value, len(candidates))
+        starting = self.random.sample(candidates, count)
+
+        return cards, starting
 
     def build_region_order(self) -> List[str]:
         """The unlock order for this seed. Index 0 is free; the rest gate behind one more
@@ -110,9 +137,17 @@ class CultOfTheLambWorld(World):
                 for _ in range(count):
                     item_pool.append(self.create_item(name))
 
+        # One item per card the player doesn't already have. No cap and no competition with
+        # filler: each of these has its own location - unlocking that card in game - so the
+        # pool grows and shrinks with the location count rather than eating into it.
+        starting = {c.display for c in self.starting_tarot_cards}
+        for card in self.tarot_cards:
+            if card.display not in starting:
+                item_pool.append(self.create_item(card.display))
+
         # Count the locations actually created rather than the whole table: options can
-        # disable whole blocks (sermons, DLC content), and padding to the table size would
-        # overfill the pool and fail generation.
+        # disable whole blocks (sermons, cards, DLC content), and padding to the table size
+        # would overfill the pool and fail generation.
         remaining = len(self.multiworld.get_unfilled_locations(self.player)) - len(item_pool)
         for _ in range(remaining):
             item_pool.append(self.create_item(self.get_filler_item_name()))
@@ -157,6 +192,25 @@ class CultOfTheLambWorld(World):
             # recruit count straight into a check id.
             "followerLocationBaseId": location_name_to_id["Followers Recruited 1"],
             "followerLocationCount": FOLLOWER_MILESTONE_COUNT,
+
+            "randomizeTarotCards": bool(self.options.randomize_tarot_cards.value),
+            # AP name -> TarotCards.Card enum name for every card this seed manages. Sent
+            # rather than hardcoded client-side for the same reason as sermonUpgrades: display
+            # names are nothing like enum names, and the two drifting would be silent.
+            #
+            # This is also the set the client revokes on connect and the set it watches for
+            # unlocks, so both sides agree on exactly which cards Archipelago owns.
+            "tarotCards": {card.display: card.internal for card in self.tarot_cards},
+            # Granted back immediately after the revoke, so the player starts with these.
+            "startingTarotCards": [card.internal for card in self.starting_tarot_cards],
+            # "Tarot Card - <name>" ids, so the client can turn an unlock into a check.
+            # Cards sold in shops aren't here: their check is the shop slot itself, so the
+            # client withholds those unlocks without sending anything.
+            "tarotCardLocations": {
+                card.internal: location_name_to_id[f"Tarot Card - {card.display}"]
+                for card in self.tarot_cards
+                if f"Tarot Card - {card.display}" in location_name_to_id
+            },
 
             "snailShrineChecks": bool(self.options.snail_shrine_checks.value),
             # ShellsGifted_0.._4 map to contiguous ids from here.

@@ -175,8 +175,11 @@ internal static class ShopSlotDisplayPatch
     private const float SuppressionWindowSeconds = 15f;
 
     /// <summary>
-    /// Marks the next unlock of <paramref name="card"/> as belonging to Archipelago, so the
-    /// game doesn't also hand it over locally.
+    /// Marks the next unlock of <paramref name="card"/> as already paid for.
+    ///
+    /// An AP-marked slot is a *location*, not a purchase: buying it sends the slot's own check
+    /// and the card itself comes from the multiworld. Without this the purchase would also read
+    /// as the player earning the card, and one action would pay out twice.
     /// </summary>
     internal static void SuppressNextUnlock(TarotCards.Card card)
     {
@@ -184,32 +187,22 @@ internal static class ShopSlotDisplayPatch
     }
 
     /// <summary>
-    /// Stops a bought shop slot from granting its card.
+    /// Whether this unlock was a shop purchase we've already accounted for, clearing the mark
+    /// as it answers. TarotUnlockPatch owns what actually happens to the unlock; this only
+    /// says whether the shop got there first.
     ///
-    /// An AP-marked slot is a *location*, not a purchase: the card itself is an item in the
-    /// pool and arrives whenever the multiworld sends it. Granting it here as well would make
-    /// the pool item redundant and let a player buy their way past the randomizer.
-    ///
-    /// Armed per card and time-boxed rather than left on: the same method is how an AP item
-    /// grant will unlock a card (Sprint 3), and a blanket suppression would block that too.
-    /// An entry that goes stale - the cutscene interrupted, say - is treated as no suppression
-    /// at all, so the failure mode is a card granted normally rather than one lost for good.
+    /// A stale entry - the purchase cutscene interrupted, say - counts as no suppression, so
+    /// the failure mode is a card earned normally rather than one silently swallowed.
     /// </summary>
-    [HarmonyPatch(typeof(TarotCards), nameof(TarotCards.UnlockTrinket))]
-    [HarmonyPrefix]
-    private static bool UnlockTrinket_Prefix(TarotCards.Card card, ref bool __result)
+    internal static bool ConsumeSuppressedUnlock(TarotCards.Card card)
     {
-        if (!suppressedUnlocks.TryGetValue(card, out var expiresAt)) return true;
+        if (!suppressedUnlocks.TryGetValue(card, out var expiresAt)) return false;
 
         suppressedUnlocks.Remove(card);
-        if (Time.unscaledTime > expiresAt)
-        {
-            Log.LogInfo($"[AP] Stale unlock suppression for {card} - letting the game grant it.");
-            return true;
-        }
 
-        Log.LogInfo($"[AP] Bought {card} as an Archipelago check - not granting the card locally.");
-        __result = false;
+        if (Time.unscaledTime <= expiresAt) return true;
+
+        Log.LogInfo($"[AP] Stale unlock suppression for {card} - treating it as earned normally.");
         return false;
     }
 }

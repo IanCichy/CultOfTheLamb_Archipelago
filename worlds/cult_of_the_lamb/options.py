@@ -111,6 +111,46 @@ class SnailShrineChecks(Toggle):
     default = True
 
 
+class RandomizeTarotCards(Toggle):
+    """Randomize the Tarot Card collection.
+
+    Your collection is emptied on connect and every card becomes both a check and an item:
+    unlocking one in-game - a crusade find, a shop, a challenge reward - sends a check, and the
+    cards themselves arrive from Archipelago. 61 cards, or 80 with Include Woolhaven DLC.
+
+    This adds no logical length: no card is ever required for the goal, so these are extra
+    checks along the way rather than extra hours.
+
+    Your cards are handed back if you disconnect."""
+    display_name = "Randomize Tarot Cards"
+    default = True
+
+
+class StartingTarotCards(Range):
+    """How many Tarot Cards to start with, replacing the 15 the game normally gives you.
+
+    These are yours from the start, so they have neither a check nor an item - each one you add
+    removes one of each. 0 means starting with an empty collection."""
+    display_name = "Starting Tarot Cards"
+    range_start = 0
+    range_end = 20
+    default = 8
+
+
+class StartingTarotPool(Choice):
+    """Which cards the starting ones are drawn from.
+
+    vanilla_defaults: the 15 the game normally starts you with. They exist so an early deck
+      isn't full of situational cards, which is why this is the default.
+
+    any: any randomizable card, including Woolhaven ones if that option is on. More variance -
+      it can hand you something excellent on day one, or three cards you can't use yet."""
+    display_name = "Starting Tarot Pool"
+    option_vanilla_defaults = 0
+    option_any = 1
+    default = 0
+
+
 @dataclass
 class CultOfTheLambOptions(PerGameCommonOptions):
     goal: Goal
@@ -121,4 +161,7 @@ class CultOfTheLambOptions(PerGameCommonOptions):
     follower_milestone_checks: FollowerMilestoneChecks
     tarot_shop_checks: TarotShopChecks
     snail_shrine_checks: SnailShrineChecks
+    randomize_tarot_cards: RandomizeTarotCards
+    starting_tarot_cards: StartingTarotCards
+    starting_tarot_pool: StartingTarotPool
     trap_percentage: TrapPercentage

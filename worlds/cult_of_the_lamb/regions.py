@@ -38,9 +38,18 @@ def create_regions(world: "CultOfTheLambWorld") -> None:
         cult_categories.add("Follower")
     if world.options.snail_shrine_checks:
         cult_categories.add("Snail")
+    if world.options.randomize_tarot_cards:
+        cult_categories.add("TarotCard")
     if cult_categories:
-        add_locations(cult, get_locations_for_region(
-            "Cult", include_dlc, categories=cult_categories), player)
+        # Cards the player starts with can never be earned, so their checks would be
+        # unreachable. Dropped here rather than filtered in get_locations_for_region, which
+        # keys off category and DLC rather than individual names.
+        starting = {f"Tarot Card - {card.display}" for card in world.starting_tarot_cards}
+        add_locations(cult, [
+            name for name in get_locations_for_region(
+                "Cult", include_dlc, categories=cult_categories)
+            if name not in starting
+        ], player)
 
     # Boss checks always; Tarot shop checks only when that option is on.
     region_categories = {"Miniboss", "Bishop", "Witness"}

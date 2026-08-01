@@ -26,32 +26,67 @@ internal static class ApNotification
     private static readonly Dictionary<string, string> registeredTerms = new();
 
     /// <summary>
-    /// Shows <paramref name="text"/> as a game notification. Returns false if the game's
-    /// notification/localization systems aren't up yet (e.g. called from the main menu).
+    /// Shows <paramref name="text"/> as a game notification, or holds it until the game is
+    /// willing to show one.
+    ///
+    /// Holding matters more than it sounds. The game suppresses notifications outright while
+    /// the HUD is hidden or NotificationsEnabled is off - cutscenes, full-screen menus, the
+    /// follower recruitment flow - and PlayGenericNotification just returns silently in that
+    /// state. Those are exactly the moments checks fire: recruiting a follower, killing a
+    /// boss, finishing a ritual. Showing immediately meant the player saw nothing for most of
+    /// the checks that matter, with nothing in the log to say so.
     /// </summary>
-    internal static bool Show(string text, NotificationBase.Flair flair = NotificationBase.Flair.None)
+    internal static void Show(string text, NotificationBase.Flair flair = NotificationBase.Flair.None)
     {
-        if (string.IsNullOrEmpty(text)) return false;
+        if (string.IsNullOrEmpty(text)) return;
 
-        var notificationCentre = NotificationCentre.Instance;
-        if (notificationCentre == null)
-        {
-            Log.LogWarning($"[AP] NotificationCentre not ready; dropping notification: {text}");
-            return false;
-        }
-
-        var key = RegisterTerm(text);
-        if (key == null)
-        {
-            Log.LogWarning($"[AP] Could not register localization term; dropping notification: {text}");
-            return false;
-        }
-
-        // NotificationCentre dedupes by key within a frame, which is why the key is derived
-        // from the message text rather than being a single shared constant.
-        notificationCentre.PlayGenericNotification(key, flair);
-        return true;
+        pending.Enqueue(new PendingNotification { Text = text, Flair = flair });
+        Flush();
     }
+
+    /// <summary>Called each frame from the plugin; does nothing once the queue drains.</summary>
+    internal static void Flush()
+    {
+        while (pending.Count > 0 && CanShowNow())
+        {
+            var next = pending.Peek();
+
+            var key = RegisterTerm(next.Text);
+            if (key == null)
+            {
+                // Localization isn't up yet. Leave it queued rather than dropping it - this is
+                // a "not yet", the same as a hidden HUD.
+                return;
+            }
+
+            pending.Dequeue();
+
+            // NotificationCentre dedupes by key within a frame, which is why the key is derived
+            // from the message text rather than being a single shared constant.
+            NotificationCentre.Instance.PlayGenericNotification(key, next.Flair);
+        }
+    }
+
+    /// <summary>
+    /// Whether the game would actually display one right now. All three conditions make
+    /// PlayGenericNotification a no-op, and it reports none of them.
+    /// </summary>
+    private static bool CanShowNow()
+    {
+        if (NotificationCentre.Instance == null) return false;
+        if (!NotificationCentre.NotificationsEnabled) return false;
+
+        var hud = HUD_Manager.Instance;
+        return hud == null || !hud.Hidden;
+    }
+
+    private struct PendingNotification
+    {
+        internal string Text;
+        internal NotificationBase.Flair Flair;
+    }
+
+    private static readonly Queue<PendingNotification> pending = new();
 
     private static string RegisterTerm(string text)
     {

@@ -2,7 +2,7 @@ from typing import Dict, List, NamedTuple, Optional, Set
 
 from BaseClasses import Location
 
-from .items import SERMON_UPGRADES
+from .items import SERMON_UPGRADES, TAROT_CARDS
 
 # Must not overlap worlds/cult_of_the_lamb/items.py's offset range.
 location_offset = 3_051_000
@@ -134,6 +134,30 @@ for _region, _cards in TAROT_SHOP_CARDS.items():
     for _display, _internal in _cards:
         location_table[f"{TAROT_SHOP_HUBS[_region]} - {_display}"] = \
             LocationData(_region, "TarotShop")
+
+# Unlocking a Tarot Card, however you did it. Every route the game has - finding one in a
+# crusade, a shop purchase, a challenge reward like Ratau's - ends at the same two unlock
+# methods, so the client sends these without knowing or caring which condition fired.
+#
+# "Cult" rather than a crusade region because the earning condition of each card isn't known
+# without tracing all 85, and Cult is always reachable, so nothing here can become unreachable.
+# Same reasoning as the Snail Shrines above.
+#
+# Some cards are only earnable through content a given player may never reach (post-game,
+# Woolhaven). That costs a completionist a check and can never block the goal - no card is
+# progression, and the game is beatable with none of them.
+#
+# Cards sold in the hub shops are skipped: their shop slot is already the check for earning
+# that card, and buying it is the only way the game unlocks it. Giving them a second location
+# here would pay twice for one card - and the second one could never fire anyway, since the
+# client withholds the unlock on a shop purchase.
+_SHOP_CARD_NAMES = {_display for _cards in TAROT_SHOP_CARDS.values() for _display, _ in _cards}
+
+for _card in TAROT_CARDS:
+    if _card.coop or _card.display in _SHOP_CARD_NAMES:
+        continue
+    location_table[f"Tarot Card - {_card.display}"] = \
+        LocationData("Cult", "TarotCard", _card.dlc)
 
 # Append-only: ids come from enumeration order, and the C# client hardcodes the same
 # offsets (see Utilities/CultOfTheLambIds.cs). Reordering this dict silently repoints every
