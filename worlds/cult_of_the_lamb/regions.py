@@ -31,6 +31,11 @@ def create_regions(world: "CultOfTheLambWorld") -> None:
 
     # Home-base checks (sermon upgrades). Only added when the matching option is on, so a
     # seed that isn't randomizing them doesn't carry unreachable locations.
+    # Cards the player starts with can never be earned, so their checks would be unreachable.
+    # Dropped by name rather than filtered in get_locations_for_region, which keys off category
+    # and DLC. Applies to both blocks below, since a starting card can be region-tied.
+    starting = {f"Tarot Card - {card.display}" for card in world.starting_tarot_cards}
+
     cult_categories = set()
     if world.options.randomize_sermon_upgrades:
         cult_categories.add("Sermon")
@@ -41,10 +46,6 @@ def create_regions(world: "CultOfTheLambWorld") -> None:
     if world.options.randomize_tarot_cards:
         cult_categories.add("TarotCard")
     if cult_categories:
-        # Cards the player starts with can never be earned, so their checks would be
-        # unreachable. Dropped here rather than filtered in get_locations_for_region, which
-        # keys off category and DLC rather than individual names.
-        starting = {f"Tarot Card - {card.display}" for card in world.starting_tarot_cards}
         add_locations(cult, [
             name for name in get_locations_for_region(
                 "Cult", include_dlc, categories=cult_categories)
@@ -55,11 +56,21 @@ def create_regions(world: "CultOfTheLambWorld") -> None:
     region_categories = {"Miniboss", "Bishop", "Witness"}
     if world.options.tarot_shop_checks:
         region_categories.add("TarotShop")
+    if world.options.randomize_tarot_cards:
+        # Cards whose earn condition is locked to one region - knucklebones opponents you
+        # have to meet there, Helob's follower shop, the Pilgrim's Passage fisherman. Real
+        # logic, so they skip the depth bands entirely.
+        region_categories.add("TarotCardRegion")
 
     for region_name in REGION_NAMES:
         region = Region(region_name, player, multiworld)
-        add_locations(region, get_locations_for_region(
-            region_name, include_dlc, categories=region_categories), player)
+        # Same starting-card exclusion as Cult above: a region-tied card the player begins
+        # with can't be earned there either.
+        add_locations(region, [
+            name for name in get_locations_for_region(
+                region_name, include_dlc, categories=region_categories)
+            if name not in starting
+        ], player)
         multiworld.regions.append(region)
         cult.connect(region, f"Cult -> {region_name}")
 

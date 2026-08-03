@@ -73,7 +73,23 @@ class CultOfTheLambWorld(World):
         if not self.options.randomize_tarot_cards:
             return [], []
 
-        cards = poolable_tarot_cards(bool(self.options.include_woolhaven))
+        cards = poolable_tarot_cards(
+            bool(self.options.include_woolhaven), self.goal_reaches_postgame
+        )
+
+        # A shop card's only location is its shop slot, so with shop checks off it has none:
+        # locations.py excludes it from the "Tarot Card - X" block unconditionally, and
+        # regions.py only creates the slot locations when the option is on. Left managed, the
+        # client would withhold the card and send nothing, so the slot could be bought over
+        # and over for gold and never sell out. Handing them back to the game instead means
+        # no item, no location, and buying one works exactly as it does in vanilla.
+        if not self.options.tarot_shop_checks:
+            shop_cards = {
+                internal
+                for cards_in_hub in TAROT_SHOP_CARDS.values()
+                for _, internal in cards_in_hub
+            }
+            cards = [c for c in cards if c.internal not in shop_cards]
 
         if self.options.starting_tarot_pool == StartingTarotPool.option_vanilla_defaults:
             candidates = [c for c in cards if c.default]
@@ -110,6 +126,17 @@ class CultOfTheLambWorld(World):
                     return shuffled
 
         return self.random.sample(REGION_NAMES, len(REGION_NAMES))
+
+    @property
+    def goal_reaches_postgame(self) -> bool:
+        """Whether finishing this seed takes the player past the vanilla final boss.
+
+        Nothing does yet: both goals are Bishops or Witnesses, which end before The One Who
+        Waits. Written as a goal check rather than a constant so that adding a Narinder or
+        Woolhaven goal (roadmap Sprints 1 and 11) switches the post-game tarot cards on by
+        itself, instead of leaving a second thing to remember.
+        """
+        return False
 
     @property
     def regions_are_gated(self) -> bool:
@@ -204,12 +231,21 @@ class CultOfTheLambWorld(World):
             # Granted back immediately after the revoke, so the player starts with these.
             "startingTarotCards": [card.internal for card in self.starting_tarot_cards],
             # "Tarot Card - <name>" ids, so the client can turn an unlock into a check.
+            #
             # Cards sold in shops aren't here: their check is the shop slot itself, so the
             # client withholds those unlocks without sending anything.
+            #
+            # Neither are starting cards. The client keeps Archipelago's cards out of the
+            # game's collection, so the game goes on offering a starting card and the player
+            # can still trigger its unlock - but create_regions never made that location
+            # (regions.py drops the same set), so a check for it would go nowhere. Leaving it
+            # out here makes the client swallow the unlock instead. The two exclusions have to
+            # agree.
             "tarotCardLocations": {
                 card.internal: location_name_to_id[f"Tarot Card - {card.display}"]
                 for card in self.tarot_cards
-                if f"Tarot Card - {card.display}" in location_name_to_id
+                if card not in self.starting_tarot_cards
+                and f"Tarot Card - {card.display}" in location_name_to_id
             },
 
             "snailShrineChecks": bool(self.options.snail_shrine_checks.value),

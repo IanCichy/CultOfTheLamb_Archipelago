@@ -171,6 +171,11 @@ class TarotCardData(NamedTuple):
     # Unlocked from the start of a vanilla run. Archipelago revokes these on connect so they
     # have to be earned like everything else - see TarotService.
     default: bool = False
+    # Only obtainable after the vanilla final boss. See POSTGAME_TAROT_CARDS.
+    postgame: bool = False
+    # Earned through content locked to one crusade region, so its check belongs in that
+    # region rather than in Cult. See REGION_TAROT_CARDS.
+    region: Optional[str] = None
 
 TAROT_CARDS = [
     TarotCardData("The Hearts I", "Hearts1", default=True),
@@ -260,6 +265,78 @@ TAROT_CARDS = [
     TarotCardData("Solstice Night", "HeartTarotDrawn", dlc=True),
 ]
 
+# Cards you can only get after beating the vanilla final boss (The One Who Waits).
+#
+# Two sources, both strictly post-game:
+#   - the Mystic Cellar, which only opens afterwards;
+#   - the corrupted set, which needs you to die in a post-game crusade and then interact with
+#     the Goat Statue.
+#
+# They are excluded from seeds whose goal doesn't reach the post-game (see
+# goal_reaches_postgame). With a Bishops or Witnesses goal these locations would sit past the
+# win condition - unreachable in AP's eyes, which fails generation outright under Full
+# accessibility rather than merely making a slow seed.
+POSTGAME_TAROT_CARDS = {
+    # Mystic Cellar
+    "AdventureMapFreedom", "Recycle", "StrikeBack", "SurpriseAttack", "BossHeal",
+    "Sin", "ExtraMove", "ShuffleNode",
+    # Goat Statue, corrupted set
+    "NoCorruption", "CorruptedBombsAndHealth", "CorruptedHeavy", "CorruptedTradeOff",
+    "CorruptedBlackHeartForRelic", "CorruptedHealForRelic", "CorruptedFullCorruption",
+    "CorruptedPoisonCoins", "CorruptedRelicCharge", "CorruptedGoopyTrail",
+}
+
+# Cards earned through content locked to a single crusade region. Their checks live in that
+# region rather than in Cult, which makes them real logic instead of an approximated depth
+# band - the player genuinely cannot get them without that region open.
+#
+# The knucklebones cards all follow one shape: you meet the opponent during a crusade in that
+# region, after which they move to Ratau's house and you play them there. Meeting them is the
+# gate, so the region is what matters, not where the game is finally played.
+REGION_TAROT_CARDS = {
+    # Beat Flinky at knucklebones; Flinky is met in Anura.
+    "PoisonImmune": "Anura",
+    # Beat Shroomy at knucklebones; met in Silk Cradle.
+    "BlackSoulAutoRecharge": "Silk Cradle",
+    # Another knucklebones opponent, met in Anchordeep.
+    "BlackSoulOnDamage": "Anchordeep",
+    # Buy followers from Helob three times during crusades; Helob is met in Silk Cradle.
+    # Matches spiderShop.cs:173, which gates on followerShopUses > 3.
+    "Arrows": "Silk Cradle",
+    # From the fisherman, who lives in Pilgrim's Passage - Darkwood's hub. Reaching him is the
+    # whole condition; no Fishing Rod needed.
+    "NeptunesCurse": "Darkwood",
+}
+
+# How hard a Cult-resident card is to earn, lowest first. Drives the depth bands in rules.py:
+# without it the bands key off the game's internal enum order, which has nothing to do with
+# difficulty, and a hard card can end up advertising sphere-1 reachability.
+#
+# Cards not listed sit in the middle. Region-tied and post-game cards aren't here - they have
+# real logic instead.
+TAROT_TIERS = {
+    "Hearts2": 0,
+    "Potion": 0,
+    "Hearts3": 1,
+    "Lovers2": 1,
+    "MoreRelics": 2,
+    "ImmuneToTraps": 2,
+    "DecreaseRelicCharge": 2,
+}
+_DEFAULT_TAROT_TIER = 1
+
+TAROT_CARDS = [
+    card._replace(
+        postgame=card.internal in POSTGAME_TAROT_CARDS,
+        region=REGION_TAROT_CARDS.get(card.internal),
+    )
+    for card in TAROT_CARDS
+]
+
+
+def tarot_tier(card: TarotCardData) -> int:
+    return TAROT_TIERS.get(card.internal, _DEFAULT_TAROT_TIER)
+
 
 item_table: Dict[str, ItemData] = {
     PROGRESSIVE_REGION_ACCESS: ItemData(offset + 1, ItemClassification.progression, "Region"),
@@ -327,8 +404,22 @@ item_table.update({
 
 # The cards a seed can actually hand out. Co-op cards never qualify; Woolhaven ones only with
 # the DLC option on, because the client can't grant content the player doesn't own.
-def poolable_tarot_cards(include_woolhaven: bool) -> List[TarotCardData]:
-    return [c for c in TAROT_CARDS if not c.coop and (include_woolhaven or not c.dlc)]
+def poolable_tarot_cards(
+    include_woolhaven: bool, include_postgame: bool = False
+) -> List[TarotCardData]:
+    """Cards this seed can manage.
+
+    Post-game cards are dropped rather than gated: with a Bishops or Witnesses goal their
+    checks sit past the win condition, and a location the player can't reach fails generation
+    outright. Dropping them hands those cards back to the game entirely, the same way co-op
+    cards are handled.
+    """
+    return [
+        c for c in TAROT_CARDS
+        if not c.coop
+        and (include_woolhaven or not c.dlc)
+        and (include_postgame or not c.postgame)
+    ]
 
 
 filler_table = [name for name, data in item_table.items() if data.category == "Filler"]
