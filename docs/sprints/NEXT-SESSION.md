@@ -1,102 +1,110 @@
-# Start here — handoff for a fresh session
+# Tarot cards — what was built, and what's still open
 
-Paste this file's path into a new session and say **"read this and start Sprint 3."**
+Record of the tarot work. Supersedes the handoff this file used to hold: the blocker it was
+written to warn about is fixed, and the mechanism it recommended isn't the one that shipped.
 
----
+## Loading context
 
-## 1. Load context in this order
+1. **`cotl-decompile-lookup` skill** → `DecompiledGamesViaDnSpy/Cotl/AI_INDEX.md` (verified
+   findings with file:line cites) and `wiki/`. **Read AI_INDEX.md before grepping.**
+2. **`cotl-build-deploy-validate` skill** → every path, the r2modman profile, the apworld
+   pipeline, the known traps.
+3. `docs/architecture.md` for how the C# client and Python world fit together.
 
-1. **`docs/sprints/README.md`** — the sprint roadmap. Read the "Target play session" section
-   first; it's the constraint that decides everything else.
-2. **`cotl-decompile-lookup` skill** → points at
-   `C:\Users\IanCi\Repos\DecompiledGamesViaDnSpy\Cotl\AI_INDEX.md` (verified code findings with
-   file:line cites) and `wiki/` (real in-game names, hub/shop inventories).
-   **Read AI_INDEX.md before grepping** — most answers are already there.
-3. **`cotl-build-deploy-validate` skill** → every path, the r2modman profile, the apworld
-   pipeline, and the known traps.
-4. `docs/architecture.md` for how the C# client and Python world fit together.
+## The design
 
-## 2. Repo facts
+Every card the seed manages is an Archipelago item, and earning one is a check. You never
+get a card by playing; playing is how you send checks.
 
-- Repo: `C:\Users\IanCi\Repos\cult_of_the_lamb_archipelago`
-  (GitHub: IanCichy/CultOfTheLamb_Archipelago). Work on `main`.
-- **Commit only after the user reviews the diff.** No `Co-Authored-By`, no "Generated with
-  Claude Code" in commit messages.
-- The repo ruleset asks for PRs on `main`; pushes currently bypass it. Unsettled.
+**The invariant everything serves: no managed card is ever in
+`DataManager.Instance.PlayerFoundTrinkets`.**
 
-## 3. What already works (don't rebuild it)
+That's because every route the game has to offer a card first checks you don't already own
+it — `Interaction_MysticShop.cs:493`/`:716`, `spiderShop.cs:173`,
+`Interaction_DepositFollowerPlant.cs:60`, and `TarotCards.UnlockTrinket` itself. Letting an
+Archipelago card become a real unlock closes that gate permanently and strands the check
+riding on it. That was the original blocker: `Tarot Card - Favourable Winds` held a
+`Progressive Bishop's Domain` in a seed where the card was already owned, so the fourth
+region was unreachable.
 
-97 locations, verified in a real playthrough — bosses/minibosses/Witnesses (20), sermon
-upgrades (38 locations / 30 items), Follower milestones (20), Tarot shop purchases (14), Snail
-Shrines (5), region access (3 progressive items), and a weighted filler pool with real effects
-plus traps.
+Archipelago's cards live in `TarotService.granted` instead, and `TarotVisibility` lends them
+back to the only two readers that need them.
 
-Client patterns already established — copy these rather than inventing new ones:
+### Why not sequential locations
 
-| Need | Pattern |
+The earlier handoff recommended replacing named locations with "Tarot Card 1..N" and called
+it immune by construction. It isn't. The gates above are ownership-keyed, so every card the
+multiworld grants still destroys one unlock opportunity — a card-heavy seed runs out anyway,
+just later and harder to diagnose. The `SermonService` precedent doesn't transfer either:
+sermon upgrades are repeatable purchases, whereas card unlocks are mostly one-shot,
+fixed-identity world events (`Shrines.cs:381-382` Sun/Moon, `RitualWedding.cs:263` Lovers2,
+`Interaction_TarotCardUnlock.CardOverride`). It would also have invalidated every seed.
+
+## The pieces
+
+| Where | What it does |
 |---|---|
-| Boss kills | Postfix `DataManager.AddKilledBoss(string)` — the only write site |
-| Shop purchases | Postfix `Interaction_BuyItem.Activate()` — universal across all shops |
-| Follower joins | `FollowerManager.OnFollowerAdded` — public static event, no patch |
-| Save-state flags | Poll on a throttle from `ArchipelagoPlugin.Update` (see SnailShrineService) |
-| Item → game effect | Add to `ArchipelagoItemLogicController.ApplyItem`, or a `TryApplyItem` service |
-| Mapping Python ↔ C# | **Send it through `fill_slot_data`.** Don't hardcode ids client-side |
-| Popups | `ApNotification.Show(...)` — handles the I2 term registration trap |
-| Check sent | `CheckNotifier.Announce(session, ids)` — batches, so catch-up bursts don't spam |
+| `Patches/TarotUnlockPatch.cs` | Prefixes the two methods every unlock route ends at — `TarotCards.UnlockTrinket` and `DataManager.UnlockTrinket` — and asks `TarotService.Decide` for `Allow` / `SendCheck` / `Swallow`. Hooking the outcome instead of 85 unlock conditions is what makes this cheap. |
+| `Services/TarotService.cs` | The policy and the state: `managedCards`, `startingCards`, `revoked`, `granted`. Revokes on connect, grants the seed's starting cards, restores on disconnect. |
+| `Patches/TarotVisibility.cs` | Lends `granted` into the collection for the length of one call: `GetUnusedFoundTrinkets` (the run draw pool — the one that matters) and `UITarotCardsMenuController.OnShowStarted` (the collection screen). |
+| `Patches/ShopSlotDisplayPatch.cs` | Decides which shop slots exist by overriding `DataManager.TrinketUnlocked` *scoped to `InitTarotShop`*, answering from the location's state rather than the card's. Also arms the unlock suppression so a purchase can't pay twice. |
+| `Services/TarotShopService.cs` | Sends the check on purchase. |
+| `Services/ShopIconService.cs` | Puts the AP logo and the scouted item name on marked slots. |
+| `Utilities/RevokedCardStore.cs` | Sidecar file recording what a save is owed. Keyed by save slot alone, unlike `AppliedItemStore`'s save+seed+slot key. |
+| `Utilities/MainThreadQueue.cs` | Teardown arrives on the websocket thread; save data may only be touched from Unity's. |
 
-## 4. Hard-won traps — do not rediscover these
+`TarotService.Tick()` re-establishes the invariant once a second, because `GameManager.Awake`
+re-seeds 15 default cards whenever it finds the collection empty (`GameManager.cs:175`) —
+exactly the state a fresh save is left in — and because loading a different save brings in a
+whole collection nobody revoked.
 
-- **Internal names are never display names.** `Boss Mama Worm` is Amdusias, `Skull` is "The
-  Burning Dead", `LOG` is "Lumber", `SOUL` is "Devotion". Guessing has been wrong every single
-  time. **Press F4 in-game** to dump the real name tables to
-  `BepInEx/ap_unlockable_names.txt`, and read from that.
-- **The wiki is sometimes stale.** It had the curse-pack numbering wrong (4 of 5) and missed
-  entire upgrade tiers. Prefer the game's own data (F4, `UpgradePlayerConfiguration.AllUpgrades`).
-- **Never open `UIUpgradePlayerTreeMenuController`.** It overrides `OnCancelButtonInput()` with
-  an empty body — it cannot be dismissed, and the only exit hands out a free upgrade.
-- **Non-idempotent grants must not replay.** The server resends the full item history every
-  connect; `AppliedItemStore` tracks what a save already got. Resources stack, unlocks don't.
-- **Locations don't create spheres, gates do.** 97 locations still yields 2–3 spheres because
-  region access is the only progression item.
-- **`Interaction_ShopKeeper` is dead placeholder code** (joke dialogue about bananas).
-- The project compiles against `CultOfTheLamb.GameLibs 1.5.15.979`. If a restore fails,
-  Windows Defender may quarantine `Rewired_Core.dll` out of the NuGet cache as a false positive.
+## Traps worth remembering
 
-## 5. Debug keys (need a game restart to register)
+- **`SaveAndLoad.SAVE_SLOT` is not stable within a session.** `MakeBaseGameBackUpSave` adds
+  10, saves, and puts it back (`:307`); `Saving` can subtract 10 for good (`:183`). The +10
+  is the Woolhaven variant of the *same* playthrough. `TarotService.CurrentSaveId` folds it
+  back; comparing the raw value reads a false save switch.
+- **The game replaces the list object**, at `GameManager.cs:177` and on MessagePack load, so
+  `PlayerFoundTrinkets` must be re-read each tick rather than cached.
+- **Display names are nothing like enum names** — "The Burning Dead" is `Skull`, "Ambrosia"
+  is `Potion`. They come from the F4 dump (`BepInEx/ap_unlockable_names.txt`), never guessed.
+  `Neptune’s Curse` really does use U+2019 and is the only card that does.
+- **Notifications are queued** (`ApNotification.Flush()` from the plugin's Update): the game
+  hard-suppresses them while the HUD is hidden or `NotificationsEnabled` is false, and
+  `PlayGenericNotification` returns silently — which is why checks during cutscenes showed
+  nothing and logged nothing.
+- **In-run draws are not unlocks.** They read `GetUnusedFoundTrinkets` and never touch
+  `UnlockTrinket`, so they correctly send nothing.
 
-`F5` connect/disconnect · `F2` list owned sermon upgrades · `F3` fill the sermon bar ·
-`F4` dump all name tables to file · `F6` resources · `F7` an upgrade · `F8` a tarot card ·
-`F9` AP + boss + miniboss + snail state · `F10` a fleece · `F11` notifications
+## Deliberate carve-outs
 
-## 6. Sprint 3 — Tarot cards
+- Co-op cards (5) are never pooled — they can't be earned solo, and nothing would grant them
+  back.
+- Woolhaven cards (19) are fully in the pool, items and locations, when `include_woolhaven`
+  is on; excluded from both sides and left vanilla when it's off.
+- With `tarot_shop_checks` off, the 16 shop cards are handed back to the game entirely. Left
+  managed they'd have no location at all, and the slot would take gold forever without
+  selling out.
+- Buying a card never grants it. The shop sends its check; the card comes from the pool.
+- Completion % and `ALL_TAROTS_UNLOCKED` under-report while connected, and both self-correct
+  on disconnect. Lending to the achievement path would write a permanent unlock.
 
-Everything needed is researched; this is **finalization and testing, not discovery**.
+## Still open
 
-- Pool: `DataManager.AllTrinkets` = 85 cards. Randomizable ~46 after excluding 19 Woolhaven
-  (`MajorDLCCards`), 5 co-op (`CoopCards`), 15 starting (`DefaultCards`).
-- Grant: `TarotCards.UnlockTrinket(Card)` — proven, and raises the game's own unlock alert.
-- Names: already in the F4 dump. Do not guess.
+| Finding | Severity |
+|---|---|
+| Reveal cutscene plays for cards you don't receive — both the shop flow and `UICardManagerCard.UnlockCard()` animate before calling the unlock | Medium (polish) |
+| 238 `NullReferenceException`s in `PlayerFarming.Update()` during crusade room transitions, **zero Archipelago frames in any stack**. Probably vanilla; needs a mod-off comparison | Unknown |
+| Unbounded notification queue (`ApNotification.cs:89`) — turn notifications off and the whole session's backlog fires at once | Low |
+| Unguarded `entry.Value.ToObject<long>()` (`TarotService.cs:237`) kills the connect instead of skipping one card | Low |
+| Shop/card double-send is safe only by construction — worth an explicit comment at `TarotService.cs:95` | Low |
+| Dead main-menu connect path (`MenuButtonPatch.MainMenu_Start_Postfix`) — only the pause-menu button ever worked | Low |
+| Run-trader purchases give nothing that run | Design call |
+| Filler names don't match effects ("Gold Tithe" grants Gold Nuggets) | Low |
+| Sermon/follower/snail blocks all sit in `Cult`, so depth comes from `set_depth_rules` rather than real reachability | Watch |
 
-**The one real design decision**: what the other ~30 locations are, beyond the 14 shop
-purchases that already exist. First-find in a crusade is the obvious source, but the
-find-event and the grant must be **decoupled** — otherwise a card AP gives you early makes its
-own location permanently unreachable. Sprint 2's doc covers this trap in the sermon context;
-the same logic applies.
+## Debug keys
 
-Suggested shape: mirror the sermon approach — sequential locations ("Tarot Card 1..N" as you
-find cards) with the *named cards* as items. That sidesteps the softlock entirely.
-
-**Acceptance**: seed generates with tarot locations and items; finding a card in a crusade
-sends a check; receiving a card item unlocks it and shows a notification.
-
-## 7. Known issues worth fixing opportunistically
-
-- Filler names don't match effects: "Fervour" grants Coins, "Gold Tithe" grants Gold Nuggets.
-  Cheap to rename **now**, expensive once seeds exist.
-- Snail shrine region-scoping unresolved — all 5 sit in `Cult`. F9 showed `ShrineNumber=1` in
-  *Ratau's Home*, not a hub, contradicting the "one per hub" assumption. Needs F9 dumps from
-  the four hubs before changing anything.
-- `Region locking active: True` logs twice per connect — `ProcessLoginResult` appears to run
-  twice. Harmless, not understood.
-- Co-op untested. `TarotCards.CoopCards` are in `AllTrinkets` and should be excluded from
-  solo seeds — **relevant to Sprint 3.**
+`F5` connect panel · `F1` dump shop slots + renderers · `F2` owned sermon upgrades ·
+`F3` fill sermon bar · `F4` dump all name tables to file · `F6` resources · `F7` an upgrade ·
+`F8` a tarot card · `F9` AP + boss + miniboss + snail state · `F10` a fleece · `F11` notifications
