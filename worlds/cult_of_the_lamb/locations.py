@@ -2,7 +2,7 @@ from typing import Dict, List, NamedTuple, Optional, Set
 
 from BaseClasses import Location
 
-from .items import SERMON_UPGRADES, TAROT_CARDS
+from .items import SERMON_UPGRADES, TAROT_CARDS, tarot_tier
 
 # Must not overlap worlds/cult_of_the_lamb/items.py's offset range.
 location_offset = 3_051_000
@@ -91,6 +91,7 @@ TAROT_SHOP_CARDS = {
         ("Hands of Rage", "HandsOfRage"),
         ("Nature's Boon", "NaturesGift"),
         ("All Seeing Sun", "Sun"),
+        ("Retribution", "BombOnDamaged"),
     ],
     "Anura": [               # Spore Grotto
         ("Blazing Trail", "DamageOnRoll"),
@@ -102,6 +103,7 @@ TAROT_SHOP_CARDS = {
         ("The Bomb", "BombOnRoll"),
         ("Ichor Lingered", "GoopOnRoll"),
         ("Soul Snatcher", "HealChance"),
+        ("Wraith's Will", "WalkThroughBlocks"),
     ],
     "Silk Cradle": [         # Midas's Cave
         ("The Burning Dead", "Skull"),
@@ -151,13 +153,30 @@ for _region, _cards in TAROT_SHOP_CARDS.items():
 # that card, and buying it is the only way the game unlocks it. Giving them a second location
 # here would pay twice for one card - and the second one could never fire anyway, since the
 # client withholds the unlock on a shop purchase.
+#
+# Post-game cards get no location at all. Their checks would sit past the win condition of a
+# Bishops or Witnesses goal, and an unreachable location fails generation rather than just
+# making a slow seed. They come back when a goal that reaches the post-game exists.
+#
+# Cards tied to one crusade region live in that region under a separate category, so they get
+# real logic from the region graph instead of an approximated depth band - and so
+# set_depth_rules leaves them alone.
+#
+# The rest are sorted by how hard they are to earn, because the band a card lands in is its
+# position in this table. Left in the game's own enum order the bands would be meaningless.
 _SHOP_CARD_NAMES = {_display for _cards in TAROT_SHOP_CARDS.values() for _display, _ in _cards}
 
-for _card in TAROT_CARDS:
-    if _card.coop or _card.display in _SHOP_CARD_NAMES:
-        continue
-    location_table[f"Tarot Card - {_card.display}"] = \
-        LocationData("Cult", "TarotCard", _card.dlc)
+_card_locations = [
+    _card for _card in TAROT_CARDS
+    if not _card.coop and not _card.postgame and _card.display not in _SHOP_CARD_NAMES
+]
+
+for _card in sorted(_card_locations, key=tarot_tier):
+    location_table[f"Tarot Card - {_card.display}"] = LocationData(
+        _card.region or "Cult",
+        "TarotCardRegion" if _card.region else "TarotCard",
+        _card.dlc,
+    )
 
 # Append-only: ids come from enumeration order, and the C# client hardcodes the same
 # offsets (see Utilities/CultOfTheLambIds.cs). Reordering this dict silently repoints every
