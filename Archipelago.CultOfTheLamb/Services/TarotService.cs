@@ -19,6 +19,14 @@ namespace Archipelago.CultOfTheLamb.Services;
 /// back on disconnect. Someone who tries the mod and stops should get their save exactly as it
 /// was, not one missing sixty cards. RegionUnlockService sets the same precedent for regions.
 ///
+/// Cards Archipelago hands over are held here rather than unlocked in the game. That looks
+/// roundabout, but it is what keeps card locations reachable: every route the game has to
+/// offer a card first checks you don't already own it - the mystic shop, the spider shop's
+/// Arrows, the follower plant's Joker, UnlockTrinket itself. Unlocking an Archipelago card
+/// for real would close that gate, and the check riding on it could never fire again. Leaving
+/// the collection empty of managed cards keeps every unlock trigger live for the whole seed.
+/// TarotVisibility lends them back to the two places that genuinely need to see them.
+///
 /// Card identity comes from slot data, keyed by AP item name, because display names are
 /// nothing like the TarotCards.Card enum names ("The Burning Dead" is Skull) and hardcoding
 /// either side would let the two drift silently.
@@ -46,7 +54,42 @@ internal class TarotService : IService
     /// What we took off the player, so it can be handed back. Only holds cards that were
     /// genuinely unlocked before we touched them.
     /// </summary>
-    private readonly List<TarotCards.Card> revoked = new();
+    private readonly HashSet<TarotCards.Card> revoked = new();
+
+    /// <summary>
+    /// Which save <see cref="revoked"/> was taken from. The player can load a different save
+    /// without reconnecting, and cards owed to one save must never be written into another.
+    /// </summary>
+    private int saveSlot;
+
+    /// <summary>
+    /// Which save is loaded, with the Woolhaven variant folded onto its base slot.
+    ///
+    /// SaveAndLoad.SAVE_SLOT is not stable within a session. The game keeps a DLC save at
+    /// slot+10 beside a base-game backup at slot, and moves SAVE_SLOT between the two while
+    /// writing: MakeBaseGameBackUpSave adds 10, saves, and puts it back (SaveAndLoad.cs:307),
+    /// while Saving can subtract 10 for good (:183). Comparing the raw value would read those
+    /// as the player loading a different save - during which this would hand the debt to the
+    /// wrong key and clear Archipelago's cards with no item replay left to rebuild them.
+    /// </summary>
+    internal static int CurrentSaveId =>
+        SaveAndLoad.SAVE_SLOT >= 10 ? SaveAndLoad.SAVE_SLOT - 10 : SaveAndLoad.SAVE_SLOT;
+
+    /// <summary>
+    /// Cards Archipelago has handed over this session. This is the player's real collection
+    /// as far as Archipelago is concerned; the game's own collection deliberately never
+    /// learns about them (see the class summary).
+    /// </summary>
+    private readonly HashSet<TarotCards.Card> granted = new();
+
+    /// <summary>
+    /// Set whenever the debt changes, cleared once <see cref="Tick"/> has written it out.
+    ///
+    /// The debt is written from the tick rather than at the moment it changes because the
+    /// item replay grants dozens of cards in a row on connect, and each one would otherwise
+    /// rewrite the whole file.
+    /// </summary>
+    private bool debtDirty;
 
     internal TarotService(
         ArchipelagoSession session,
@@ -63,18 +106,130 @@ internal class TarotService : IService
 
     public void Register()
     {
+        saveSlot = CurrentSaveId;
+
+        // Anything an earlier session took and never gave back is still owed. Folded in
+        // before revoking so a session that ended in a crash doesn't cost the player cards.
+        revoked.UnionWith(RevokedCardStore.Owed(saveSlot));
+
         RevokeManagedCards();
         GrantStartingCards();
 
         TarotUnlockPatch.Decide = Decide;
+        TarotVisibility.GrantedCards = () => granted;
         Log.LogInfo($"[AP] Tarot cards active: {itemNameToCard.Count} managed, "
             + $"{startingCards.Count} granted at start.");
     }
 
     public void Unregister()
     {
+        // Reference writes, so they're safe from any thread, and they stop new work starting
+        // while the restore is in flight.
         TarotUnlockPatch.Decide = null;
-        RestoreRevokedCards();
+        TarotVisibility.GrantedCards = null;
+
+        // Unregister runs on the websocket thread - Session_SocketClosed -> TeardownSession -
+        // and PlayerFoundTrinkets is a plain List the main thread iterates. Touching it from
+        // here can throw mid-enumeration or undo a lend that's part-way through.
+        //
+        // If a reconnect beats the drain, the new session's sweep takes back out whatever
+        // this puts in, and the store is what makes that safe either way.
+        MainThreadQueue.Enqueue(RestoreCards);
+    }
+
+    /// <summary>
+    /// Keeps the invariant true: no card this seed manages is ever in the game's collection.
+    ///
+    /// Register establishes it once, but plenty of things break it afterwards.
+    /// GameManager.Awake re-seeds fifteen default cards whenever the collection is empty
+    /// (GameManager.cs:175) - which is exactly the state we leave a fresh save in - so
+    /// quitting to the menu and loading again silently hands them back as real unlocks,
+    /// closing their gates and stranding their checks. Loading a *different* save is worse:
+    /// none of its collection was ever revoked.
+    ///
+    /// A sweep rather than a hook on Awake or SaveAndLoad.OnLoadComplete, because those are
+    /// ordering-sensitive - Awake's re-seed runs after a load-complete revoke and undoes it -
+    /// and neither covers anything else that writes to the collection. This is self-healing
+    /// whatever put the card there.
+    ///
+    /// Safe against the lending patches: Lend and Take both complete inside one synchronous
+    /// call on this same thread, so a tick can never catch a loan in progress.
+    /// </summary>
+    internal void Tick()
+    {
+        var found = DataManager.Instance?.PlayerFoundTrinkets;
+        if (found == null) return;
+
+        if (CurrentSaveId != saveSlot)
+        {
+            SwitchToLoadedSave();
+            return;
+        }
+
+        List<TarotCards.Card> reappeared = null;
+
+        foreach (var card in managedCards)
+        {
+            if (!found.Remove(card)) continue;
+
+            // Already accounted for - the game handed back something we'd taken, or
+            // something Archipelago had granted. Owed either way, just not newly.
+            if (revoked.Contains(card) || granted.Contains(card)) continue;
+
+            (reappeared ??= new List<TarotCards.Card>()).Add(card);
+        }
+
+        if (reappeared != null)
+        {
+            revoked.UnionWith(reappeared);
+            debtDirty = true;
+            Log.LogInfo($"[AP] The game put {reappeared.Count} managed tarot card(s) back into "
+                + "the collection - taken out again so their checks stay reachable.");
+        }
+
+        if (debtDirty) PersistDebt();
+    }
+
+    /// <summary>
+    /// Records everything the loaded save is owed: what we took off it, and what Archipelago
+    /// has handed over.
+    ///
+    /// Both, because a granted card is only ever held in memory and lent - it is never
+    /// written to the save. Quitting to the desktop runs no teardown (the plugin has no
+    /// OnApplicationQuit) and a crash runs less than that, so without recording them here the
+    /// player loses every card the multiworld gave them.
+    /// </summary>
+    private void PersistDebt()
+    {
+        var owed = new HashSet<TarotCards.Card>(revoked);
+        owed.UnionWith(granted);
+
+        RevokedCardStore.Owe(saveSlot, owed);
+        debtDirty = false;
+    }
+
+    /// <summary>
+    /// A different save is loaded than the one we took cards from. That save is no longer in
+    /// memory, so its debt can only be handed to the store; the new one then gets the same
+    /// treatment the old one got at connect.
+    /// </summary>
+    private void SwitchToLoadedSave()
+    {
+        Log.LogInfo($"[AP] Save slot changed ({saveSlot} -> {CurrentSaveId}). "
+            + $"{revoked.Count} tarot card(s) stay owed to the old save.");
+
+        // Only what we took off the old save. Archipelago's cards were never in it.
+        RevokedCardStore.Owe(saveSlot, revoked);
+        revoked.Clear();
+
+        // `granted` deliberately survives. It's connection state, never written to a save and
+        // only ever lent, so carrying it across is safe - and clearing it would strand the
+        // player with no cards at all, because the item replay that would rebuild it runs
+        // only on connect (ArchipelagoItemLogicController.Register), not on a save load.
+        saveSlot = CurrentSaveId;
+        revoked.UnionWith(RevokedCardStore.Owed(saveSlot));
+        RevokeManagedCards();
+        GrantStartingCards();
     }
 
     /// <summary>
@@ -92,6 +247,9 @@ internal class TarotService : IService
             return TarotUnlockPatch.UnlockDecision.Swallow;
         }
 
+        // Sent even when the card is already in `granted`. That's the point of holding
+        // Archipelago's cards outside the collection: the trigger stays available, so finding
+        // a card the multiworld already gave you still pays its check.
         if (cardToCheckId.TryGetValue(card, out var checkId))
         {
             CheckSender.Send(session, checkId);
@@ -108,9 +266,8 @@ internal class TarotService : IService
     /// Grants a card if the item is one. Returns false so the caller can keep looking.
     ///
     /// Safe to replay alongside region and sermon items rather than being suppressed:
-    /// UnlockTrinket is a Contains-then-Add, so granting twice is a no-op. That matters
-    /// because the collection is rebuilt from the item history on every connect - we just
-    /// emptied it.
+    /// granting is a set Add, so granting twice is a no-op. That matters because the
+    /// collection is rebuilt from the item history on every connect - we just emptied it.
     /// </summary>
     internal bool TryApplyItem(string itemName)
     {
@@ -118,26 +275,31 @@ internal class TarotService : IService
 
         Grant(card);
 
-        // No longer ours to give back - the player owns it through Archipelago now.
-        revoked.Remove(card);
-
         Log.LogInfo($"[AP] Tarot card '{itemName}' ({card}) unlocked.");
         return true;
     }
 
     /// <summary>
-    /// Unlocks a card for real, through the game's own method so it raises the game's
-    /// card-unlocked alert. Wrapped so our own grant isn't mistaken for the player earning it
-    /// and turned straight back into a check.
+    /// Hands a card to the player - into our own set rather than the game's collection, so
+    /// the game keeps offering it and the check riding on it stays reachable.
+    ///
+    /// No game-side alert is raised. ArchipelagoItemLogicController already announces every
+    /// item received, and the game's card-unlocked alert would badge a card its own
+    /// collection doesn't contain.
     /// </summary>
-    private static void Grant(TarotCards.Card card) =>
-        TarotUnlockPatch.WhileGranting(() => TarotCards.UnlockTrinket(card));
+    private void Grant(TarotCards.Card card)
+    {
+        if (granted.Add(card)) debtDirty = true;
+    }
 
     /// <summary>
     /// Empties the collection of every card this seed manages.
     ///
     /// Only managed cards are touched: co-op cards, and Woolhaven cards in a non-DLC seed, are
     /// left exactly as the player had them.
+    ///
+    /// Adds to <see cref="revoked"/> rather than replacing it, because the debt may already
+    /// carry cards an interrupted session never handed back.
     /// </summary>
     private void RevokeManagedCards()
     {
@@ -148,49 +310,73 @@ internal class TarotService : IService
             return;
         }
 
-        revoked.Clear();
-
+        var taken = 0;
         foreach (var card in managedCards)
         {
-            if (found.Remove(card)) revoked.Add(card);
+            if (!found.Remove(card)) continue;
+            revoked.Add(card);
+            taken++;
         }
 
-        Log.LogInfo($"[AP] Revoked {revoked.Count} tarot card(s) - they come from the multiworld "
-            + "now. They're returned if you disconnect.");
+        // Recorded now rather than at disconnect. The game autosaves throughout, so from this
+        // point the save on disk is already missing these cards, and the store is the only
+        // thing that still knows they're owed if the process dies.
+        PersistDebt();
+
+        Log.LogInfo($"[AP] Revoked {taken} tarot card(s) - they come from the multiworld now. "
+            + "They're returned if you disconnect.");
     }
 
     private void GrantStartingCards()
     {
-        foreach (var card in startingCards)
-        {
-            Grant(card);
-
-            // Granted rather than kept, so it isn't owed back on disconnect - the player would
-            // have had it either way.
-            revoked.Remove(card);
-        }
+        foreach (var card in startingCards) Grant(card);
     }
 
-    private void RestoreRevokedCards()
+    /// <summary>
+    /// Puts the player's cards back into the save: both the ones taken at connect and the
+    /// ones Archipelago granted during the session.
+    ///
+    /// Granted cards have to be included. They were never written to the collection - they
+    /// only ever lived in <see cref="granted"/> - so leaving them out would mean
+    /// disconnecting silently took away every card the multiworld handed over.
+    /// </summary>
+    private void RestoreCards()
     {
-        if (revoked.Count == 0) return;
+        var owed = new HashSet<TarotCards.Card>(revoked);
+        owed.UnionWith(granted);
 
-        var found = DataManager.Instance?.PlayerFoundTrinkets;
-        if (found == null)
+        revoked.Clear();
+        granted.Clear();
+
+        if (owed.Count == 0)
         {
-            // The save is gone (quit to menu), so there's nothing to put them back into - and
-            // nothing was written to disk, so the save still has them.
-            revoked.Clear();
+            RevokedCardStore.Settle(saveSlot);
             return;
         }
 
-        foreach (var card in revoked)
+        var found = DataManager.Instance?.PlayerFoundTrinkets;
+
+        // Either no save is loaded (quit to the menu before disconnecting) or a different one
+        // is. Writing into it would be worse than waiting: the store keeps the debt, and the
+        // next connect on the right save pays it.
+        if (found == null || CurrentSaveId != saveSlot)
+        {
+            RevokedCardStore.Owe(saveSlot, owed);
+            Log.LogWarning($"[AP] Save {saveSlot} isn't loaded, so its {owed.Count} tarot "
+                + "card(s) couldn't be returned yet. They're recorded, and come back the next "
+                + "time you connect on that save.");
+            return;
+        }
+
+        foreach (var card in owed)
         {
             if (!found.Contains(card)) found.Add(card);
         }
 
-        Log.LogInfo($"[AP] Returned {revoked.Count} tarot card(s) to the save.");
-        revoked.Clear();
+        // Only once they're actually back in the collection.
+        RevokedCardStore.Settle(saveSlot);
+
+        Log.LogInfo($"[AP] Returned {owed.Count} tarot card(s) to the save.");
     }
 
     /// <summary>

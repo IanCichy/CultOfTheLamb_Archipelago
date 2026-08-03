@@ -1,5 +1,6 @@
 using Archipelago.CultOfTheLamb.Console;
 using Archipelago.CultOfTheLamb.Patches;
+using Archipelago.CultOfTheLamb.Services;
 using Archipelago.CultOfTheLamb.UI;
 using BepInEx;
 using BepInEx.Configuration;
@@ -65,6 +66,9 @@ public class ArchipelagoPlugin : BaseUnityPlugin
         DebugCommands.Update();
         AP?.ItemLogic?.ProcessQueue();
 
+        // Work handed over from the websocket thread - teardown reaching into save data.
+        MainThreadQueue.Drain();
+
         // Unthrottled, and cheap: it returns immediately unless a shop is waiting to be marked,
         // which only happens for a few frames after walking into one.
         AP?.ShopIconService?.Tick();
@@ -86,6 +90,19 @@ public class ArchipelagoPlugin : BaseUnityPlugin
             followerPollTimer = 0f;
             AP?.FollowerMilestoneService?.Tick();
             AP?.SnailShrineService?.Tick();
+
+            // Takes back any managed card the game has put into the collection since the last
+            // tick - GameManager.Awake re-seeds fifteen of them whenever it finds the list
+            // empty - and re-revokes from scratch if a different save has been loaded.
+            AP?.TarotService?.Tick();
+
+            // While disconnected instead: hands back anything a session that ended in a crash
+            // or an alt-F4 never got the chance to return. Nothing to find after a clean
+            // disconnect, so this is quiet unless something actually went wrong.
+            if (AP == null || !AP.IsConnected)
+            {
+                RevokedCardStore.SettleIfOwed(TarotService.CurrentSaveId);
+            }
         }
     }
 

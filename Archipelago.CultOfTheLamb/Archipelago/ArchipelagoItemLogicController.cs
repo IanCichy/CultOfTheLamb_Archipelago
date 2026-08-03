@@ -145,7 +145,7 @@ public partial class ArchipelagoItemLogicController : IService
         // upgrades get added or reordered.
         if (sermonService != null && sermonService.TryApplyItem(itemName)) return;
 
-        // Idempotent too - UnlockTrinket is a Contains-then-Add - and it has to replay, because
+        // Idempotent too - granting a card is a set Add - and it has to replay, because
         // TarotService empties the collection on connect and the item history is what rebuilds
         // it.
         if (tarotService != null && tarotService.TryApplyItem(itemName)) return;
