@@ -37,27 +37,6 @@ internal static class TarotUnlockPatch
         Swallow,
     }
 
-    // Set while TarotService is handing a card over, so our own grants aren't mistaken for the
-    // player earning it. A field rather than a per-card token because granting is synchronous:
-    // the flag is set and cleared around a single call that can't overlap with another.
-    private static bool granting;
-
-    /// <summary>Runs <paramref name="grant"/> with the interception disabled.</summary>
-    internal static void WhileGranting(Action grant)
-    {
-        granting = true;
-        try
-        {
-            grant();
-        }
-        finally
-        {
-            // finally, because leaving this set would silently turn every later card the
-            // player earns into a free unlock.
-            granting = false;
-        }
-    }
-
     [HarmonyPatch(typeof(TarotCards), nameof(TarotCards.UnlockTrinket))]
     [HarmonyPrefix]
     private static bool TarotCards_UnlockTrinket_Prefix(TarotCards.Card card, ref bool __result)
@@ -71,7 +50,7 @@ internal static class TarotUnlockPatch
     /// <summary>Returns false to skip the original, i.e. to withhold the card.</summary>
     private static bool Intercept(TarotCards.Card card, ref bool __result)
     {
-        if (granting || Decide == null) return true;
+        if (Decide == null) return true;
 
         switch (Decide(card))
         {

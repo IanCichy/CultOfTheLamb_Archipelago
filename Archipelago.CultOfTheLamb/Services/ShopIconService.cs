@@ -390,11 +390,6 @@ internal class ShopIconService : IService
     }
 
     /// <summary>
-    /// The AP location a slot corresponds to, if any. Keyed on the TarotCards.Card enum name
-    /// because that's what a BuyEntry carries; display names are unrelated to it ("The Burning
-    /// Dead" is Skull) and localised besides.
-    /// </summary>
-    /// <summary>
     /// Whether a card's shop slot has been spent, for the TrinketUnlocked override: true once
     /// its check is sent, false while it's still there to buy, and null for cards this seed
     /// doesn't map at all - those are left entirely to the game.
