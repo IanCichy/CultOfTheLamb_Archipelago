@@ -101,7 +101,11 @@ public class ArchipelagoPlugin : BaseUnityPlugin
             // disconnect, so this is quiet unless something actually went wrong.
             if (AP == null || !AP.IsConnected)
             {
-                RevokedCardStore.SettleIfOwed(TarotService.CurrentSaveId);
+                ManagedCollection<TarotCards.Card>.SettleIfOwed(
+                    TarotCollectionBacking.Key,
+                    new TarotCollectionBacking(),
+                    TarotCollectionBacking.Noun,
+                    TarotCollectionBacking.LegacyKey);
             }
         }
     }
