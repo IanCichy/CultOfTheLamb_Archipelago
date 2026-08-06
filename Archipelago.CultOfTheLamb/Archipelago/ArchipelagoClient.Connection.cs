@@ -330,7 +330,17 @@ public partial class ArchipelagoClient
 
         foreach (var entry in mapping)
         {
-            result[entry.Key] = entry.Value.ToObject<long>();
+            // Skip a malformed entry rather than throwing. This runs during connect, so an
+            // exception costs the whole session instead of the one shop check we can't read.
+            try
+            {
+                result[entry.Key] = entry.Value.ToObject<long>();
+            }
+            catch (Exception e)
+            {
+                Log.LogWarning("[AP] Slot data has a non-numeric location id for tarot shop "
+                    + $"slot '{entry.Key}': {e.Message} - that slot won't send a check.");
+            }
         }
 
         return result;
