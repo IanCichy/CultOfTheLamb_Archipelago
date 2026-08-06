@@ -27,7 +27,7 @@ play:
 | System | Locations | Items |
 |---|---|---|
 | Bishops, minibosses, Witnesses | 20 | — |
-| Sermon upgrades | 32 (38 w/ DLC) | 30 (3 progressive chains) |
+| Sermon upgrades | 32 (38 w/ DLC) | 32 (38 w/ DLC), 3 progressive chains |
 | Tarot cards | 27 (5 region-gated) | one per non-starting card |
 | Tarot shop purchases | 16 | — |
 | Follower milestones | 20 | — |
@@ -68,6 +68,37 @@ Cult-resident cards so the bands mean something instead of keying off the game's
 An earlier draft ordered by "how much does this add to a seed". Three pieces of work multiply
 everything after them, and any sprint done before them pays full price and then gets reworked.
 
+### Execution order — authoritative
+
+Section numbers below are **stable identifiers, not the running order** (they'd churn every time
+priorities move, and older notes reference them). This list is the order:
+
+| # | Sprint | Why here |
+|---|---|---|
+| ~~1~~ | ~~**0b** — verify in-game~~ | ✅ done 2026-08-06 |
+| ~~2~~ | ~~**0e step one** — dump the upgrade trees~~ | ✅ done 2026-08-06 — DI tree is 69 upgrades / 5 tiers, thresholds 0/4/10/20/25; **no tech→building cycle**, so 0e and 7 can gate in one seed |
+| 3 | **0d** — weapon and curse pools | Proves 0b on a second shape, and on the `Tick()` sweep specifically |
+| 4 | **0e** — Divine Inspiration tree | Biggest sphere source available; gates Sprint 7 |
+| 5+ | 0c, 1, 2, 2b, 3, 3b, 4, 5, 7a, 7, 7b, 8, 9, 10, 11, 12 | as listed below |
+
+**Why 0d and 0e were promoted out of the 7s** (2026-08-06): their old position was topical
+adjacency to structures, not dependency. Neither depends on 0c, 1, 2, 3, 4 or 5. Two arguments
+that moved them:
+
+- **0d is a better proof of 0b than fleeces.** Sprint 2 was positioned as the cheap test of the
+  abstraction, but fleeces have no re-seed hazard and so may never exercise the `Tick()` sweep —
+  the subtlest thing 0b extracted. Weapon pools do (`GameManager.cs:109` refills an emptied pool,
+  exactly like the tarot re-seed), and they have real boss-count gates instead of depth bands.
+  The trade is honest: fleeces are smaller, so a flaw in the seam would be cheaper to find there.
+- **0e may beat Sprint 1 on Sprint 1's own argument.** Sprint 1 is early because it takes the
+  world from 3 progression items to 7 and makes spheres form naturally. `checks_and_techs` does
+  that harder, with a count-based tier rule that is the game's own gating logic rather than an
+  approximation of it.
+
+Known cost of this order: **0c slips**, so 0d/0e get playtested in seeds that still have the
+mismatched filler names. Annoying, not blocking. And **Sprint 2 loses its special claim** to its
+position once 0d has proved the abstraction — it becomes an ordinary collection sprint.
+
 ## Sprint 0a — Sphere/exclusion framework ✅ done
 
 Bands plus `LocationProgressType.EXCLUDED` on the deep tail. Every later block of locations
@@ -98,11 +129,130 @@ decision rather than three considered ones:
 Extract from `TarotService` while it's fresh: revoke/restore, `RevokedCardStore` persistence,
 `MainThreadQueue` teardown, and the `Tick()` sweep that re-establishes the invariant.
 
-**Audit while you're here:** sermons are sequential, but if `SermonService` doesn't withhold
-the upgrade on purchase then buying one both grants it *and* consumes a check, while AP's own
-sermon items shrink the pool of unbought upgrades from the other side. With 32 locations and
-~30 items that's the tarot arithmetic again. May already be a live bug.
+### ✅ Done — extracted and verified in-game (2026-08-06)
 
+Four new files, and `TarotService` drops from ~460 lines to ~240 by delegating:
+
+| File | What it holds |
+|---|---|
+| `Utilities/SaveSlot.cs` | `SaveSlot.Current`, the DLC-slot fold. A fact about the game's saving, not about tarot. |
+| `Utilities/ManagedCollectionStore.cs` | `RevokedCardStore` generalised over any enum, keyed `{collection}.save{N}`. |
+| `Services/ManagedCollection.cs` | The state machine: `Begin`/`End`/`Grant`/`Tick`, debt persistence, save-switch handling, `SettleIfOwed`. |
+| `Services/TarotCollectionBacking.cs` | Tarot's adapter onto `PlayerFoundTrinkets`. |
+
+`IManagedBacking<T>` is the seam, and it is deliberately **two methods plus an availability
+flag** — `Add`, `Remove`, `IsAvailable`. That's everything the sweep needs, which is what lets
+the game's very different storage shapes plug in without special-casing: tarot's `List<Card>`,
+fleeces' `List<int>` with no unlock API, doctrines' `DoctrineUpgradeSystem` methods.
+
+`MainThreadQueue` needed no extraction — it was already general.
+
+**Migration hazard, handled:** tarot's store rows were bare `saveN`. The new key is
+`tarot.saveN`, so `Owed`/`Settle` take an optional `legacyKey` and fall back to the old row.
+Without it, a player who updates mid-session is owed cards under a key nothing reads. Delete
+that fallback at release.
+
+**Verified in-game on a fresh save, seed `31646554891775684647`:** store writes on connect with
+the namespaced key; `Revoked 15` / `62 managed, 8 granted at start`; granted cards visible on the
+collection screen; **crash recovery** (`SettleIfOwed` returned 15 after a quit-to-desktop);
+**the `Tick()` sweep**; and a clean disconnect restoring all 15 and settling the debt. Plus the
+full multiworld loop — miniboss → check → item → region unlock.
+
+**The sweep is invisible to the log and the store, and that cost three inconclusive attempts.**
+`Tick()` skips cards already in `revoked`/`granted` before building its `reappeared` list, so its
+log line only fires for cards it hasn't seen — which is never, in the normal re-seed case. The
+store is `revoked ∪ granted` either way. Nothing observable distinguishes "swept" from "never
+ran". Fixed by adding a tarot dump to **F9** (`DebugActions.DumpTarotState`) which prints
+`PlayerFoundTrinkets` and an explicit `Invariant OK` / `INVARIANT BROKEN` verdict. Use that to
+verify any future managed collection rather than reading the log.
+
+**One design decision this run proved necessary rather than merely prudent:** `GameManager.cs:175`
+re-seeds with `PlayerFoundTrinkets = new List<...>` — a **replacement**, not an `Add`.
+`TarotCollectionBacking` reads the property on every call rather than caching the list, so the
+sweep follows the new object. A cached reference would have swept a detached list forever while
+the real collection filled with permanent unlocks, with every log line looking identical.
+**Any future `IManagedBacking<T>` must read its collection through the property each call.**
+
+**Audit done — sermons are clean.** The worry was that `SermonService` might not withhold the
+upgrade, so filling the bar would both grant it *and* consume a check. It doesn't happen, for
+two independent reasons, and both are worth copying rather than re-deriving:
+
+- **The grant is suppressed at the source.** `SermonUpgradePatch.PlayerUpgrade_Prefix`
+  (`:40-46`) returns `false`, replacing `SermonController.PlayerUpgrade()` wholesale — no
+  Disciple Point, no tree menu, no pick. The replacement coroutine only increments
+  `Doctrine_PlayerUpgrade_Level` and fires the check. The upgrade arrives *solely* as an AP item.
+- **The counts can't drift.** Locations (`locations.py:68`) and item copies
+  (`items.py:sermon_item_counts`) are both derived from `SERMON_UPGRADES` under the same DLC
+  predicate: 38 entries, 32 base + 6 Woolhaven, exactly 1:1 either way. Progressive chains group
+  entries under one name but preserve the count.
+
+The general lesson for this sprint: **a prefix that replaces the whole reward step is cleaner
+than withholding after the fact.** Tarot needed a shadow set, a revoke store and a sweep
+precisely because it couldn't intercept there. Where a system has a single reward method,
+patch that instead of reaching for the managed-collection machinery.
+
+## Sprint 0d — Weapon and curse pools (researched, not started)
+
+**The player already unlocks these** — it just doesn't feel like it, because the unlock ladder is
+automatic and front-loaded. A fresh save starts with **Sword only** and **Fireball only**.
+
+- Storage is three plain save-persisted lists: `DataManager.WeaponPool` (`:9915`), `CursePool`
+  (`:9995`), `PlayerFoundRelics` (`:10116`) — same shape as `UnlockedFleeces`, so Sprint 0b's
+  `IManagedBacking<T>` takes all three unchanged.
+- `DataManager.AddWeapon(EquipmentType)` fires **`DataManager.OnWeaponUnlocked`**, a public
+  static `Action<EquipmentType>` — locations with no Harmony patch. `AddCurse` has **no** event,
+  so curses need the two pickup sites patched (`Interaction_WeaponItem.cs:211/249`,
+  `Interaction_WeaponSelectionPodium.cs:864/930`).
+- Vanilla ladder in `GetRandomWeaponInPool` (`:2760`), gated on boss count: Axe and Dagger free,
+  Gauntlet ≥1 Bishop, Hammer ≥2, Blunderbuss ≥3, **Chain (flail) only in `Dungeon1_5`** — it is
+  a Woolhaven weapon.
+- **The gate problem is inverted from tarot's**, which makes it easier: nothing checks "already
+  owns it" in a way that strands a check. Restricting means suppressing the *add*, not the offer.
+
+Two hazards: `GameManager.cs:109-135` re-seeds an empty pool with Sword/Fireball (the same
+`Awake` re-seed shape tarot has, so it needs the `Tick()` sweep), and **a zero-length pool
+crashes** — both `GetRandomWeaponInPool` and `GetRandomCurseInPool` end with
+`if (list.Count <= 1) return list[0];` on a possibly-empty list. Always leave one.
+
+**Relics are already randomized** and need no work: they unlock in packs keyed to
+`UpgradeSystem.Type`, five of which are already sermon items ("Eyes of the Lost Relics",
+"Blessings of the Relics", "Damnation of the Relics", "Relics of the Freezing", "Relics of the
+Burning"). Going per-relic (84 in `RelicType`, with `CoopRelics`/`MajorDLCRelics` as ready-made
+exclusions) is a refinement, not a new capability.
+
+Note a **shipped game bug** worth not tripping over: `DataManager.cs:2818-2822`, the
+`Blacksmith_Legendary_Sword` branch removes `Hammer_Legendary` (copy-paste of the line above), so
+`Sword_Legendary` is never filtered for a missing upgrade.
+## Sprint 0e — Divine Inspiration tree (researched, not started)
+
+Full design and every verified hook point: `sprint-0e-divine-inspiration.md`. **Two independent
+YAML axes, every option implemented** — tree layout (`true_random` / `random_except_first` /
+`default`) crossed with AP interaction (`checks_only` / `checks_and_points` / `checks_and_techs`
+/ `off`). Any combination is a legal seed.
+
+Numbered ahead of Sprint 7 because `StructuresData.GetUnlocked(TYPES)` maps every buildable to
+an `UpgradeSystem.Type` — **the tree already gates what you can build**, so structure checks land
+on top of tree logic rather than beside it.
+
+Headline findings:
+
+- **Tier gating is a cumulative count, not a prerequisite** (`UpgradeTreeNode.cs:296`). A node
+  needs `NumUnlockedUpgrades() >= NumRequiredNodesForTier(tier)` — upgrades unlocked *anywhere*.
+  That is `Tier N reachable <=> count >= K_N`, six clean spheres with no graph traversal, and a
+  better sphere source than the depth bands because it is the game's own rule.
+- The whole graph is one `UpgradeTreeConfiguration` ScriptableObject on a **public** `GameManager`
+  field (`:1978-1984`) — and there are **three** trees sharing the class, one of which is the
+  sermon tree we already randomize.
+- `UpgradeSystem.AbilityPoints` is a static property with a **setter** — patch that, not
+  `PlayerFarming.GetXP`, to catch every award path.
+- `UpgradeSystem.OnAbilityUnlocked` is a public static `Action<Type>`: `checks_only` costs one
+  event subscription and no Harmony patch.
+- **`checks_and_points` can't support per-upgrade logic** — the player still picks what a point
+  buys, so AP never knows which techs they hold. It conflicts with gating structure checks on
+  `Building_*`. Resolve as an option interaction or forbid the combination.
+
+Blocked on a runtime dump of the ScriptableObject (contents are Unity asset data, not in the
+assembly) — but it is one object on a public field, so the debug command is step one and cheap.
 ## Sprint 0c — Filler and traps via `WorldManipulatorManager`
 
 The game ships a curated, developer-balanced chaos system. Use it instead of hand-rolling.
@@ -165,44 +315,12 @@ therefore the cheapest proof that Sprint 0b's abstraction is right, before betti
 - 12 base, 15 Woolhaven (`WoolhavenPackFleeces`), 5 cosmetic-DLC (exclude).
 - Locations: the fleece-purchase interactions (`Interaction_PurchasableFleece`).
 
-## Sprint 3 — Passive buffs (hearts)
+## Sprint 2b — Milestones and side activities (was Sprint 6)
 
-Pure items, no locations — enriches the pool for every sprint after, and scales a run's
-difficulty curve rather than lengthening the seed.
-
-Run-start health is **not** computed at run start; `HealthPlayer.cs:158-171` reads it out of
-persistent save fields. So "start every run with one more black heart" is a single float
-increment, no hook required:
-
-| Field (`DataManager.cs:10272-10312`) | Item |
-|---|---|
-| `PLAYER_BLACK_HEARTS` | Progressive Black Heart |
-| `PLAYER_BLUE_HEARTS` | Progressive Blue Heart |
-| `PLAYER_SPIRIT_TOTAL_HEARTS` | Progressive Spirit Heart |
-| `PLAYER_FIRE_HEARTS` / `PLAYER_ICE_HEARTS` | elemental variants |
-| `PLAYER_HEARTS_LEVEL` | red heart capacity |
-
-`PLAYER_REMOVED_HEARTS` is the same mechanism in reverse and makes a real trap. These edit save
-data, so they go through Sprint 0b's service.
-
-## Sprint 4 — Doctrines
-
-~48 base (6 categories × 8, ~10 levels each). Excludes the 15 Winter/Woolhaven entries and the
-11 story-granted `Special_*`, which aren't player-chosen.
-
-- `DoctrineUpgradeSystem.UnlockAbility(DoctrineType)` / `GetUnlocked` / `UnlockedUpgrades`.
-- `GetSermonReward(SermonCategory, level, firstChoice)` gives the two options offered per level
-  — that tier structure maps cleanly onto progressive items per category.
-- Full enum in `AI_INDEX.md` §4a.
-
-## Sprint 5 — Follower forms
-
-~50 skins, with `DataManager.SetFollowerSkinUnlocked(string)` as a single static choke point —
-the same system boss skins use (`AI_INDEX.md` §3a). `UIFollowerFormsMenuController` holds
-per-region ordered arrays naming every one. Hub Follower Form booths sell them by region
-category, so purchases are natural locations and `Interaction_BuyItem` already covers those.
-
-## Sprint 6 — Milestones and side activities
+**Moved up from tenth.** Best value-per-effort on the board, and it exercises Sprint 0b's
+service on a *second* shape — polling counters rather than a withheld collection — before
+doctrines (~48) and forms (~50) commit to that abstraction. Sprint 2 proves the collection
+path; this proves everything else routes through it too.
 
 Shrunk: Sprint 0c already took the interesting half. What's left is **one polling service** in
 the shape of `SnailShrineService.Tick()` over plain `int` fields on `DataManager` — no new
@@ -229,14 +347,118 @@ the Sprint 0b lesson from the start.
 These belong in the deep/excluded bands by construction: AP treats reachable as achievable, so
 a grind milestone must never hold someone's key item.
 
-## Sprint 7 — Structures and buildings
+## Sprint 3 — Passive buffs (hearts)
 
-`Structures_BuildSite.OnBuildComplete` is a public `Action`; `StructureBrain.TYPES` says which
-structure. Needs curating — the enum includes scenery (`TREE`, `ROCK`, `POOP`) alongside real
-buildables, and overlaps the Divine Inspiration tree.
+Pure items, no locations — enriches the pool for every sprint after, and scales a run's
+difficulty curve rather than lengthening the seed.
+
+Run-start health is **not** computed at run start; `HealthPlayer.cs:158-171` reads it out of
+persistent save fields. So "start every run with one more black heart" is a single float
+increment, no hook required:
+
+| Field (`DataManager.cs:10272-10312`) | Item |
+|---|---|
+| `PLAYER_BLACK_HEARTS` | Progressive Black Heart |
+| `PLAYER_BLUE_HEARTS` | Progressive Blue Heart |
+| `PLAYER_SPIRIT_TOTAL_HEARTS` | Progressive Spirit Heart |
+| `PLAYER_FIRE_HEARTS` / `PLAYER_ICE_HEARTS` | elemental variants |
+| `PLAYER_HEARTS_LEVEL` | red heart capacity |
+
+`PLAYER_REMOVED_HEARTS` is the same mechanism in reverse and makes a real trap. These edit save
+data, so they go through Sprint 0b's service.
+
+## Sprint 3b — Crusade content variance (researched, not started)
+
+Every seed plays the same four regions with the same enemy rosters. `region_access_order`
+shuffles which door opens, never what is behind it. Pure enrichment — no new locations, no new
+items, no added run time — which is exactly what the 4–6 h target asks for.
+
+Full design and every verified hook point: `sprint-3b-crusade-variance.md`. Headline findings:
+
+- **`Addr_StartPieces`, not `Addr_IslandPieces`, is the encounter pool** (`GenerateRoom.cs:1636`).
+  The naming actively misleads and this fact is load-bearing for everything else.
+- `Addressables_wrapper.InstantiateAsync`'s 4-arg overload (`:42`) is a **self-scoping**
+  substitution hook — four call sites in the whole assembly, one of which is the encounter spawn,
+  and membership in a harvested key set is the entire scoping mechanism. No shared-asset mutation,
+  no iterator patching.
+- **Woolhaven wolves are DLC-dungeon enemies, not Purgatory-exclusive.** There is no per-enemy
+  "allowed here" check anywhere in the game.
+- `DungeonSandboxManager.dungeons[]` is a complete biome→asset table for every biome, and
+  `SetDungeonType` (`:123`) is the shipped proof that mid-run biome repointing is safe.
+
+Blocked on a runtime asset dump — the encounter keys are serialized in Unity assets, not in the
+assembly. The debug commands to produce it are step one, and they ship alongside two knobs that
+need no asset knowledge at all (`DungeonUseAllLayers` early, per-region generation parameters).
+
+## Sprint 4 — Doctrines
+
+~48 base (6 categories × 8, ~10 levels each). Excludes the 15 Winter/Woolhaven entries and the
+11 story-granted `Special_*`, which aren't player-chosen.
+
+- `DoctrineUpgradeSystem.UnlockAbility(DoctrineType)` / `GetUnlocked` / `UnlockedUpgrades`.
+- `GetSermonReward(SermonCategory, level, firstChoice)` gives the two options offered per level
+  — that tier structure maps cleanly onto progressive items per category.
+- Full enum in `AI_INDEX.md` §4a.
+
+## Sprint 5 — Follower forms
+
+~50 skins, with `DataManager.SetFollowerSkinUnlocked(string)` as a single static choke point —
+the same system boss skins use (`AI_INDEX.md` §3a). `UIFollowerFormsMenuController` holds
+per-region ordered arrays naming every one. Hub Follower Form booths sell them by region
+category, so purchases are natural locations and `Interaction_BuyItem` already covers those.
+
+## Sprint 6 — Milestones and side activities
+
+**Moved up — now Sprint 2b, above.** Kept as a stub so older notes referring to "Sprint 6"
+still resolve.
+
+
+## Sprint 7 — Structures and buildings (researched, not started)
+
+**Corrected hook**: `Structures_BuildSite.OnBuildComplete` is a **per-instance `Action` with no
+arguments** — it says *that* something finished, not *what*. Use a Harmony postfix on
+**`Structures_BuildSite.Build()`** (`:107`), where `this.Data.ToBuildType` gives the type. There
+are **two** classes needing the patch: `Structures_BuildSite` and `Structures_BuildSiteProject`
+(`:87`); miss the second and multi-stage projects never fire.
+
+The decor filter already exists: `StructuresData.GetCategory(type) != StructureBrain.Categories.AESTHETIC`,
+which is what both `Build()` methods already branch on. 17 categories total, so finer slicing is
+available for free.
+
+Counts, from `StructuresData.AllStructures` (`:9208`) — the curated buildable list, **not** the
+raw 370-member `TYPES` enum:
+
+| Set | Count |
+|---|---|
+| `AllStructures` | 332 |
+| `DECORATION_*` | 207 |
+| non-decoration | 125 |
+| minus `TILE_*` flooring | −14 |
+| minus Woolhaven/DLC | ~−25 |
+| **base-game real buildings** | **~85** |
+
+85 would nearly double a 112-location seed — the "extends rather than enriches" trap. But ~35 of
+those are `_2`/`_II`/`_3` tiers of something (`BED`, `SHRINE`/`_II`/`_III`/`_IV`, `TEMPLE`,
+`MISSIONARY`, `DEMON_SUMMONER`, plus a dozen simple pairs). **Collapse each family to a check on
+its first tier and it lands at ~45–50** — a real sprint that doesn't bloat the seed. The upper
+tiers make better progressive items than checks anyway.
+
+First-build tracking exists **only for decorations**: `DataManager.HasBuiltDecoration` /
+`SetBuiltDecoration` over `DecorationTypesBuilt` (`:6647`), a save-persisted `List<int>` — same
+bare-list shape Sprint 0b's backing handles. Non-decor buildings have no such record, so AP keeps
+its own set with catch-up derived from `StructureManager.GetAllStructuresOfType(...)`.
 
 Also the **strongest artificial gate available**: withholding what the player can *build* gates
 the whole cult-management loop, the way tarot withholding gates combat variety.
+
+
+## Sprint 7a — Divine Inspiration tree
+
+**Moved up — now Sprint 0e, above.** Kept as a stub so older notes referring to "Sprint 7a" still resolve.
+
+## Sprint 7b — Weapon and curse pools
+
+**Moved up — now Sprint 0d, above.** Kept as a stub so older notes referring to "Sprint 7b" still resolve.
 
 ## Sprint 8 — Shiny (levelled) tarot cards
 
@@ -366,6 +588,13 @@ cult-management half of the game without removing it.
 
 ## Standing constraints
 
+- **Implement every option and let the YAML pick.** Where a feature has several defensible
+  behaviours, ship them all as YAML values rather than choosing one — and where two option axes
+  are genuinely independent, let any combination be a legal seed. Sprint 7a is the worked
+  example: tree layout crossed with AP interaction, 3 × 4 combinations, all valid. The cost of
+  the extra branches is usually small next to the cost of guessing which behaviour a player
+  wants; the real work is making sure `rules.py` models each combination honestly, and saying so
+  explicitly when one combination has to be forbidden.
 - No `Co-Authored-By` or "Generated with Claude Code" in commits/PRs.
 - Don't commit until the diff has been reviewed and approved.
 - The repo has a ruleset wanting PRs on `main`; pushes currently bypass it. Worth settling
