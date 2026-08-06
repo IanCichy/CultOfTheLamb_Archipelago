@@ -355,6 +355,8 @@ internal static class DebugActions
 
         DumpTree(sb, "DLCUpgradeTreeConfiguration (Woolhaven)",
             gameManager.DLCUpgradeTreeConfiguration);
+
+        DumpStructureCoupling(sb);
     }
 
     private static void DumpTree(StringBuilder sb, string label, UpgradeTreeConfiguration tree)
@@ -388,6 +390,118 @@ internal static class DebugActions
                     : string.Join(", ", entry.Children.ConvertAll(c => c.ToString()).ToArray());
                 sb.AppendLine($"{entry.Upgrade} -> {children}");
             }
+        }
+
+        DumpTiers(sb, tree);
+    }
+
+    /// <summary>
+    /// The tier table - and specifically the cumulative NumRequiredToUnlock thresholds, which
+    /// are the whole reason this dump exists for Sprint 0e.
+    ///
+    /// A node is available when NumUnlockedUpgrades() >= NumRequiredNodesForTier(its tier)
+    /// AND its own prerequisites are met (UpgradeTreeNode.cs:296). The first half is a
+    /// cumulative *count* of upgrades unlocked anywhere in the tree, not a set of specific
+    /// ones - which is what lets Archipelago express tier access as a plain
+    /// "N progression items received" rule with no graph traversal. Those N values live only
+    /// in the ScriptableObject, so this is the only way to read them.
+    /// </summary>
+    private static void DumpTiers(StringBuilder sb, UpgradeTreeConfiguration tree)
+    {
+        var tiers = tree.TierConfigurations;
+        sb.AppendLine($"# Tiers: {tiers?.Count ?? 0}");
+        if (tiers == null) return;
+
+        var cumulative = 0;
+        foreach (var tier in tiers)
+        {
+            cumulative += tier.NumRequiredToUnlock;
+            var members = tier.AllUpgradesInTier;
+            sb.AppendLine($"{tier.Tier}\tcentral={tier.CentralNode}"
+                + $"\trequiresCentral={tier.RequiresCentralTier}"
+                + $"\tnumRequired={tier.NumRequiredToUnlock}"
+                + $"\tCUMULATIVE_THRESHOLD={cumulative}"
+                + $"\tmembers={members?.Count ?? 0}");
+
+            if (members == null) continue;
+            foreach (var upgrade in members) sb.AppendLine($"\t\t{upgrade}");
+        }
+    }
+
+    /// <summary>
+    /// The tech -> building -> tech coupling, and whether it ever forms a cycle.
+    ///
+    /// StructuresData.GetUnlocked(TYPES) gates each buildable behind an UpgradeSystem.Type, and
+    /// UpgradeSystem.GetRequiredBuilding(Type) says some upgrades need a *built structure*
+    /// first. If an upgrade's required building is itself gated behind that same upgrade -
+    /// directly or through the prerequisite graph - then Archipelago cannot gate both systems
+    /// in one seed without generating something unwinnable. Sprint 0e/7 both depend on the
+    /// answer, and it isn't readable from the decompile.
+    ///
+    /// Only direct and one-hop relationships are reported. That is deliberately short of a
+    /// full transitive closure: a wrong "no cycles" from a half-right traversal is worse than
+    /// an honest list someone can read.
+    /// </summary>
+    private static void DumpStructureCoupling(StringBuilder sb)
+    {
+        sb.AppendLine();
+        sb.AppendLine("## Upgrade <-> structure coupling (tech -> building -> tech cycle check)");
+
+        var gameManager = GameManager.GetInstance();
+        var tree = gameManager?.UpgradeTreeConfiguration;
+        if (tree?.AllUpgrades == null)
+        {
+            sb.AppendLine("(tree unavailable)");
+            return;
+        }
+
+        // Which upgrade unlocks which structure, so a required building can be traced back.
+        var structureToUpgrade = new Dictionary<StructureBrain.TYPES, UpgradeSystem.Type>();
+        foreach (var upgrade in tree.AllUpgrades)
+        {
+            var built = Safe2(() => UpgradeSystem.GetStructureTypeFromUpgrade(upgrade));
+            if (built != StructureBrain.TYPES.NONE) structureToUpgrade[built] = upgrade;
+        }
+
+        sb.AppendLine($"# Upgrades that unlock a structure: {structureToUpgrade.Count}");
+        foreach (var pair in structureToUpgrade) sb.AppendLine($"{pair.Value}\tunlocks\t{pair.Key}");
+
+        sb.AppendLine();
+        sb.AppendLine("# Upgrades that REQUIRE a built structure (the cycle risk):");
+        var found = 0;
+        foreach (var upgrade in tree.AllUpgrades)
+        {
+            var required = Safe2(() => UpgradeSystem.GetRequiredBuilding(upgrade));
+            if (required == null || required.Count == 0) continue;
+
+            found++;
+            foreach (var structure in required)
+            {
+                var gatedBy = structureToUpgrade.TryGetValue(structure, out var by)
+                    ? by.ToString()
+                    : "(not gated by any upgrade)";
+                var cycle = gatedBy == upgrade.ToString() ? "  <<< DIRECT CYCLE" : "";
+                sb.AppendLine($"{upgrade}\tneeds\t{structure}\twhich is unlocked by\t{gatedBy}{cycle}");
+            }
+        }
+
+        if (found == 0)
+        {
+            sb.AppendLine("(none - no upgrade requires a built structure, so no cycle is possible)");
+        }
+    }
+
+    /// <summary>Value-typed sibling of <see cref="Safe"/>, for the same reason.</summary>
+    private static T Safe2<T>(System.Func<T> get)
+    {
+        try
+        {
+            return get();
+        }
+        catch (System.Exception e)
+        {
+            Log.LogWarning($"[AP] Debug: tree lookup failed: {e.GetType().Name}");
+            return default;
         }
     }
 
@@ -458,9 +572,56 @@ internal static class DebugActions
         }
 
         DumpGameBossState();
+        DumpTarotState();
         DumpMiniBossesInScene();
         DumpSnailShrines();
         Log.LogInfo("[AP] ---- end dump ----");
+    }
+
+    /// <summary>
+    /// The one thing that can't be read from the log or the debt store: whether the managed
+    /// collection's invariant actually holds right now.
+    ///
+    /// While connected, the game's own collection must contain **zero** cards Archipelago
+    /// manages - that is the whole point of holding them outside it, and it's what keeps every
+    /// unlock trigger live. If ManagedCollection.Tick() ever stops sweeping, managed cards
+    /// reappear here as real unlocks and their checks are stranded - silently, because the
+    /// sweep only logs cards it hasn't already accounted for.
+    ///
+    /// Granted cards are read through TarotVisibility rather than the service, since that
+    /// static is already the sanctioned way to see them and needs no new state exposed.
+    /// </summary>
+    private static void DumpTarotState()
+    {
+        var found = DataManager.Instance?.PlayerFoundTrinkets;
+        if (found == null)
+        {
+            Log.LogInfo("[AP] PlayerFoundTrinkets unavailable (no save loaded).");
+            return;
+        }
+
+        var granted = new List<TarotCards.Card>();
+        var lent = Patches.TarotVisibility.GrantedCards?.Invoke();
+        if (lent != null) granted.AddRange(lent);
+
+        Log.LogInfo($"[AP] PlayerFoundTrinkets ({found.Count}) - the game's own collection:");
+        foreach (var card in found) Log.LogInfo($"[AP]   {card}");
+
+        Log.LogInfo($"[AP] Archipelago has granted {granted.Count} card(s):");
+        foreach (var card in granted) Log.LogInfo($"[AP]   {card}");
+
+        var leaked = new List<TarotCards.Card>();
+        foreach (var card in found)
+        {
+            if (granted.Contains(card)) leaked.Add(card);
+        }
+
+        // Only meaningful while connected - disconnected, everything is correctly back in the
+        // collection and an overlap here is the desired end state, not a leak.
+        Log.LogInfo(leaked.Count == 0
+            ? "[AP] Invariant OK: no Archipelago-granted card is in the game's collection."
+            : $"[AP] INVARIANT BROKEN: {leaked.Count} granted card(s) are also real unlocks - "
+                + "the sweep is not running. Their checks can no longer fire.");
     }
 
     private static void DumpGameBossState()
