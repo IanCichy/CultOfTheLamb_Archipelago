@@ -37,7 +37,9 @@ Devout and friends - collapsed into progressive items.
 `trap_percentage` decides how much of the filler bites back.
 
 See [docs/architecture.md](docs/architecture.md) for how the C# client and the Python world
-fit together, and `docs/sprints/` for the per-feature write-ups.
+fit together, [docs/check-economy.md](docs/check-economy.md) for the seed's shape — which
+systems send checks, which receive items, and what rerolls per seed versus per run — and
+`docs/sprints/` for the per-feature write-ups.
 
 ## Project Layout
 - `Archipelago.CultOfTheLamb/` - BepInEx 5 (Mono) client mod.
