@@ -279,9 +279,54 @@ public partial class ArchipelagoClient
             TarotService.Register();
         }
 
+        // Also before ItemLogic, for the same reason: the backlog drain is what rebuilds the
+        // granted set, and until it runs the player has been granted nothing.
+        // The Legendary option works on its own, so the weapon service also registers when
+        // weapons aren't being randomized at all - with nothing managed, it only rolls those.
+        var randomizeWeapons = GetBool(successResult.SlotData, "randomizeWeapons");
+        var legendaryChance = GetFloat(successResult.SlotData, "legendaryWeaponChance");
+
+        if (randomizeWeapons || legendaryChance > 0f)
+        {
+            WeaponPoolService = BuildEquipmentService(
+                successResult.SlotData, weapons: true, randomizeWeapons, legendaryChance);
+            WeaponPoolService.Register();
+        }
+
+        if (GetBool(successResult.SlotData, "randomizeCurses"))
+        {
+            CursePoolService = BuildEquipmentService(successResult.SlotData, weapons: false);
+            CursePoolService.Register();
+        }
+
         ItemLogic = new ArchipelagoItemLogicController(
-            session, RegionUnlockService, SermonService, TarotService);
+            session, RegionUnlockService, SermonService, TarotService,
+            WeaponPoolService, CursePoolService);
         ItemLogic.Register();
+    }
+
+    /// <summary>
+    /// One EquipmentPoolService, weapons or curses. The two halves read four differently-named
+    /// slot-data keys and are otherwise identical, so the naming lives here rather than being
+    /// duplicated at both call sites.
+    /// </summary>
+    private EquipmentPoolService BuildEquipmentService(
+        IReadOnlyDictionary<string, object> slotData,
+        bool weapons,
+        bool randomizing = true,
+        float legendaryChance = 0f)
+    {
+        var prefix = weapons ? "weapon" : "curse";
+        var starting = weapons ? "startingWeapons" : "startingCurses";
+
+        return new EquipmentPoolService(
+            session,
+            weapons,
+            EquipmentPoolService.ParseFamilies(slotData, prefix + "Items"),
+            EquipmentPoolService.ParseLocations(slotData, prefix + "Locations"),
+            EquipmentPoolService.ParseStarting(slotData, starting),
+            randomizing,
+            legendaryChance);
     }
 
     /// <summary>
@@ -352,6 +397,9 @@ public partial class ArchipelagoClient
     private static long GetLong(IReadOnlyDictionary<string, object> slotData, string key) =>
         slotData.TryGetValue(key, out var value) ? Convert.ToInt64(value) : 0L;
 
+    private static float GetFloat(IReadOnlyDictionary<string, object> slotData, string key) =>
+        slotData.TryGetValue(key, out var value) ? Convert.ToSingle(value) : 0f;
+
     /// <summary>
     /// Unsubscribes session-level events and nulls the session.
     /// Optionally disconnects the socket if still connected.
@@ -383,6 +431,10 @@ public partial class ArchipelagoClient
         TarotService = null;
         SnailShrineService?.Unregister();
         SnailShrineService = null;
+        WeaponPoolService?.Unregister();
+        WeaponPoolService = null;
+        CursePoolService?.Unregister();
+        CursePoolService = null;
         ItemLogic?.Unregister();
         ItemLogic = null;
 

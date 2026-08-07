@@ -21,27 +21,35 @@ deliberately last. The `_P2` post-game re-clears have the same problem.
 
 ## Where things stand
 
-**112 locations** in a default all-options-on seed. Working end-to-end and verified in real
-play:
+**121 locations** in a default all-options-on seed (147 with Woolhaven). Working end-to-end
+and verified in real play:
 
 | System | Locations | Items |
 |---|---|---|
 | Bishops, minibosses, Witnesses | 20 | — |
 | Sermon upgrades | 32 (38 w/ DLC) | 32 (38 w/ DLC), 3 progressive chains |
-| Tarot cards | 27 (5 region-gated) | one per non-starting card |
+| Tarot cards | 19 (5 region-gated) | one per non-starting card |
 | Tarot shop purchases | 16 | — |
+| Weapon families | 5 (6 w/ DLC) | one per non-starting family |
+| Curse families | 4 | one per non-starting family |
 | Follower milestones | 20 | — |
 | Snail shrines | 5 | — |
 | Region access | — | 3 progressive |
-| Filler + traps | — | weighted pool |
+| Filler + traps | — | 42, weighted pool |
+
+Location counts are what a default seed *creates*: cards and equipment families the player
+starts with get neither a check nor an item, so `location_table`'s 131 base-game entries
+become 121.
 
 Also done and **no longer on this roadmap**: the AP logo in shop slots (`ShopIconService`) and
 the connect UI (F5 panel). Both were once separate sprints.
 
 ### Sphere structure
 
-`Progressive Bishop's Domain` is still the world's **only** progression item — sermon upgrades
-and tarot cards are both `useful`. Three progression items in 112 locations.
+Twelve progression items in 121 locations — but only three of them gate anything other than
+themselves. Sprint 0d's nine weapon and curse items each unlock exactly one location (their
+own), so `Progressive Bishop's Domain` is still the only item whose arrival changes what the
+rest of the seed can reach. Sermon upgrades and tarot cards remain `useful`.
 
 Two mechanisms keep the fill from burying a door key at the end of a grind:
 
@@ -49,12 +57,15 @@ Two mechanisms keep the fill from burying a door key at the end of a grind:
   reachability bands (0/1/2/3 copies required) and marks the deepest `EXCLUDED`, so it stays
   reachable and checkable but can never hold anything important.
 - **Real logic where we have it.** Cards tied to one crusade region live in that region
-  (`REGION_TAROT_CARDS`), and post-game cards aren't created at all under a goal that doesn't
-  reach the post-game (`POSTGAME_TAROT_CARDS`, `goal_reaches_postgame`).
+  (`REGION_TAROT_CARDS`); post-game cards aren't created at all under a goal that doesn't
+  reach the post-game (`POSTGAME_TAROT_CARDS`, `goal_reaches_postgame`); and each weapon and
+  curse check is gated on its own item (`set_equipment_rules`), so those nine skip the bands
+  entirely.
 
-Measured over three seeds: sphere 1 is 27 of 112 (was ~71 before any of this), excluded is 20
-(18%), and door keys land on boss, shop and region-gated card locations rather than deep in a
-grind block.
+Measured on a default seed: sphere 1 is 27 of 121 (was ~71 before any of this), excluded is 20
+(17%), and door keys land on boss, shop and region-gated card locations rather than deep in a
+grind block. Sprint 0d's nine locations added nothing to sphere 1 — every one of them is
+behind its own item.
 
 Bands are still an approximation. **The cure is more real gates — Sprint 1 below.**
 
@@ -77,7 +88,7 @@ priorities move, and older notes reference them). This list is the order:
 |---|---|---|
 | ~~1~~ | ~~**0b** — verify in-game~~ | ✅ done 2026-08-06 |
 | ~~2~~ | ~~**0e step one** — dump the upgrade trees~~ | ✅ done 2026-08-06 — DI tree is 69 upgrades / 5 tiers, thresholds 0/4/10/20/25; **no tech→building cycle**, so 0e and 7 can gate in one seed |
-| 3 | **0d** — weapon and curse pools | Proves 0b on a second shape, and on the `Tick()` sweep specifically |
+| ~~3~~ | ~~**0d** — weapon and curse pools~~ | ✅ done 2026-08-06 — 7 weapons + 5 curses, filter-not-revoke. **Did not prove 0b**: it found the boundary where 0b doesn't apply |
 | 4 | **0e** — Divine Inspiration tree | Biggest sphere source available; gates Sprint 7 |
 | 5+ | 0c, 1, 2, 2b, 3, 3b, 4, 5, 7a, 7, 7b, 8, 9, 10, 11, 12 | as listed below |
 
@@ -85,11 +96,12 @@ priorities move, and older notes reference them). This list is the order:
 adjacency to structures, not dependency. Neither depends on 0c, 1, 2, 3, 4 or 5. Two arguments
 that moved them:
 
-- **0d is a better proof of 0b than fleeces.** Sprint 2 was positioned as the cheap test of the
-  abstraction, but fleeces have no re-seed hazard and so may never exercise the `Tick()` sweep —
-  the subtlest thing 0b extracted. Weapon pools do (`GameManager.cs:109` refills an emptied pool,
-  exactly like the tarot re-seed), and they have real boss-count gates instead of depth bands.
-  The trade is honest: fleeces are smaller, so a flaw in the seam would be cheaper to find there.
+- ~~**0d is a better proof of 0b than fleeces.**~~ **Wrong, and 0d disproved it on contact.**
+  The argument was that `GameManager.cs:109` refills an emptied weapon pool exactly like the
+  tarot re-seed, so 0d would exercise the `Tick()` sweep. It refills it *far* more aggressively
+  than that — the intro ladder hands the weapon back every run — which means revoking is the
+  wrong mechanism here, not a mechanism needing a better sweep. 0d never instantiated
+  `ManagedCollection`. Sprint 2 (fleeces) is the next real test of the seam.
 - **0e may beat Sprint 1 on Sprint 1's own argument.** Sprint 1 is early because it takes the
   world from 3 progression items to 7 and makes spheres form naturally. `checks_and_techs` does
   that harder, with a count-based tier rule that is the game's own gating logic rather than an
@@ -191,28 +203,43 @@ than withholding after the fact.** Tarot needed a shadow set, a revoke store and
 precisely because it couldn't intercept there. Where a system has a single reward method,
 patch that instead of reaching for the managed-collection machinery.
 
-## Sprint 0d — Weapon and curse pools (researched, not started)
+## Sprint 0d — Weapon and curse pools ✅ implemented 2026-08-06
 
-**The player already unlocks these** — it just doesn't feel like it, because the unlock ladder is
-automatic and front-loaded. A fresh save starts with **Sword only** and **Fireball only**.
+Full design: `sprint-0d-equipment-pools.md`. Seven weapon families and five curse families,
+two independent toggles plus a starting count each.
 
-- Storage is three plain save-persisted lists: `DataManager.WeaponPool` (`:9915`), `CursePool`
-  (`:9995`), `PlayerFoundRelics` (`:10116`) — same shape as `UnlockedFleeces`, so Sprint 0b's
-  `IManagedBacking<T>` takes all three unchanged.
-- `DataManager.AddWeapon(EquipmentType)` fires **`DataManager.OnWeaponUnlocked`**, a public
-  static `Action<EquipmentType>` — locations with no Harmony patch. `AddCurse` has **no** event,
-  so curses need the two pickup sites patched (`Interaction_WeaponItem.cs:211/249`,
-  `Interaction_WeaponSelectionPodium.cs:864/930`).
-- Vanilla ladder in `GetRandomWeaponInPool` (`:2760`), gated on boss count: Axe and Dagger free,
-  Gauntlet ≥1 Bishop, Hammer ≥2, Blunderbuss ≥3, **Chain (flail) only in `Dungeon1_5`** — it is
-  a Woolhaven weapon.
-- **The gate problem is inverted from tarot's**, which makes it easier: nothing checks "already
-  owns it" in a way that strands a check. Restricting means suppressing the *add*, not the offer.
+**The player already unlocks these** — it just doesn't feel like it, because the unlock ladder in
+`GetRandomWeaponInPool` (`:2765-2796`) is automatic and front-loaded. A fresh save starts with
+**Sword only** and **Fireball only**; the ladder then hands over Axe, Dagger, Gauntlet (≥1
+Bishop), Hammer (≥2), Blunderbuss (≥3) and Chain (in `Dungeon1_5`) on a fixed schedule. This
+sprint makes that schedule Archipelago's.
 
-Two hazards: `GameManager.cs:109-135` re-seeds an empty pool with Sword/Fireball (the same
-`Awake` re-seed shape tarot has, so it needs the `Tick()` sweep), and **a zero-length pool
-crashes** — both `GetRandomWeaponInPool` and `GetRandomCurseInPool` end with
-`if (list.Count <= 1) return list[0];` on a possibly-empty list. Always leave one.
+**It does not use Sprint 0b's machinery, and that's the finding.** Three things this sprint
+proved, each of which contradicts what was written here before it was built:
+
+- **Revoking doesn't work at all.** The plan was to empty `WeaponPool` the way `TarotService`
+  empties `PlayerFoundTrinkets`. The ladder defeats that outright — it notices the missing weapon
+  and force-feeds it back on the first floor of the next run. This isn't a `Tick()` sweep problem
+  to solve; it's the wrong mechanism. **`ManagedCollection` is for collections whose membership
+  is what's withheld. Here membership is the player's real progress, and what's withheld is what
+  the game is willing to *offer*.** So: four postfixes filtering the selection, and the save is
+  never written to.
+- **`OnWeaponUnlocked` is not the location hook.** All four pickup sites `Add` to the list
+  directly and bypass `DataManager.AddWeapon`, so the event never fires for them — it only covers
+  the blacksmith's legendaries, Ratau's sword and the `Awake` seed. Checks fire on
+  `PlayerWeapon.SetWeapon` / `PlayerSpells.SetSpell` instead, which is also the only hook that
+  works on an established save, where every weapon is already in the pool.
+- **Emptying the pool would have quietly deleted content.** `Interaction_Chest.cs:329` needs both
+  pools above 2 to spawn its second weapon podium, `BiomeGenerator.cs:1459` needs them to sum
+  above 3 to spawn a weapon room at all, and `AccessibilitySettings.cs:126` hides Force Weapon at
+  a pool of 1. None of that is visible in a log; it reads as "this randomizer feels empty".
+
+So **0d did not prove 0b on a second shape** — it found the boundary of where 0b applies. The
+next real test of that abstraction is Sprint 2 (fleeces), which is back to being the cheap one.
+
+Remaining hazard, now unreachable but worth keeping written down: **a zero-length pool crashes** —
+both getters end with `if (list.Count <= 1) return list[0];`. `starting_weapons` and
+`starting_curses` have `range_start = 1`, so the granted set can't be empty.
 
 **Relics are already randomized** and need no work: they unlock in packs keyed to
 `UpgradeSystem.Type`, five of which are already sermon items ("Eyes of the Lost Relics",
@@ -223,6 +250,7 @@ exclusions) is a refinement, not a new capability.
 Note a **shipped game bug** worth not tripping over: `DataManager.cs:2818-2822`, the
 `Blacksmith_Legendary_Sword` branch removes `Hammer_Legendary` (copy-paste of the line above), so
 `Sword_Legendary` is never filtered for a missing upgrade.
+
 ## Sprint 0e — Divine Inspiration tree (researched, not started)
 
 Full design and every verified hook point: `sprint-0e-divine-inspiration.md`. **Two independent
@@ -437,7 +465,7 @@ raw 370-member `TYPES` enum:
 | minus Woolhaven/DLC | ~−25 |
 | **base-game real buildings** | **~85** |
 
-85 would nearly double a 112-location seed — the "extends rather than enriches" trap. But ~35 of
+85 would nearly double a 121-location seed — the "extends rather than enriches" trap. But ~35 of
 those are `_2`/`_II`/`_3` tiers of something (`BED`, `SHRINE`/`_II`/`_III`/`_IV`, `TEMPLE`,
 `MISSIONARY`, `DEMON_SUMMONER`, plus a dozen simple pairs). **Collapse each family to a check on
 its first tier and it lands at ~45–50** — a real sprint that doesn't bloat the seed. The upper

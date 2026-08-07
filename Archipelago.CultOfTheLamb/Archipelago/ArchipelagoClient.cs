@@ -30,6 +30,11 @@ public partial class ArchipelagoClient : IDisposable
     internal TarotService TarotService { get; private set; }
     internal SnailShrineService SnailShrineService { get; private set; }
 
+    // One each, because randomize_weapons and randomize_curses are independent options and
+    // either can be on alone. Null when its option is off.
+    internal EquipmentPoolService WeaponPoolService { get; private set; }
+    internal EquipmentPoolService CursePoolService { get; private set; }
+
     public ArchipelagoItemLogicController ItemLogic;
 
     private ArchipelagoSession session;
