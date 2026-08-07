@@ -9,14 +9,10 @@ namespace Archipelago.CultOfTheLamb.UI;
 /// <summary>
 /// The connection form: server, port, slot, password, and a Connect button.
 ///
-/// Replaces editing a config file and restarting the game, which is what connecting used to
-/// require. That was fine for the two of us and a hard stop for anyone else.
-///
-/// Drawn with IMGUI rather than the game's own UI. It looks like a mod, not like Cult of the
-/// Lamb - deliberately, for now: a native form means repurposing a game prefab's private
-/// serialized fields, and doing that badly takes the game's UI down with it. The entry points
-/// in the pause and main menus are native, so the form behind them can be upgraded later
-/// without players having to learn a new place to look.
+/// Drawn with IMGUI rather than the game's own UI, so it looks like a mod - deliberately for
+/// now, since a native form means repurposing a prefab's private serialized fields and doing
+/// that badly takes the game's UI down with it. The pause- and main-menu entry points *are*
+/// native, so the form behind them can be upgraded later without moving where players look.
 /// </summary>
 internal class ArchipelagoConnectPanel
 {

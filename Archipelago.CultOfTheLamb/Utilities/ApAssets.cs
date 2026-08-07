@@ -34,17 +34,13 @@ internal static class ApAssets
     private static readonly Dictionary<string, Sprite> cardSprites = new();
 
     /// <summary>
-    /// The Archipelago tarot card, sized and anchored to stand exactly where a piece of art with
-    /// the given bounds was standing.
+    /// The Archipelago tarot card, sized and anchored to stand exactly where art with the given
+    /// bounds was standing: fitted inside them keeping aspect ratio, with a pivot chosen so its
+    /// centre lands on the original's. A naive centred pivot inherits the original's anchor
+    /// point, which for base-anchored art sinks the card into the shop counter.
     ///
-    /// Both halves matter. It fits *inside* the bounds keeping its aspect ratio, so it can't
-    /// come out wider than the card it replaces. And its pivot is chosen so its centre lands on
-    /// the original's centre - a sprite's pivot is its anchor to the transform, so a replacement
-    /// with a naive centred pivot inherits the original's anchor point and, for art anchored at
-    /// its base, ends up sunk into the shop counter.
-    ///
-    /// Returns null if the texture couldn't be loaded; callers should leave the original art
-    /// alone rather than blanking a slot.
+    /// Returns null if the texture couldn't be loaded; callers should leave the original alone
+    /// rather than blanking a slot.
     /// </summary>
     internal static Sprite TarotCardSprite(Bounds original)
     {

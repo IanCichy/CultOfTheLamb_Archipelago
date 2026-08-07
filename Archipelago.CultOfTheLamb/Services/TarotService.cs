@@ -10,31 +10,17 @@ namespace Archipelago.CultOfTheLamb.Services;
 /// Makes the tarot collection an Archipelago system: earning a card sends a check, and cards
 /// arrive as items.
 ///
-/// The collection is emptied on connect, including the cards the game normally starts you with
-/// - a randomizer where a sixth of the pool is already in hand isn't randomizing those. The
-/// seed's own starting cards are granted straight back, so "what you begin with" is the seed's
-/// decision rather than the game's.
+/// The collection is emptied on connect, including the cards the game normally starts you with -
+/// a randomizer where a sixth of the pool is already in hand isn't randomizing those. The seed's
+/// own starting cards are granted straight back.
 ///
-/// Emptying it edits real save data, so it is strictly symmetrical: everything taken is put
-/// back on disconnect. Someone who tries the mod and stops should get their save exactly as it
-/// was, not one missing sixty cards. RegionUnlockService sets the same precedent for regions.
+/// Card identity comes from slot data, keyed by AP item name, because display names are nothing
+/// like the TarotCards.Card enum names ("The Burning Dead" is Skull) and hardcoding either side
+/// would let the two drift silently.
 ///
-/// Cards Archipelago hands over are held here rather than unlocked in the game. That looks
-/// roundabout, but it is what keeps card locations reachable: every route the game has to
-/// offer a card first checks you don't already own it - the mystic shop, the spider shop's
-/// Arrows, the follower plant's Joker, UnlockTrinket itself. Unlocking an Archipelago card
-/// for real would close that gate, and the check riding on it could never fire again. Leaving
-/// the collection empty of managed cards keeps every unlock trigger live for the whole seed.
-/// TarotVisibility lends them back to the two places that genuinely need to see them.
-///
-/// Card identity comes from slot data, keyed by AP item name, because display names are
-/// nothing like the TarotCards.Card enum names ("The Burning Dead" is Skull) and hardcoding
-/// either side would let the two drift silently.
-///
-/// The revoke/restore/persist/sweep machinery all of that describes now lives in
-/// <see cref="ManagedCollection{T}"/>, because fleeces, forms, doctrines, structures and
-/// outfits need exactly the same thing. What stays here is what is genuinely about tarot: the
-/// slot-data parsing, the unlock decision, and which patches get told about it.
+/// The revoke/restore/persist/sweep machinery lives in <see cref="ManagedCollection{T}"/>, which
+/// also explains why grants are held outside the game's collection. What stays here is what is
+/// genuinely about tarot: slot-data parsing, the unlock decision, and the patch wiring.
 /// </summary>
 internal class TarotService : IService
 {

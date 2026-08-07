@@ -10,15 +10,12 @@ namespace Archipelago.CultOfTheLamb.Services;
 /// Every hub sells a fixed, named set of cards rather than randomised stock, so each purchase
 /// is a stable location. 14 across the four hubs.
 ///
-/// The card enum name -> location id mapping comes from slot data. It's keyed by *enum* name
-/// because that's what a BuyEntry exposes, and because the display names are nothing like the
-/// internal ones - "The Burning Dead" is Skull, "The Path" is MovementSpeed - so matching on
-/// display text would be both fragile and localisation-dependent.
+/// The mapping comes from slot data, keyed by *enum* name because that's what a BuyEntry
+/// exposes and display names are nothing like it ("The Burning Dead" is Skull).
 ///
-/// There's no catch-up pass on connect: unlike Follower counts or the sermon level, the game
-/// records a purchase only as BuyEntry.Bought on the shop prefab, which isn't reachable unless
-/// the player is standing in that hub. Cards bought while disconnected are therefore missed
-/// until the shop is revisited. Acceptable - the alternative is scanning every hub scene.
+/// No catch-up pass on connect: a purchase is recorded only as BuyEntry.Bought on the shop
+/// prefab, which isn't reachable unless the player is standing in that hub. Cards bought while
+/// disconnected are missed until the shop is revisited.
 /// </summary>
 internal class TarotShopService : IService
 {

@@ -8,16 +8,12 @@ namespace Archipelago.CultOfTheLamb.Patches;
 
 /// <summary>
 /// Everything needed to turn a tarot shop slot into an Archipelago check: which slots the shop
-/// puts out, what they look like, what they say, and what buying one grants.
+/// puts out, what they look like, what they say, and what buying one grants. They live together
+/// because the game splits that one concern across shopKeeperManager, Interaction_BuyItem,
+/// UITarotDisplay and TarotCards.
 ///
-/// Those live together because the game splits one concern across several classes -
-/// shopKeeperManager decides what each slot holds, Interaction_BuyItem writes the prompt,
-/// UITarotDisplay draws the hover panel, TarotCards owns the unlock.
-///
-/// The display hooks re-raise as events, so ShopIconService stays the only place that knows
-/// about locations. The two that can't - the TrinketUnlocked override deciding which slots
-/// exist, and the unlock suppression - ask through delegates it supplies instead, for the same
-/// reason: this file knows about slots, not about Archipelago.
+/// The hooks re-raise as events or ask through delegates, so ShopIconService stays the only
+/// place that knows about locations - this file knows about slots.
 /// </summary>
 [HarmonyPatch]
 internal static class ShopSlotDisplayPatch
@@ -36,13 +32,9 @@ internal static class ShopSlotDisplayPatch
         AccessTools.FieldRefAccess<Interaction, string>("label");
 
     /// <summary>
-    /// Overwrites a slot's prompt.
-    ///
-    /// Writes the field rather than the property because Interaction.Label's *getter* calls
-    /// GetLabel() before returning (Interaction.cs:128-143). Reading it from a GetLabel
-    /// postfix - the only place a handler runs - re-enters GetLabel and recurses until the
-    /// stack runs out. Assigning through the property is safe; reading it is not, so touching
-    /// the field keeps the whole hazard in one place.
+    /// Overwrites a slot's prompt. Writes the field, not the property: Interaction.Label's
+    /// getter calls GetLabel() (Interaction.cs:128-143), so reading it from a GetLabel postfix -
+    /// the only place a handler runs - recurses until the stack runs out.
     /// </summary>
     internal static void ReplaceLabel(Interaction_BuyItem buyItem, string label)
     {
@@ -80,23 +72,14 @@ internal static class ShopSlotDisplayPatch
     /// <summary>
     /// Decides which tarot slots a shop puts out, by answering the one question it asks.
     ///
-    /// InitTarotShop shows a slot if the player doesn't own its card and hides it - via
-    /// AlreadyBought(), plus a sold-out sign - if they do. That's the *only* thing it consults:
-    /// a tarot purchase writes no other state, unlike item and decoration shops which record
-    /// BuyEntry.Bought. Once these slots became AP checks rather than card purchases, that one
-    /// question started giving the wrong answer in both directions:
+    /// InitTarotShop shows a slot iff the player doesn't own its card - the only state a tarot
+    /// purchase writes. Once these slots became AP checks that answer was wrong both ways: a
+    /// card granted by the multiworld made the slot vanish and stranded its location, and a
+    /// sent check left the slot buyable again on every visit for nothing.
     ///
-    /// - **Card owned, check not sent.** Archipelago can hand you a card at any time, and the
-    ///   moment it did, the slot vanished and took its location with it - unreachable for the
-    ///   rest of the seed. A seed-breaking softlock.
-    /// - **Check sent, card not owned.** Since buying no longer grants the card, nothing
-    ///   recorded the sale, so the slot came back on every visit and could be bought again and
-    ///   again for nothing.
-    ///
-    /// So the answer comes from the location's state rather than the card's. Overriding this
-    /// one call rather than rebuilding slots afterwards means the game's own initialisation
-    /// still runs - cost, quantity, prefab wiring, sold-out signs - instead of us reconstructing
-    /// it from outside and getting some detail wrong.
+    /// So the answer comes from the location's state instead. Overriding this one call rather
+    /// than rebuilding slots afterwards keeps the game's own initialisation - cost, quantity,
+    /// prefab wiring, sold-out signs.
     /// </summary>
     [HarmonyPatch(typeof(DataManager), nameof(DataManager.TrinketUnlocked))]
     [HarmonyPrefix]
@@ -134,14 +117,9 @@ internal static class ShopSlotDisplayPatch
         AccessTools.FieldRefAccess<UITarotDisplay, TMP_Text>("descriptionText");
 
     /// <summary>
-    /// The panel that floats over a shop slot while the player stands at it.
-    ///
-    /// Patching LocalizeText rather than Play catches both the initial fill and the re-fill on
-    /// a language change, and it's the method that actually writes the three text fields.
-    ///
-    /// No scoping needed here, unlike the TrinketUnlocked override: UITarotDisplay is spawned
-    /// from exactly one place, TarotCardDisplay, which sits on the shop slot itself. The card
-    /// collection and reveal menus use TarotInfoCard instead and are untouched.
+    /// The panel that floats over a shop slot. LocalizeText rather than Play, because it writes
+    /// the three text fields and catches the re-fill on a language change too. No scoping
+    /// needed: UITarotDisplay is only ever spawned by TarotCardDisplay on the slot itself.
     /// </summary>
     [HarmonyPatch(typeof(UITarotDisplay), "LocalizeText")]
     [HarmonyPostfix]
@@ -175,11 +153,8 @@ internal static class ShopSlotDisplayPatch
     private const float SuppressionWindowSeconds = 15f;
 
     /// <summary>
-    /// Marks the next unlock of <paramref name="card"/> as already paid for.
-    ///
-    /// An AP-marked slot is a *location*, not a purchase: buying it sends the slot's own check
-    /// and the card itself comes from the multiworld. Without this the purchase would also read
-    /// as the player earning the card, and one action would pay out twice.
+    /// Marks the next unlock of <paramref name="card"/> as already paid for. An AP slot is a
+    /// location, not a purchase, so without this one action would pay out twice.
     /// </summary>
     internal static void SuppressNextUnlock(TarotCards.Card card)
     {
@@ -187,12 +162,9 @@ internal static class ShopSlotDisplayPatch
     }
 
     /// <summary>
-    /// Whether this unlock was a shop purchase we've already accounted for, clearing the mark
-    /// as it answers. TarotUnlockPatch owns what actually happens to the unlock; this only
-    /// says whether the shop got there first.
-    ///
-    /// A stale entry - the purchase cutscene interrupted, say - counts as no suppression, so
-    /// the failure mode is a card earned normally rather than one silently swallowed.
+    /// Whether this unlock was a shop purchase we've already accounted for, clearing the mark as
+    /// it answers. A stale entry counts as no suppression, so the failure mode is a card earned
+    /// normally rather than one silently swallowed.
     /// </summary>
     internal static bool ConsumeSuppressedUnlock(TarotCards.Card card)
     {

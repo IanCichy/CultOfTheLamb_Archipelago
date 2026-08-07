@@ -107,17 +107,13 @@ internal static class MenuButtonPatch
     }
 
     /// <summary>
-    /// Swaps the donor's glyph for the AP logo. Only called for donors declared to have one.
+    /// Swaps the donor's glyph for the AP logo. Matched on the existing sprite's *name*, not by
+    /// object name or child index - a menu button is several Images deep and replacing the wrong
+    /// one wipes its background.
     ///
-    /// Matched on the existing sprite's *name* rather than by object name or child index: a
-    /// menu button is several Images deep - ribbon, glyph, highlight - and replacing the wrong
-    /// one wipes the button's background. The name is the only thing that identifies the glyph
-    /// unambiguously today.
-    ///
-    /// It is still a weaker handle than the AccessTools.FieldRefAccess this file uses
-    /// everywhere else - a sprite asset name survives neither an art pass nor a rename. Finding
-    /// nothing is therefore a *warning*, not an outcome: the caller said there was a glyph, so
-    /// its absence means this needs revisiting, not that the button is fine as-is.
+    /// A weaker handle than the FieldRefAccess used elsewhere here, since a sprite name survives
+    /// neither an art pass nor a rename. So finding nothing is a warning: the caller said there
+    /// was a glyph, and its absence means this needs revisiting.
     /// </summary>
     private static void SetIcon(GameObject button, string where)
     {
