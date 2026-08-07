@@ -5,14 +5,10 @@ namespace Archipelago.CultOfTheLamb.Services;
 /// <summary>
 /// Sends a check for each Snail Shrine given a Shell offering.
 ///
-/// The game records these as five plain save booleans, DataManager.ShellsGifted_0 through _4
-/// (lighting all five unlocks the Snail Follower form). There's no event and no single write
-/// site worth patching - Snail_Interaction sets whichever flag matches its ShrineNumber inside
-/// a switch - so this polls the flags instead.
-///
-/// Polling is the right shape here rather than a concession: the flags are save state, so a
-/// poll also catches offerings made while disconnected and re-derives correctly after a
-/// reload, which an event-based hook would miss. Five bool reads on a throttle costs nothing.
+/// The game records these as five plain save booleans, DataManager.ShellsGifted_0 through _4.
+/// No event and no single write site worth patching, so this polls them - which is the better
+/// shape anyway: they're save state, so polling also catches offerings made while disconnected
+/// and re-derives correctly after a reload.
 /// </summary>
 internal class SnailShrineService : IService
 {

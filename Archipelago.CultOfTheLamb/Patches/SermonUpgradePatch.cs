@@ -7,21 +7,15 @@ namespace Archipelago.CultOfTheLamb.Patches;
 /// <summary>
 /// Turns "the sermon bar filled" into an Archipelago check instead of an upgrade you pick.
 ///
-/// SermonController.PlayerUpgrade() is the whole reward step: it grants a Disciple Point,
-/// opens the player upgrade tree, waits for a choice, then increments
-/// DataManager.Doctrine_PlayerUpgrade_Level. Replacing it wholesale is what decouples
-/// "earned an upgrade" (the location) from "received an upgrade" (the item) - which is the
-/// core of randomizing this system at all.
+/// SermonController.PlayerUpgrade() is the whole reward step - Disciple Point, tree menu, choice,
+/// then the level increment - so replacing it wholesale is what decouples earning an upgrade from
+/// receiving one.
 ///
-/// Suppressing the pick can't hang the sermon: PlayerUpgrade() is invoked once per bar fill
-/// and the caller resets xp to 0 immediately after (SermonController.cs:97-99), rather than
-/// looping until an unlock is consumed. UpgradePlayerConfiguration.HasUnlockAvailable(true)
-/// staying true just means sermons keep paying out, which is exactly what we want - the
-/// vanilla game would otherwise start handing out blue hearts once the tree is exhausted.
+/// Suppressing the pick can't hang the sermon: the caller resets xp to 0 immediately after
+/// (SermonController.cs:97-99) rather than looping until an unlock is consumed.
 ///
-/// The level counter doubles as our location index: it's incremented once per fill and
-/// persisted in the save, so it survives reconnects and stays correct even if the player
-/// gave sermons while disconnected.
+/// The level counter doubles as the location index - incremented once per fill and persisted, so
+/// it survives reconnects and sermons given while disconnected.
 /// </summary>
 [HarmonyPatch(typeof(SermonController))]
 internal static class SermonUpgradePatch

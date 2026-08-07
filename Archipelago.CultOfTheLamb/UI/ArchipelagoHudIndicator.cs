@@ -7,21 +7,15 @@ namespace Archipelago.CultOfTheLamb.UI;
 
 /// <summary>
 /// An Archipelago logo in the top-left corner: full colour while connected, dimmed while not.
+/// Without it a session that quietly dropped looks exactly like one that's fine, right up until
+/// a check fails to land.
 ///
-/// A reminder, nothing more. The mod is otherwise silent about its own state - the connect
-/// panel has to be opened to learn whether anything is listening, and a session that quietly
-/// dropped looks exactly like one that's fine right up until a check fails to land.
+/// Deliberately not interactive - a GraphicRaycaster over the play area risks swallowing clicks
+/// in a game where attacking is a left click.
 ///
-/// Deliberately *not* interactive. Connecting lives in the pause and main menus, and making
-/// this clickable would mean a GraphicRaycaster and a hit target sitting over the play area -
-/// in a game where attacking is a left click, that risks swallowing or doubling inputs to save
-/// a trip to a menu nobody visits mid-fight.
-///
-/// It gets its own canvas rather than joining the game's HUD, because anchoring to a screen
-/// corner needs a full-screen parent: hung off a HUD container it anchors to that container's
-/// corner instead, which is why the first attempt floated in the middle of the screen. The cost
-/// is that it no longer inherits the HUD's show/hide, so that's mirrored explicitly from
-/// HUD_Manager.Hidden - otherwise it would sit on top of cutscenes and menus.
+/// It gets its own canvas because anchoring to a screen corner needs a full-screen parent. The
+/// cost is that it no longer inherits the HUD's show/hide, so that's mirrored explicitly from
+/// HUD_Manager.Hidden.
 /// </summary>
 internal class ArchipelagoHudIndicator : MonoBehaviour
 {

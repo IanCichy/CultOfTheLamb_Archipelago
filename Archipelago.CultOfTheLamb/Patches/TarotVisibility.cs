@@ -6,27 +6,19 @@ using Lamb.UI;
 namespace Archipelago.CultOfTheLamb.Patches;
 
 /// <summary>
-/// Shows the player's Archipelago cards to the two parts of the game that should see them,
-/// while keeping them out of the collection everywhere else.
+/// Shows the player's Archipelago cards to the two parts of the game that should see them -
+/// the in-run draw pool and the collection screen - while keeping them out of
+/// PlayerFoundTrinkets everywhere else (see ManagedCollection for why).
 ///
-/// TarotService never writes a granted card into DataManager.Instance.PlayerFoundTrinkets,
-/// because every route the game has to offer a card first checks you don't already own it - a
-/// real unlock would close that gate and strand the check riding on it. The cost is that the
-/// places which genuinely need the player's full collection read the same list: the in-run
-/// draw pool, and the collection screen.
+/// Both work by lending the cards to the list for one call and taking them straight back out.
+/// Lending rather than adjusting the result matters for the draw pool: GetUnusedFoundTrinkets
+/// filters on fleece, corruption pairing, season, relic scale and the resurrect ability, and a
+/// re-implementation would drift from the game's within a patch or two.
 ///
-/// Both are handled by lending the cards to PlayerFoundTrinkets for the length of one call and
-/// taking them straight back out. Lending rather than adjusting the result matters for the
-/// draw pool in particular: GetUnusedFoundTrinkets filters on fleece, corruption pairing,
-/// season, relic scale and the resurrect ability, and a re-implementation of that condition
-/// would drift from the game's within a patch or two.
-///
-/// Other readers are deliberately left alone. Completion percentage (CompletionCalculator),
-/// TarotCards.GetTrinketsUnlocked and the ALL_TAROTS_UNLOCKED achievement all count the
-/// collection directly, so while connected they under-report by however many cards
-/// Archipelago has granted, and the achievement can't fire. Both correct themselves the
-/// moment the cards go back on disconnect. Lending to them isn't worth it: the achievement
-/// path writes a permanent unlock, which is the one thing this class exists to prevent.
+/// Other readers are left alone. Completion percentage, GetTrinketsUnlocked and the
+/// ALL_TAROTS_UNLOCKED achievement under-report while connected and correct themselves on
+/// disconnect. Lending to them isn't worth it - the achievement path writes a permanent unlock,
+/// which is the one thing this class exists to prevent.
 /// </summary>
 internal static class TarotVisibility
 {
@@ -37,9 +29,8 @@ internal static class TarotVisibility
     internal static Func<IEnumerable<TarotCards.Card>> GrantedCards;
 
     /// <summary>
-    /// Adds the granted cards to the collection, returning exactly the ones it added so
-    /// <see cref="Take"/> removes those and nothing else. Null when there was nothing to lend,
-    /// which is the common case - the game calls these methods whether we're connected or not.
+    /// Adds the granted cards, returning exactly the ones it added so <see cref="Take"/> removes
+    /// those and nothing else. Null when there was nothing to lend, which is the common case.
     /// </summary>
     private static List<TarotCards.Card> Lend()
     {
@@ -74,9 +65,8 @@ internal static class TarotVisibility
     }
 
     /// <summary>
-    /// The in-run draw pool - what a tarot pedestal or a shrine offers you mid-crusade. The
-    /// one place where getting this wrong is a gameplay bug rather than a cosmetic one: miss
-    /// it and Archipelago's cards never show up in a run at all.
+    /// The in-run draw pool - what a pedestal or shrine offers mid-crusade. The one place where
+    /// getting this wrong is a gameplay bug: miss it and Archipelago's cards never show up.
     /// </summary>
     [HarmonyPatch(typeof(TarotCards), nameof(TarotCards.GetUnusedFoundTrinkets))]
     internal static class DrawPool
@@ -92,9 +82,8 @@ internal static class TarotVisibility
     }
 
     /// <summary>
-    /// The tarot collection screen. It builds an entry for every card in the game and asks
-    /// TarotCards.IsUnlocked which ones to show as owned (TarotCardItem_Unlocked.Configure),
-    /// so lending for the length of the build is enough to light up Archipelago's cards.
+    /// The collection screen. It asks TarotCards.IsUnlocked which entries to show as owned, so
+    /// lending for the length of the build is enough to light up Archipelago's cards.
     /// </summary>
     [HarmonyPatch(typeof(UITarotCardsMenuController), "OnShowStarted")]
     internal static class CollectionScreen

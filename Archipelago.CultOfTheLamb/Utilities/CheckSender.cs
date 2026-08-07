@@ -7,17 +7,13 @@ namespace Archipelago.CultOfTheLamb;
 /// <summary>
 /// Sends location checks, skipping the ones the server already has.
 ///
-/// Every service that derives its checks from save state - Followers, Snail Shrines, and
-/// anything added later - necessarily re-derives them from scratch on each connect, because
-/// that's what makes offerings and recruits made while disconnected get caught up. The side
-/// effect is that reconnecting re-sends checks the player sent sessions ago. Harmless to the
-/// server, which ignores duplicates, but the player got a popup for each one all over again.
+/// Services that derive checks from save state re-derive them on every connect, which is what
+/// catches up progress made while disconnected - but it also re-sends checks from sessions ago,
+/// popping a notification for each. Filtering here leaves each service free to re-derive as
+/// bluntly as it likes.
 ///
-/// Filtering here rather than in the services keeps each one free to re-derive as bluntly as
-/// it likes, and means catch-up logic never has to reason about what the server already knows.
-///
-/// This is not the same thing as a service's own "already sent" flags: those cover repeat polls
-/// within one session, this covers everything from previous ones.
+/// Not the same as a service's own "already sent" flags: those cover repeat polls within one
+/// session, this covers everything from previous ones.
 /// </summary>
 internal static class CheckSender
 {

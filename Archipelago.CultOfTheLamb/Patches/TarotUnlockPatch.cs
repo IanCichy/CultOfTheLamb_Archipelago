@@ -7,14 +7,9 @@ namespace Archipelago.CultOfTheLamb.Patches;
 /// Turns "the game just unlocked a tarot card" into an Archipelago check, and stops the game
 /// handing the card over.
 ///
-/// Every route the game has to a permanent card unlock ends at one of two methods, which is
-/// what makes this cheap: the reveal menu (crusade finds, shop purchases, challenge rewards
-/// like Ratau's) and the multi-card variant both go through TarotCards.UnlockTrinket, while
-/// world-placed cards go through DataManager.UnlockTrinket. Intercepting those two covers
-/// every unlock condition in the game without knowing what any of them are.
-///
-/// That matters because card unlock conditions are wildly varied and mostly undocumented.
-/// Hooking the conditions would mean finding all 85; hooking the outcome means finding none.
+/// Every route to a permanent card unlock ends at TarotCards.UnlockTrinket (the reveal menu:
+/// crusade finds, shop purchases, challenge rewards) or DataManager.UnlockTrinket (world-placed
+/// cards). Intercepting the outcome covers all 85 unlock conditions without knowing any of them.
 /// </summary>
 [HarmonyPatch]
 internal static class TarotUnlockPatch

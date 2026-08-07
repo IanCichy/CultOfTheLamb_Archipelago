@@ -6,27 +6,19 @@ using BepInEx;
 namespace Archipelago.CultOfTheLamb;
 
 /// <summary>
-/// Remembers what Archipelago has taken out of a given save and not yet given back.
+/// Remembers what Archipelago has taken out of a given save and not yet given back. Holding
+/// that promise in memory alone isn't enough: the game autosaves constantly, so the file on disk
+/// is missing those entries for the whole session, and a crash or an alt-F4 would lose real
+/// player data permanently.
 ///
-/// Generalised from RevokedCardStore, which did this for tarot alone. A managed collection
-/// empties the save's own collection on connect and promises to put it back on disconnect.
-/// Holding that promise only in memory isn't enough: the game autosaves constantly, so the file
-/// on disk is missing those entries for the whole session, and a crash, an alt-F4, or a quit to
-/// the main menu before disconnecting would lose them permanently. This is real player data -
-/// sixty cards, or a fleece set, that someone earned before they ever installed the mod.
+/// Keyed by **collection and save slot only**, unlike AppliedItemStore's save+seed+slot key -
+/// "we owe this save its cards back" is a property of the save alone, true across a different
+/// seed, a different AP slot, or a reinstall.
 ///
-/// Keyed by **collection and save slot only**, unlike AppliedItemStore's save+seed+slot key.
-/// "Already applied" is a property of one playthrough of one seed; "we owe this save its cards
-/// back" is a property of the save alone, and stays true across a different seed, a different AP
-/// slot, or a reinstall.
-///
-/// Same sidecar-file approach as AppliedItemStore, and for the same reason: DataManager is
-/// MessagePack-serialized with fixed [Key(N)] attributes, so a mod can't add a field to the
-/// save without breaking its format.
-///
-/// Entries are stored as enum *names* rather than numeric values. Names survive the game
-/// reordering an enum between updates; ordinals don't, and a shifted ordinal would hand the
-/// player back the wrong cards rather than failing visibly.
+/// Sidecar file rather than the game save, because DataManager is MessagePack-serialized with
+/// fixed [Key(N)] attributes. Entries are stored as enum *names*: a name survives the game
+/// reordering an enum between updates, where a shifted ordinal would silently hand back the
+/// wrong cards.
 /// </summary>
 internal static class ManagedCollectionStore
 {

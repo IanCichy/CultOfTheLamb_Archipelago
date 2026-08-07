@@ -10,22 +10,17 @@ namespace Archipelago.CultOfTheLamb.Services;
 
 /// <summary>
 /// Marks shop slots that are Archipelago checks: the AP logo in place of the item's own art,
-/// and the scouted item name appended to the buy prompt.
-///
-/// Why it matters: a tarot shop slot looks identical whether or not buying it sends a check,
-/// so without this the player has to remember which of the 14 cards are locations. Multiworld
-/// players also want to know *what* a check pays out before spending on it.
+/// and the scouted item name appended to the buy prompt. Without it, a slot looks identical
+/// whether or not buying it sends a check.
 ///
 /// Two entry points, because a shop and a connection can happen in either order:
-///   - ShopSlotDisplayPatch.OnShopInitialised - walked into a shop while connected.
-///   - the sweep in Register() - connected while already standing in one.
-/// Both enqueue the shop; Tick() does the work over the following frames. Deferring is not
-/// tidiness: InitTarotShop runs inside shopKeeperManager.Start(), and decorating from there
-/// found no card art at all, because the visuals aren't in place that early.
+/// ShopSlotDisplayPatch.OnShopInitialised (walked into a shop while connected) and the sweep in
+/// Register() (connected while already standing in one). Both enqueue the shop and Tick() does
+/// the work over following frames - InitTarotShop runs inside shopKeeperManager.Start(), before
+/// any card art exists.
 ///
-/// Item names come from a single pre-scout on connect. Scouting is async and the buy prompt is
-/// rebuilt synchronously every frame, so there's no opportunity to fetch on demand; until the
-/// scout lands, slots show the icon but the vanilla prompt.
+/// Item names come from a single pre-scout on connect: scouting is async and the buy prompt is
+/// rebuilt every frame, so there's no chance to fetch on demand.
 /// </summary>
 internal class ShopIconService : IService
 {
@@ -271,16 +266,11 @@ internal class ShopIconService : IService
     }
 
     /// <summary>
-    /// The renderer actually drawing the thing for sale.
-    ///
-    /// `enabled` is the whole trick, and it cost two attempts to find. A tarot slot carries a
-    /// SpriteRenderer on the slot object itself - the one InventoryItemDisplay.SetImage writes
-    /// to, and the obvious thing to reach for - but it is *disabled*: it exists for item stalls,
-    /// and tarot slots draw through an enabled child instead. Writing to it succeeds silently
-    /// and changes nothing on screen, which is exactly what the first two builds did.
-    ///
-    /// Among what's left, the biggest sprite is the item on sale; shadows, highlights and price
-    /// pips are all smaller. Press F1 in a shop (DebugActions.DumpShopSlots) to see the field.
+    /// The renderer actually drawing the thing for sale. `enabled` is the whole trick: a tarot
+    /// slot's own SpriteRenderer - the obvious one, that InventoryItemDisplay.SetImage writes to
+    /// - is *disabled* and draws nothing, so writing to it fails silently. Among what's left the
+    /// biggest sprite is the item; shadows, highlights and price pips are smaller. F1 in a shop
+    /// dumps the field.
     /// </summary>
     private static SpriteRenderer FindArtRenderer(GameObject slot)
     {

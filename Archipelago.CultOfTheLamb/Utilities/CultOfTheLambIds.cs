@@ -1,16 +1,12 @@
 namespace Archipelago.CultOfTheLamb;
 
 /// <summary>
-/// Item/location ids matching worlds/cult_of_the_lamb/items.py and locations.py's
-/// deterministic offset schemes (offset=3_050_000 for items, 3_051_000 + dict-enumeration-
-/// index for locations). Same "hardcode ids that both sides compute the same way" pattern
-/// Archipelago.RiskOfRain2 uses. TODO: revisit with a real AP datapackage name-to-id lookup
-/// (Archipelago.MultiClient.Net has one) so these can't silently drift out of sync with the
-/// Python side if locations.py's dict order ever changes.
+/// Item/location ids matching items.py and locations.py's offset schemes (3_050_000 for items,
+/// 3_051_000 + dict-enumeration-index for locations). The "+ N" offsets are written out so that
+/// index is visible at a glance - it IS the contract with locations.py, and reordering that dict
+/// silently repoints everything after the change.
 ///
-/// The "+ N" offsets below are written out explicitly so the enumeration index each id
-/// depends on is visible at a glance - that index IS the contract with locations.py, and it
-/// is the thing that silently breaks if that dict is ever reordered.
+/// TODO: replace with a real AP datapackage name-to-id lookup so the two can't drift.
 /// </summary>
 internal static class CultOfTheLambIds
 {

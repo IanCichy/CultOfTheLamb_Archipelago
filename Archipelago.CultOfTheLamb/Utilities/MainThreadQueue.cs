@@ -4,16 +4,11 @@ using System.Collections.Generic;
 namespace Archipelago.CultOfTheLamb;
 
 /// <summary>
-/// Runs work on Unity's main thread that was handed over from somewhere else.
+/// Runs work on Unity's main thread that was handed over from the websocket thread. Teardown
+/// reaches into save data, and collections like PlayerFoundTrinkets are plain Lists the main
+/// thread iterates - writing to them from a socket callback can throw mid-enumeration.
 ///
-/// The Archipelago client raises its callbacks on the websocket thread. Most of them only
-/// touch client state, but teardown reaches into the game's save data - and Unity collections
-/// like DataManager.Instance.PlayerFoundTrinkets are plain Lists the main thread iterates,
-/// so writing to them from a socket callback can throw mid-enumeration or, worse, quietly
-/// undo work the main thread just did.
-///
-/// ArchipelagoItemLogicController already solves this for item receipt by queueing and
-/// draining from Update. This is the same idea for the paths that don't have their own queue.
+/// Same idea as ArchipelagoItemLogicController's item queue, for the paths without their own.
 /// </summary>
 internal static class MainThreadQueue
 {

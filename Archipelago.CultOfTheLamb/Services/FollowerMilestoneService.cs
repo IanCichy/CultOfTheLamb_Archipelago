@@ -5,24 +5,17 @@ namespace Archipelago.CultOfTheLamb.Services;
 /// <summary>
 /// Sends a check for each of the first N Followers recruited.
 ///
-/// FollowerManager.OnFollowerAdded is the single funnel: however a Follower is acquired, they
-/// only join the flock by being indoctrinated at the base, and that event fires immediately
-/// after DataManager.Followers.Add (FollowerManager.cs:1236). It's a public static event, so
-/// unlike most of this mod's hooks no Harmony patch is needed.
+/// FollowerManager.OnFollowerAdded is the single funnel and a public static event, so no Harmony
+/// patch is needed. (FollowerRecruit.OnRecruitFinalised is the wrong hook - it fires
+/// mid-animation, before the Follower is in the list, so the count sticks one behind.)
 ///
-/// The FollowerRecruit.OnRecruitFinalised event was tried first and is the wrong hook - it
-/// fires mid-recruit-animation, before the Follower is in the list, which showed up in testing
-/// as the count sticking one behind.
+/// The count is derived from save state rather than tallied in-session, so it survives
+/// reconnects and catches up recruits made while disconnected. It counts Followers *ever*
+/// recruited, not the current flock, so a plague or a sacrifice spree can't make a milestone
+/// already passed unreachable again.
 ///
-/// The count is derived from save state rather than tallied in-session, so it stays correct
-/// across reconnects and across Followers recruited while disconnected. It counts Followers
-/// *ever* recruited (living + dead) rather than the current flock: a plague, a sacrifice
-/// spree, or a Ritual can shrink the flock, and a milestone you already passed must not
-/// become unreachable again.
-///
-/// Every check up to the current count is sent each time rather than just the newest one.
-/// That's deliberately idempotent - the server ignores repeats - and it means a missed event
-/// or a save edited outside the mod still self-corrects on the next recruitment.
+/// Every check up to the current count is re-sent each time. Idempotent by design, so a missed
+/// event or a save edited outside the mod self-corrects on the next recruitment.
 /// </summary>
 internal class FollowerMilestoneService : IService
 {

@@ -8,24 +8,18 @@ namespace Archipelago.CultOfTheLamb;
 /// <summary>
 /// Remembers how many received items have already been applied to a given save.
 ///
-/// The server replays a slot's entire item history on every connect. That's correct AP
-/// behaviour and the client must drain it, or items received while disconnected are lost.
-/// But re-applying that history is only harmless for *idempotent* grants: unlocking a region
-/// or an upgrade twice is a no-op, while Inventory.AddItem stacks. Before this existed,
-/// reconnecting re-granted every resource ever received, so spamming F5 was an infinite
+/// The server replays a slot's entire item history on every connect, and the client must drain
+/// it or lose items received while disconnected. Re-applying it is only harmless for idempotent
+/// grants - Inventory.AddItem stacks, so before this existed spamming F5 was an infinite
 /// resource generator.
 ///
-/// Keyed by **save slot** as well as AP seed and slot, because "already applied" is a
-/// property of the save file, not of the client install. Loading a different save must start
-/// from zero rather than skipping items that save never received.
+/// Keyed by **save slot** as well as AP seed and slot, because "already applied" is a property
+/// of the save file, not of the client install. Sidecar file rather than the game save, because
+/// DataManager is MessagePack-serialized with fixed [Key(N)] attributes.
 ///
-/// Kept in a sidecar file next to the BepInEx config rather than inside the game save:
-/// DataManager is MessagePack-serialized with fixed [Key(N)] attributes, so a mod can't add a
-/// field without breaking the save format.
-///
-/// Known limitation: reloading an *earlier* autosave of the same slot leaves the count ahead
-/// of what that save actually received, so those items are skipped. Imperfect, but far better
-/// than unbounded duplication, and it matches how most AP clients behave.
+/// Known limitation: reloading an earlier autosave of the same slot leaves the count ahead of
+/// what that save received, so those items are skipped. Better than unbounded duplication, and
+/// it matches how most AP clients behave.
 /// </summary>
 internal static class AppliedItemStore
 {

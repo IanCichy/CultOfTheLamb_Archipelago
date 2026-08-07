@@ -3,24 +3,15 @@ using System.Collections.Generic;
 namespace Archipelago.CultOfTheLamb;
 
 /// <summary>
-/// Maps the game's internal miniboss/Witness kill keys to AP location ids.
+/// Maps the game's internal miniboss/Witness kill keys to AP location ids. The key is what
+/// DataManager.KilledBosses stores: MiniBossController.name, which is also the boss's
+/// follower-skin name - the equivalence that makes these strings recoverable from code at all
+/// (see AI_INDEX.md §3a).
 ///
-/// The key is the string the game stores in DataManager.KilledBosses - which is
-/// MiniBossController.name (the Unity GameObject name), and is *also* that boss's
-/// follower-skin name. That equivalence is why these strings are recoverable from code at
-/// all: they're declared verbatim in UIFollowerFormsMenuController's per-region
-/// DarkwoodOrder/AnuraOrder/AnchordeepOrder/SilkCradleOrder arrays. See
-/// DecompiledGamesViaDnSpy/Cotl/AI_INDEX.md §3a for the full derivation and citations.
-///
-/// Internal names are NOT the display names players see (the wiki's Amdusias, Valefar, ...);
-/// those live in I2 as MiniBossController.DisplayName.
-///
-/// The internal -> display alignment below was confirmed in-game by dumping a live Darkwood
-/// boss room: Boss Mama Worm = Amdusias, Boss Mama Maggot = Valefar, Boss Burrow Worm =
-/// Barbatos, Boss Beholder 1 = Witness Agares - i.e. list position matches the wiki roster
-/// order exactly. The other three regions are built the same way. The Darkwood row was also
-/// verified end-to-end: killing that miniboss sent check 3051000 and the server resolved it
-/// to "Darkwood - Amdusias".
+/// These are not the display names players see; those live in I2 as
+/// MiniBossController.DisplayName. The alignment below was confirmed in-game by dumping a live
+/// Darkwood boss room - list position matches the wiki roster order exactly - and the Darkwood
+/// row was verified end-to-end against the server.
 /// </summary>
 internal static class BossKeyMapping
 {
