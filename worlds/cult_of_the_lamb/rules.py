@@ -45,6 +45,15 @@ def set_rules(world: "CultOfTheLambWorld") -> None:
         if world.options.randomize_tarot_cards:
             set_depth_rules(world, "TarotCard")
 
+    # Deliberately outside the `regions_are_gated` block above, and deliberately not using
+    # set_depth_rules: these have real logic rather than an approximated band, so they hold up
+    # in an all_unlocked seed too. set_rule overwrites rather than composes, so a location can
+    # only have one of the two - and the item requirement is the true one.
+    if world.options.randomize_weapons:
+        set_equipment_rules(world, "Weapon", world.weapons, world.starting_weapons)
+    if world.options.randomize_curses:
+        set_equipment_rules(world, "Curse", world.curses, world.starting_curses)
+
     # Reaching a Bishop/Witness location implies being equipped to beat them (the standard
     # AP assumption that "can reach" == "can complete"), so victory is defined by reachable
     # count rather than a separate synthetic "defeated" item.
@@ -61,6 +70,31 @@ _MAX_REGION_COPIES = len(REGION_NAMES) - 1
 
 # Bands per repeatable block: 0, 1, 2 ... _MAX_REGION_COPIES copies required.
 _BANDS = _MAX_REGION_COPIES + 1
+
+
+def set_equipment_rules(world: "CultOfTheLambWorld", prefix, families, starting) -> None:
+    """Gate each weapon/curse check on the item that unlocks it.
+
+    The client never writes to WeaponPool/CursePool - it filters what the game is allowed to
+    offer. So until Archipelago hands over the Axe, no podium in the game will ever put one
+    down, and "Weapon - Apostate's Cleaver" genuinely cannot be checked. That is a real
+    constraint, not a pacing approximation, which is why these skip the depth bands.
+
+    It also self-locks: the fill can't put Apostate's Cleaver on its own location, because
+    reaching that location requires already holding it. Archipelago handles that natively.
+
+    Starting families are skipped - regions.py never created their locations.
+    """
+    player = world.player
+    already = {e.display for e in starting}
+
+    for family in families:
+        if family.display in already:
+            continue
+        set_rule(
+            world.multiworld.get_location(f"{prefix} - {family.display}", player),
+            lambda state, name=family.display: state.has(name, player),
+        )
 
 
 def set_depth_rules(world: "CultOfTheLambWorld", category: str) -> None:

@@ -151,6 +151,83 @@ class StartingTarotPool(Choice):
     default = 0
 
 
+class RandomizeWeapons(Toggle):
+    """Randomize which weapon families you can find.
+
+    Vanilla hands out the Axe, Dagger, Hammer, Gauntlets, Blunderbuss and Flail on a fixed
+    schedule - the first floor of each run gives you the next one you don't own. With this on,
+    that schedule is Archipelago's instead: podiums, chests and choice rooms only ever offer
+    families the multiworld has granted you, and equipping one for the first time sends a
+    check. 6 weapons, or 7 with Include Woolhaven DLC (the Flail).
+
+    Your existing weapons are never taken away - the game's save data isn't touched at all, so
+    this is safe to enable on a save you've already played. It only changes what gets offered."""
+    display_name = "Randomize Weapons"
+    default = True
+
+
+class StartingWeapons(Range):
+    """How many weapon families you begin the seed with.
+
+    These have neither a check nor an item, so each one you add removes one of each. Can't be
+    0: with nothing to offer, every weapon podium in the game would have nothing to put on it."""
+    display_name = "Starting Weapons"
+    range_start = 1
+    range_end = 7
+    default = 1
+
+
+class LegendaryWeapons(Choice):
+    """Let Legendary weapons turn up on ordinary weapon podiums.
+
+    Requires the Woolhaven DLC - Legendaries are its content, normally earned through the
+    Blacksmith's Broken Hammer questline and its job boards. **This option is forced off
+    without Include Woolhaven DLC**, since the client can't hand you content you don't own.
+
+    A Legendary can only appear for a family you already hold, so this makes the weapons you
+    have better rather than handing you one you can't otherwise use.
+
+    Nothing is written to your save and no check or item is involved - the Legendary is simply
+    offered in place of a normal weapon. Your Blacksmith questline is untouched and still
+    unlocks them properly, which is deliberate: writing them into the weapon pool is what
+    would break the Legendary plinths and job-board objectives.
+
+    off: vanilla. Legendaries only from the Blacksmith.
+    rare: roughly 1 weapon offer in 10.
+    common: roughly 1 in 4.
+    always: every weapon offered is the Legendary of its family. A power fantasy, not a
+      balanced seed."""
+    display_name = "Legendary Weapons"
+    option_off = 0
+    option_rare = 1
+    option_common = 2
+    option_always = 3
+    default = 0
+
+
+class RandomizeCurses(Toggle):
+    """Randomize which curse families you can find.
+
+    The curse-side counterpart to Randomize Weapons, covering Flaming Shot, Touch of Turua,
+    Divine Blast, Ichor Thrown and Death's Sweep. Independent of it - either, both or neither.
+
+    The Teleport and Barrier curses aren't included here: they're unlocked by sermon upgrades,
+    which Randomize Sermon Upgrades already covers."""
+    display_name = "Randomize Curses"
+    default = True
+
+
+class StartingCurses(Range):
+    """How many curse families you begin the seed with.
+
+    As Starting Weapons - no check and no item for these, and 1 is the floor because the game
+    always needs something to put on a curse podium."""
+    display_name = "Starting Curses"
+    range_start = 1
+    range_end = 5
+    default = 1
+
+
 @dataclass
 class CultOfTheLambOptions(PerGameCommonOptions):
     goal: Goal
@@ -164,4 +241,9 @@ class CultOfTheLambOptions(PerGameCommonOptions):
     randomize_tarot_cards: RandomizeTarotCards
     starting_tarot_cards: StartingTarotCards
     starting_tarot_pool: StartingTarotPool
+    randomize_weapons: RandomizeWeapons
+    starting_weapons: StartingWeapons
+    legendary_weapons: LegendaryWeapons
+    randomize_curses: RandomizeCurses
+    starting_curses: StartingCurses
     trap_percentage: TrapPercentage

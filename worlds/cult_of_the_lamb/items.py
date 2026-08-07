@@ -38,17 +38,10 @@ PROGRESSIVE_REGION_ACCESS = "Progressive Bishop's Domain"
 # and must stay append-only - the client hardcodes the same offsets.
 #
 # The three numbered chains below are progressive; everything else is its own named item.
-#
-# Out-of-order delivery wouldn't *break* anything - UpgradeSystem.UnlockAbility ignores
-# prerequisites entirely (verified: it's a bare Contains-then-Add), and the client grants
-# upgrades directly rather than through the tree UI. The reason to make these progressive is
-# pacing: Might of the Devout sets your starting weapon level, so receiving VI before I is a
-# power spike arriving out of sequence. Hearts and Fervour are additive, so their tiers are
-# interchangeable and progressive is just tidier.
-#
-# The distinctly-named sequences (the five curse packs) stay individual - each adds three
-# *different* curses, and "Curse of the Beguiler" reads far better in someone else's
-# multiworld than "Progressive Curse Pack".
+# Progressive for pacing, not correctness - UnlockAbility ignores prerequisites entirely, but
+# Might of the Devout sets your starting weapon level, so VI before I is a power spike out of
+# sequence. The five curse packs stay individual: each adds three *different* curses, and
+# "Curse of the Beguiler" reads far better in someone else's multiworld.
 SERMON_ITEM_OFFSET = 400
 
 # (display name, UpgradeSystem.Type, is_woolhaven_dlc)
@@ -147,6 +140,53 @@ def sermon_item_counts(include_dlc: bool) -> Dict[str, int]:
         name: sum(1 for _, dlc in tiers if include_dlc or not dlc)
         for name, tiers in SERMON_ITEM_UPGRADES.items()
     }
+
+
+# The seven weapon families and five curse families. Vanilla hands these out through a hardcoded
+# ladder in DataManager.GetRandomWeaponInPool/GetRandomCurseInPool - the first floor of any run
+# after your first gives you the first one you don't own - so they're already deterministic,
+# unmissable progression.
+#
+# Base types only. The _Poison/_Critical/.../_Legendary variants come from sermon upgrades and
+# the blacksmith; the client lets a variant appear as soon as its family is granted.
+#
+# `display` is the real base-tier in-game name; `internal` is the EquipmentType the client
+# filters on. Weapon ids 110-114 keep the values the old placeholders had, so nothing repoints.
+
+
+class EquipmentData(NamedTuple):
+    display: str
+    internal: str
+    code: int
+    # Woolhaven DLC content - only pooled when Include Woolhaven DLC is on.
+    dlc: bool = False
+
+
+WEAPONS = [
+    EquipmentData("Crusader's Blade", "Sword", offset + 110),
+    EquipmentData("Apostate's Cleaver", "Axe", offset + 111),
+    EquipmentData("Warmaker's Hammer", "Hammer", offset + 112),
+    EquipmentData("Tempest's Gauntlets", "Gauntlet", offset + 113),
+    EquipmentData("Traitor's Razor", "Dagger", offset + 114),
+    EquipmentData("Mayhem's Cannon", "Blunderbuss", offset + 115),
+    EquipmentData("Battler's Bludgeon", "Chain", offset + 116, dlc=True),
+]
+
+CURSES = [
+    EquipmentData("Flaming Shot", "Fireball", offset + 120),
+    EquipmentData("Touch of Turua", "Tentacles", offset + 121),
+    EquipmentData("Divine Blast", "EnemyBlast", offset + 122),
+    EquipmentData("Ichor Thrown", "ProjectileAOE", offset + 123),
+    EquipmentData("Death's Sweep", "MegaSlash", offset + 124),
+]
+
+# Sword_Ratau is left out on purpose: it's a one-off story unlock from Ratau's death that
+# Interaction_Knucklebones also reads as a flag. Teleport and Barrier curses are left out
+# because they enter the pool through sermon upgrades, which are already randomized.
+
+
+def poolable_equipment(equipment: List[EquipmentData], include_woolhaven: bool):
+    return [e for e in equipment if include_woolhaven or not e.dlc]
 
 
 # Every tarot card the game has (DataManager.AllTrinkets, 85 of them), whether or not a seed
@@ -265,17 +305,12 @@ TAROT_CARDS = [
     TarotCardData("Solstice Night", "HeartTarotDrawn", dlc=True),
 ]
 
-# Cards you can only get after beating the vanilla final boss (The One Who Waits).
+# Cards you can only get after beating the vanilla final boss - the Mystic Cellar, which opens
+# afterwards, and the corrupted set from the Goat Statue.
 #
-# Two sources, both strictly post-game:
-#   - the Mystic Cellar, which only opens afterwards;
-#   - the corrupted set, which needs you to die in a post-game crusade and then interact with
-#     the Goat Statue.
-#
-# They are excluded from seeds whose goal doesn't reach the post-game (see
-# goal_reaches_postgame). With a Bishops or Witnesses goal these locations would sit past the
-# win condition - unreachable in AP's eyes, which fails generation outright under Full
-# accessibility rather than merely making a slow seed.
+# Excluded from seeds whose goal doesn't reach the post-game (see goal_reaches_postgame): with a
+# Bishops or Witnesses goal these sit past the win condition, and an unreachable location fails
+# generation outright under Full accessibility.
 POSTGAME_TAROT_CARDS = {
     # Mystic Cellar
     "AdventureMapFreedom", "Recycle", "StrikeBack", "SurpriseAttack", "BossHeal",
@@ -346,13 +381,6 @@ item_table: Dict[str, ItemData] = {
     "Doctrine Unlock": ItemData(offset + 100, ItemClassification.useful, "Doctrine"),
     "Structure Unlock": ItemData(offset + 101, ItemClassification.useful, "Structure"),
 
-    # Base weapons, one per category (Swords/Axes/Hammers/Gauntlets/Daggers).
-    "Crusader's Blade": ItemData(offset + 110, ItemClassification.useful, "Weapon"),
-    "Apostate's Cleaver": ItemData(offset + 111, ItemClassification.useful, "Weapon"),
-    "Warmaker's Hammer": ItemData(offset + 112, ItemClassification.useful, "Weapon"),
-    "Tempest's Gauntlets": ItemData(offset + 113, ItemClassification.useful, "Weapon"),
-    "Traitor's Razor": ItemData(offset + 114, ItemClassification.useful, "Weapon"),
-
     # Relics (single-carry combat items from the free Relics of the Old Faith update).
     "Beads of the Anchorite": ItemData(offset + 130, ItemClassification.useful, "Relic"),
     "Clauneck's Mirror": ItemData(offset + 131, ItemClassification.useful, "Relic"),
@@ -420,6 +448,21 @@ def poolable_tarot_cards(
         and (include_woolhaven or not c.dlc)
         and (include_postgame or not c.postgame)
     ]
+
+
+# Weapons and curses are 'progression', unlike the sermon and tarot items. That isn't a
+# judgement about power - it's that rules.py genuinely references them: "Weapon - Apostate's
+# Cleaver" cannot be checked until Archipelago grants the Axe, because until then the client
+# won't let a podium offer one. An item only earns this classification when a rule names it,
+# and these are the first in this world that do.
+item_table.update({
+    e.display: ItemData(e.code, ItemClassification.progression, "Weapon", e.dlc)
+    for e in WEAPONS
+})
+item_table.update({
+    e.display: ItemData(e.code, ItemClassification.progression, "Curse", e.dlc)
+    for e in CURSES
+})
 
 
 filler_table = [name for name, data in item_table.items() if data.category == "Filler"]

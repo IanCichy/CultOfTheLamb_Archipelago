@@ -25,6 +25,37 @@ Cult of the Lamb:
   # Heavy Attack masteries and relic unlocks - is its own named item.
   randomize_sermon_upgrades: true
 
+  # Randomize which weapon families you can find. Vanilla hands out the Axe, Dagger, Hammer,
+  # Gauntlets, Blunderbuss and Flail on a fixed schedule - the first floor of each run gives
+  # you the next one you don't own. With this on that schedule is Archipelago's instead:
+  # podiums, chests and choice rooms only offer families the multiworld has granted, and
+  # equipping one for the first time sends a check.
+  #
+  # Your save is never edited - existing weapons aren't taken away - so this is safe to turn
+  # on partway through a file. It only changes what gets offered.
+  randomize_weapons: true
+
+  # How many weapon families you begin with (1-7). These get neither a check nor an item, so
+  # each one removes one of each. 1 is the floor: with nothing granted, every weapon podium
+  # in the game would have nothing to put on it.
+  starting_weapons: 1
+
+  # Let Legendary weapons turn up on ordinary weapon podiums, in place of a normal weapon of
+  # a family you already hold. off / rare (~1 offer in 10) / common (~1 in 4) / always.
+  #
+  # WOOLHAVEN ONLY - forced off without include_woolhaven, since Legendaries are DLC content.
+  # No check and no item; nothing is written to your save, and the Blacksmith's Broken Hammer
+  # questline still unlocks them normally.
+  legendary_weapons: off
+
+  # The curse-side counterpart, covering Flaming Shot, Touch of Turua, Divine Blast,
+  # Ichor Thrown and Death's Sweep. Fully independent of randomize_weapons - either, both or
+  # neither. The Teleport and Barrier curses aren't here; they come from sermon upgrades.
+  randomize_curses: true
+
+  # How many curse families you begin with (1-5). Same rules as starting_weapons.
+  starting_curses: 1
+
   # Include content from the paid Woolhaven DLC.
   #
   # Only enable this if you actually own Woolhaven. The client cannot grant DLC content you

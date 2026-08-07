@@ -2,7 +2,7 @@ from typing import Dict, List, NamedTuple, Optional, Set
 
 from BaseClasses import Location
 
-from .items import SERMON_UPGRADES, TAROT_CARDS, tarot_tier
+from .items import CURSES, SERMON_UPGRADES, TAROT_CARDS, WEAPONS, tarot_tier
 
 # Must not overlap worlds/cult_of_the_lamb/items.py's offset range.
 location_offset = 3_051_000
@@ -137,33 +137,21 @@ for _region, _cards in TAROT_SHOP_CARDS.items():
         location_table[f"{TAROT_SHOP_HUBS[_region]} - {_display}"] = \
             LocationData(_region, "TarotShop")
 
-# Unlocking a Tarot Card, however you did it. Every route the game has - finding one in a
-# crusade, a shop purchase, a challenge reward like Ratau's - ends at the same two unlock
-# methods, so the client sends these without knowing or caring which condition fired.
+# Unlocking a Tarot Card, however you did it - every route ends at the same two unlock methods,
+# so the client sends these without knowing which condition fired.
 #
-# "Cult" rather than a crusade region because the earning condition of each card isn't known
-# without tracing all 85, and Cult is always reachable, so nothing here can become unreachable.
-# Same reasoning as the Snail Shrines above.
+# "Cult" rather than a crusade region, because each card's earning condition would mean tracing
+# all 85, and Cult is always reachable so nothing here can become unreachable.
 #
-# Some cards are only earnable through content a given player may never reach (post-game,
-# Woolhaven). That costs a completionist a check and can never block the goal - no card is
-# progression, and the game is beatable with none of them.
+# Three exclusions:
+#   - shop cards, whose slot is already their check - a second location would pay twice;
+#   - post-game cards, whose checks would sit past a Bishops/Witnesses win condition, and an
+#     unreachable location fails generation outright;
+#   - region-tied cards, which live in their region under a separate category so they get real
+#     logic from the region graph and set_depth_rules leaves them alone.
 #
-# Cards sold in the hub shops are skipped: their shop slot is already the check for earning
-# that card, and buying it is the only way the game unlocks it. Giving them a second location
-# here would pay twice for one card - and the second one could never fire anyway, since the
-# client withholds the unlock on a shop purchase.
-#
-# Post-game cards get no location at all. Their checks would sit past the win condition of a
-# Bishops or Witnesses goal, and an unreachable location fails generation rather than just
-# making a slow seed. They come back when a goal that reaches the post-game exists.
-#
-# Cards tied to one crusade region live in that region under a separate category, so they get
-# real logic from the region graph instead of an approximated depth band - and so
-# set_depth_rules leaves them alone.
-#
-# The rest are sorted by how hard they are to earn, because the band a card lands in is its
-# position in this table. Left in the game's own enum order the bands would be meaningless.
+# The rest are sorted by how hard they are to earn, because a card's band is its position in
+# this table - left in the game's enum order the bands would be meaningless.
 _SHOP_CARD_NAMES = {_display for _cards in TAROT_SHOP_CARDS.values() for _display, _ in _cards}
 
 _card_locations = [
@@ -177,6 +165,21 @@ for _card in sorted(_card_locations, key=tarot_tier):
         "TarotCardRegion" if _card.region else "TarotCard",
         _card.dlc,
     )
+
+# Equipping each weapon family and each curse family for the first time this seed.
+#
+# "First equipped", not "first added to the pool", and the difference matters: the pool is
+# real save data that this world never writes to, so on an established save it already
+# contains every weapon and a pool-entry check could never fire again. Equipping is something
+# the player does fresh every seed. See docs/sprints/sprint-0d-equipment-pools.md.
+#
+# They live in "Cult" but never get depth bands - rules.py gates each one on its own item,
+# which is real logic rather than an approximation, and set_depth_rules would overwrite it.
+for _weapon in WEAPONS:
+    location_table[f"Weapon - {_weapon.display}"] = LocationData("Cult", "Weapon", _weapon.dlc)
+
+for _curse in CURSES:
+    location_table[f"Curse - {_curse.display}"] = LocationData("Cult", "Curse", _curse.dlc)
 
 # Append-only: ids come from enumeration order, and the C# client hardcodes the same
 # offsets (see Utilities/CultOfTheLambIds.cs). Reordering this dict silently repoints every

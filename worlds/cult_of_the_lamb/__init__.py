@@ -4,16 +4,19 @@ from BaseClasses import Tutorial
 from worlds.AutoWorld import WebWorld, World
 
 from .items import (
-    SERMON_ITEM_OFFSET, SERMON_ITEM_UPGRADES, CultOfTheLambItem, PROGRESSIVE_REGION_ACCESS,
-    TarotCardData, create_item, filler_table, item_table, offset, poolable_tarot_cards,
-    sermon_item_counts, trap_table, weighted_filler_names,
+    CURSES, SERMON_ITEM_OFFSET, SERMON_ITEM_UPGRADES, WEAPONS, CultOfTheLambItem,
+    EquipmentData, PROGRESSIVE_REGION_ACCESS, TarotCardData, create_item, filler_table,
+    item_table, offset, poolable_equipment, poolable_tarot_cards, sermon_item_counts,
+    trap_table, weighted_filler_names,
 )
 from .locations import (
     FOLLOWER_MILESTONE_COUNT, SNAIL_SHRINE_COUNT, TAROT_SHOP_CARDS, TAROT_SHOP_HUBS,
     location_name_to_id,
     location_table,
 )
-from .options import CultOfTheLambOptions, RegionAccessOrder, StartingTarotPool
+from .options import (
+    CultOfTheLambOptions, LegendaryWeapons, RegionAccessOrder, StartingTarotPool,
+)
 from .regions import REGION_NAMES, SACRIFICE_GATED_REGION, create_regions
 from .rules import set_rules
 
@@ -43,6 +46,7 @@ class CultOfTheLambWorld(World):
     location_name_to_id = location_name_to_id
     item_name_groups = {
         "Weapons": {name for name, data in item_table.items() if data.category == "Weapon"},
+        "Curses": {name for name, data in item_table.items() if data.category == "Curse"},
         "Tarot Cards": {name for name, data in item_table.items() if data.category == "Tarot"},
         "Relics": {name for name, data in item_table.items() if data.category == "Relic"},
         "Sermon Upgrades": {name for name, data in item_table.items() if data.category == "Sermon"},
@@ -62,11 +66,55 @@ class CultOfTheLambWorld(World):
     tarot_cards: List[TarotCardData]
     starting_tarot_cards: List[TarotCardData]
 
+    # Same shape for the weapon and curse families: the seed's set, and the subset the player
+    # begins with. create_regions, set_rules, create_items and fill_slot_data all have to
+    # agree on the pick, so it's made once here.
+    weapons: List[EquipmentData]
+    starting_weapons: List[EquipmentData]
+    curses: List[EquipmentData]
+    starting_curses: List[EquipmentData]
+
     def generate_early(self) -> None:
         self.region_order = self.build_region_order()
         # Expand once rather than per filler item - this is sampled dozens of times per seed.
         self.weighted_filler = weighted_filler_names()
         self.tarot_cards, self.starting_tarot_cards = self.pick_tarot_cards()
+        self.weapons, self.starting_weapons = self.pick_equipment(
+            WEAPONS, self.options.randomize_weapons, self.options.starting_weapons.value)
+        self.curses, self.starting_curses = self.pick_equipment(
+            CURSES, self.options.randomize_curses, self.options.starting_curses.value)
+        self.legendary_weapon_chance = self.pick_legendary_chance()
+
+    def pick_legendary_chance(self) -> float:
+        """How often a weapon offer is upgraded to its family's Legendary, 0 to 1.
+
+        Forced to 0 without Woolhaven: Legendaries are DLC content, and a seed that offered
+        them to a player who doesn't own it would hand out weapons the client can't resolve.
+        """
+        if not self.options.include_woolhaven:
+            return 0.0
+
+        return {
+            LegendaryWeapons.option_off: 0.0,
+            LegendaryWeapons.option_rare: 0.1,
+            LegendaryWeapons.option_common: 0.25,
+            LegendaryWeapons.option_always: 1.0,
+        }[self.options.legendary_weapons.value]
+
+    def pick_equipment(
+        self, families: List[EquipmentData], enabled, starting_count: int
+    ) -> Tuple[List[EquipmentData], List[EquipmentData]]:
+        """A weapon/curse family set, and which of them the player begins holding.
+
+        Clamped rather than an error, matching pick_tarot_cards: asking for 7 starting weapons
+        in a seed without Woolhaven means "all of them", which is the obvious reading.
+        """
+        if not enabled:
+            return [], []
+
+        pool = poolable_equipment(families, bool(self.options.include_woolhaven))
+        count = min(starting_count, len(pool))
+        return pool, self.random.sample(pool, count)
 
     def pick_tarot_cards(self) -> Tuple[List[TarotCardData], List[TarotCardData]]:
         """The seed's card set, and which of them the player starts holding."""
@@ -172,6 +220,15 @@ class CultOfTheLambWorld(World):
             if card.display not in starting:
                 item_pool.append(self.create_item(card.display))
 
+        # One item per family the player doesn't begin with, matching the locations
+        # regions.py created one-for-one.
+        for families, begun in ((self.weapons, self.starting_weapons),
+                                (self.curses, self.starting_curses)):
+            held = {e.display for e in begun}
+            for family in families:
+                if family.display not in held:
+                    item_pool.append(self.create_item(family.display))
+
         # Count the locations actually created rather than the whole table: options can
         # disable whole blocks (sermons, cards, DLC content), and padding to the table size
         # would overfill the pool and fail generation.
@@ -232,20 +289,40 @@ class CultOfTheLambWorld(World):
             "startingTarotCards": [card.internal for card in self.starting_tarot_cards],
             # "Tarot Card - <name>" ids, so the client can turn an unlock into a check.
             #
-            # Cards sold in shops aren't here: their check is the shop slot itself, so the
-            # client withholds those unlocks without sending anything.
-            #
-            # Neither are starting cards. The client keeps Archipelago's cards out of the
-            # game's collection, so the game goes on offering a starting card and the player
-            # can still trigger its unlock - but create_regions never made that location
-            # (regions.py drops the same set), so a check for it would go nowhere. Leaving it
-            # out here makes the client swallow the unlock instead. The two exclusions have to
-            # agree.
+            # Two exclusions, both of which must agree with what regions.py created: shop cards,
+            # whose check is the slot itself, and starting cards, whose unlock the player can
+            # still trigger (their card was never written into the game's collection) but whose
+            # location was never made. Leaving them out makes the client swallow the unlock.
             "tarotCardLocations": {
                 card.internal: location_name_to_id[f"Tarot Card - {card.display}"]
                 for card in self.tarot_cards
                 if card not in self.starting_tarot_cards
                 and f"Tarot Card - {card.display}" in location_name_to_id
+            },
+
+            "randomizeWeapons": bool(self.options.randomize_weapons.value),
+            "randomizeCurses": bool(self.options.randomize_curses.value),
+            # Chance a weapon offer is upgraded to its family's Legendary. Already resolved to
+            # 0 without Woolhaven, so the client needs no DLC check of its own.
+            "legendaryWeaponChance": self.legendary_weapon_chance,
+            # AP item name -> EquipmentType enum name, for every family this seed manages.
+            # This is the set the client filters on: a podium may only offer a family whose
+            # item has arrived, and any variant of it (a Bane Axe rides along with the Axe).
+            "weaponItems": {w.display: w.internal for w in self.weapons},
+            "curseItems": {c.display: c.internal for c in self.curses},
+            # Granted from the start, so they have no item and no location.
+            "startingWeapons": [w.internal for w in self.starting_weapons],
+            "startingCurses": [c.internal for c in self.starting_curses],
+            # EquipmentType enum name -> location id, keyed by enum name because that's what
+            # the client reads off PlayerWeapon.SetWeapon / PlayerSpells.SetSpell. Starting
+            # families are absent, matching the locations regions.py declined to create.
+            "weaponLocations": {
+                w.internal: location_name_to_id[f"Weapon - {w.display}"]
+                for w in self.weapons if w not in self.starting_weapons
+            },
+            "curseLocations": {
+                c.internal: location_name_to_id[f"Curse - {c.display}"]
+                for c in self.curses if c not in self.starting_curses
             },
 
             "snailShrineChecks": bool(self.options.snail_shrine_checks.value),

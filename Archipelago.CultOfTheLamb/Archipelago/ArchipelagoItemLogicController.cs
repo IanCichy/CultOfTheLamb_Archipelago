@@ -17,18 +17,24 @@ public partial class ArchipelagoItemLogicController : IService
     private readonly RegionUnlockService regionUnlockService;
     private readonly SermonService sermonService;
     private readonly TarotService tarotService;
+    private readonly EquipmentPoolService weaponPoolService;
+    private readonly EquipmentPoolService cursePoolService;
     private readonly ConcurrentQueue<long> pendingItemIds = new();
 
     internal ArchipelagoItemLogicController(
         ArchipelagoSession session,
         RegionUnlockService regionUnlockService,
         SermonService sermonService,
-        TarotService tarotService)
+        TarotService tarotService,
+        EquipmentPoolService weaponPoolService,
+        EquipmentPoolService cursePoolService)
     {
         this.session = session;
         this.regionUnlockService = regionUnlockService;
         this.sermonService = sermonService;
         this.tarotService = tarotService;
+        this.weaponPoolService = weaponPoolService;
+        this.cursePoolService = cursePoolService;
     }
 
     public void Register()
@@ -102,14 +108,9 @@ public partial class ArchipelagoItemLogicController : IService
     /// <summary>
     /// Turns a received AP item into an actual game effect.
     ///
-    /// Replayed items are NOT skipped wholesale. Region access and sermon upgrades must be
-    /// re-applied on every connect: RegionUnlockService resets to the seed's first region on
-    /// Register, so without replaying the progressive items the other regions would lock
-    /// themselves again, and SermonService rebuilds its per-chain tier counters the same way.
-    /// Both are idempotent, so replaying them costs nothing.
-    ///
-    /// Only the stacking grants - filler resources, Follower Level Up - are suppressed on
-    /// replay.
+    /// Replayed items are NOT skipped wholesale: the services that reset on Register - regions,
+    /// sermons, equipment - need the replay to rebuild their state, and all of them are
+    /// idempotent. Only the stacking grants (filler, Follower Level Up) are suppressed.
     /// </summary>
     private void ApplyItem(long itemId)
     {
@@ -149,6 +150,11 @@ public partial class ArchipelagoItemLogicController : IService
         // TarotService empties the collection on connect and the item history is what rebuilds
         // it.
         if (tarotService != null && tarotService.TryApplyItem(itemName)) return;
+
+        // Idempotent for the same reason, and it has to replay: the granted set lives only in
+        // memory, so the item history is the only thing that rebuilds it on connect.
+        if (weaponPoolService != null && weaponPoolService.TryApplyItem(itemName)) return;
+        if (cursePoolService != null && cursePoolService.TryApplyItem(itemName)) return;
 
         // --- non-idempotent, suppressed on replay ---
 

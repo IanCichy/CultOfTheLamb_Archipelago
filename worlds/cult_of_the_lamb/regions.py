@@ -35,6 +35,8 @@ def create_regions(world: "CultOfTheLambWorld") -> None:
     # Dropped by name rather than filtered in get_locations_for_region, which keys off category
     # and DLC. Applies to both blocks below, since a starting card can be region-tied.
     starting = {f"Tarot Card - {card.display}" for card in world.starting_tarot_cards}
+    starting |= {f"Weapon - {w.display}" for w in world.starting_weapons}
+    starting |= {f"Curse - {c.display}" for c in world.starting_curses}
 
     cult_categories = set()
     if world.options.randomize_sermon_upgrades:
@@ -45,7 +47,14 @@ def create_regions(world: "CultOfTheLambWorld") -> None:
         cult_categories.add("Snail")
     if world.options.randomize_tarot_cards:
         cult_categories.add("TarotCard")
+    if world.options.randomize_weapons:
+        cult_categories.add("Weapon")
+    if world.options.randomize_curses:
+        cult_categories.add("Curse")
     if cult_categories:
+        # Weapon/curse families the player begins with are dropped for the same reason as
+        # starting tarot cards: you can't earn what you already have. Their names are added
+        # to `starting` above the tarot ones, so one filter covers all three blocks.
         add_locations(cult, [
             name for name in get_locations_for_region(
                 "Cult", include_dlc, categories=cult_categories)

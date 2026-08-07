@@ -46,21 +46,14 @@ internal static class DebugActions
     }
 
     /// <summary>
-    /// F2 - list the sermon upgrades you currently own, to the log.
+    /// F2 - list the sermon upgrades you currently own, to the log. Randomizing sermons removes
+    /// the game's own way of showing this tree.
     ///
-    /// Randomizing sermons removes the game's own way of showing this tree: it's opened from
-    /// exactly two places, SermonController.PlayerUpgrade() (which we suppress) and the Flock
-    /// of the Faithful ritual. The Shrine shows the *building* tree, a different thing.
+    /// Deliberately does NOT open UIUpgradePlayerTreeMenuController: that menu can't be
+    /// dismissed (empty OnCancelButtonInput) and its only exit is DoUnlock(), so opening it to
+    /// "just look" hands out a free upgrade the randomizer never granted.
     ///
-    /// This deliberately does NOT open UIUpgradePlayerTreeMenuController. That menu overrides
-    /// OnCancelButtonInput() with an empty body - it cannot be dismissed - because it's only
-    /// ever meant to be entered when the player is owed a pick. The single way out is
-    /// DoUnlock(), which calls UpgradeSystem.UnlockAbility directly. So opening it to "just
-    /// look" hands out a free upgrade the randomizer never granted, whatever DisciplePoints
-    /// happens to be.
-    ///
-    /// TODO: a real in-game viewer needs to be our own UI, not the game's. Until then this is
-    /// log-only, which is safe but not player-facing.
+    /// TODO: a real in-game viewer needs to be our own UI. Until then this is log-only.
     /// </summary>
     internal static void ListOwnedSermonUpgrades()
     {
@@ -326,18 +319,16 @@ internal static class DebugActions
     }
 
     /// <summary>
-    /// Dumps the three upgrade-tree definitions. This is the authoritative answer to "which
-    /// upgrades are actually sermon upgrades" and "which are Woolhaven-only" - the trees are
-    /// Unity ScriptableObjects, so neither question is answerable from the decompile, and the
-    /// community wiki turned out to be out of date on both.
+    /// Dumps the three upgrade-tree definitions - the authoritative answer to which upgrades are
+    /// sermon upgrades and which are Woolhaven-only. The trees are ScriptableObjects, so neither
+    /// is answerable from the decompile, and the wiki was out of date on both.
     ///
     ///  - UpgradeTreeConfiguration      : the Divine Inspiration building/ritual tree
     ///  - UpgradePlayerConfiguration    : the Temple sermon tree  <- the one we randomize
     ///  - DLCUpgradeTreeConfiguration   : the Woolhaven tree
     ///
-    /// AllUpgradesRequiringUpgrade is the real prerequisite graph, which we don't need for
-    /// granting (UnlockAbility ignores prerequisites) but do want for sanity-checking the
-    /// progressive chains against how the game actually orders them.
+    /// AllUpgradesRequiringUpgrade is the real prerequisite graph - not needed for granting,
+    /// since UnlockAbility ignores prerequisites, but useful for checking the progressive chains.
     /// </summary>
     private static void DumpUpgradeTrees(StringBuilder sb)
     {
@@ -429,18 +420,13 @@ internal static class DebugActions
     }
 
     /// <summary>
-    /// The tech -> building -> tech coupling, and whether it ever forms a cycle.
+    /// The tech -> building -> tech coupling, and whether it ever forms a cycle. If an upgrade's
+    /// required building is itself gated behind that same upgrade, Archipelago can't gate both
+    /// systems in one seed without generating something unwinnable - Sprints 0e and 7 both
+    /// depend on the answer, and it isn't readable from the decompile.
     ///
-    /// StructuresData.GetUnlocked(TYPES) gates each buildable behind an UpgradeSystem.Type, and
-    /// UpgradeSystem.GetRequiredBuilding(Type) says some upgrades need a *built structure*
-    /// first. If an upgrade's required building is itself gated behind that same upgrade -
-    /// directly or through the prerequisite graph - then Archipelago cannot gate both systems
-    /// in one seed without generating something unwinnable. Sprint 0e/7 both depend on the
-    /// answer, and it isn't readable from the decompile.
-    ///
-    /// Only direct and one-hop relationships are reported. That is deliberately short of a
-    /// full transitive closure: a wrong "no cycles" from a half-right traversal is worse than
-    /// an honest list someone can read.
+    /// Only direct and one-hop relationships are reported: a wrong "no cycles" from a half-right
+    /// traversal is worse than an honest list someone can read.
     /// </summary>
     private static void DumpStructureCoupling(StringBuilder sb)
     {
@@ -554,6 +540,31 @@ internal static class DebugActions
         }
     }
 
+    /// <summary>
+    /// What the weapon and curse pools look like from both sides. The game's own pool is
+    /// printed in full because the claim being verified is that it's *never written to* -
+    /// compare the line before and after a session.
+    /// </summary>
+    private static void DumpEquipmentPools(ArchipelagoClient ap)
+    {
+        foreach (var service in new[] { ap?.WeaponPoolService, ap?.CursePoolService })
+        {
+            if (service != null) Log.LogInfo($"[AP] {service.DescribeState()}");
+        }
+
+        if (ap?.WeaponPoolService != null || ap?.CursePoolService != null) return;
+
+        // Still worth printing when the options are off, since the invariant above is about
+        // the game's data rather than about our state.
+        var dataManager = DataManager.Instance;
+        if (dataManager == null) return;
+
+        Log.LogInfo($"[AP] Equipment randomization off. WeaponPool "
+            + $"({dataManager.WeaponPool.Count}): {string.Join(", ", dataManager.WeaponPool)}");
+        Log.LogInfo($"[AP] CursePool ({dataManager.CursePool.Count}): "
+            + string.Join(", ", dataManager.CursePool));
+    }
+
     /// <summary>F9 - dump client + game boss state to the log.</summary>
     internal static void DumpState(ArchipelagoClient ap)
     {
@@ -573,23 +584,18 @@ internal static class DebugActions
 
         DumpGameBossState();
         DumpTarotState();
+        DumpEquipmentPools(ap);
         DumpMiniBossesInScene();
         DumpSnailShrines();
         Log.LogInfo("[AP] ---- end dump ----");
     }
 
     /// <summary>
-    /// The one thing that can't be read from the log or the debt store: whether the managed
-    /// collection's invariant actually holds right now.
-    ///
-    /// While connected, the game's own collection must contain **zero** cards Archipelago
-    /// manages - that is the whole point of holding them outside it, and it's what keeps every
-    /// unlock trigger live. If ManagedCollection.Tick() ever stops sweeping, managed cards
-    /// reappear here as real unlocks and their checks are stranded - silently, because the
-    /// sweep only logs cards it hasn't already accounted for.
-    ///
-    /// Granted cards are read through TarotVisibility rather than the service, since that
-    /// static is already the sanctioned way to see them and needs no new state exposed.
+    /// The one thing the log and the debt store can't tell you: whether the managed collection's
+    /// invariant holds right now. While connected the game's own collection must contain zero
+    /// managed cards - if ManagedCollection.Tick() stops sweeping they reappear as real unlocks
+    /// and their checks are stranded, silently, since the sweep only logs what it hasn't already
+    /// accounted for.
     /// </summary>
     private static void DumpTarotState()
     {
@@ -697,16 +703,11 @@ internal static class DebugActions
         sprite == null ? "(none)" : $"\"{sprite.name}\" bounds={sprite.bounds.size}";
 
     /// <summary>
-    /// F1 - dumps every shop in the current scene and the renderer hierarchy behind each slot.
-    ///
-    /// Exists because a shop slot's art has no single source: item and decoration stalls get
-    /// theirs from InventoryItemDisplay.SetImage, but tarot slots never call it - InitTarotShop
-    /// guards that call with itemToBuy != NONE, which is never true for a card - so their card
-    /// art is authored on the prefab and only findable by walking the hierarchy. ShopIconService
-    /// takes the slot's own SpriteRenderer first and the first child one otherwise; this is how
-    /// you check that guess picked the card and not a shadow or a highlight decal.
-    ///
-    /// Press it standing in a hub shop (F1).
+    /// F1 (standing in a hub shop) - dumps every shop in the scene and the renderer hierarchy
+    /// behind each slot. A slot's art has no single source: stalls get theirs from
+    /// InventoryItemDisplay.SetImage, but tarot slots never call it, so their card art is
+    /// authored on the prefab and only findable by walking the hierarchy. This is how you check
+    /// ShopIconService's guess picked the card and not a shadow or a highlight decal.
     /// </summary>
     internal static void DumpShopSlots()
     {
