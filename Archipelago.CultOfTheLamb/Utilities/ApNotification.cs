@@ -6,20 +6,18 @@ namespace Archipelago.CultOfTheLamb;
 /// <summary>
 /// Shows an in-game popup with arbitrary text.
 ///
-/// NotificationCentre.PlayGenericNotification(locKey, flair) takes an **I2 localization key,
-/// not display text**, and I2 returns null for an unregistered term with no fallback
-/// (LocalizationManager.cs:1019) - so passing raw English produces a *blank* popup. Both
-/// reference mods (williambsm/COTL.Archipelago, firebirdjsb/cheat-menu-cotl) pass raw English
-/// and are almost certainly showing empty notifications.
+/// NotificationCentre.PlayGenericNotification(locKey, flair) takes an **I2 localization key, not
+/// display text**, and I2 returns null for an unregistered term with no fallback
+/// (LocalizationManager.cs:1019) - so passing raw English produces a *blank* popup.
 ///
-/// The fix is to register the term at runtime first, then pass the key. Registration uses
-/// SaveSource: false so we never write into the game's shipped localization asset, and the
-/// translation is set for *every* language slot so the popup still reads correctly if the
-/// player isn't playing in English.
+/// So the term is registered at runtime first, with SaveSource: false to avoid writing into the
+/// game's shipped asset, and translated into every language slot.
 /// </summary>
 internal static class ApNotification
 {
-    private const string TermPrefix = "Archipelago/Runtime/";
+    // Internal because it is also how NotificationStylePatch tells our popups from the game's:
+    // Configure only ever sees the loc key, never the display text.
+    internal const string TermPrefix = "Archipelago/Runtime/";
 
     // Terms we've already registered this process. I2 lookups are dictionary-backed, but
     // AddTerm does more work than a lookup, and this also keeps the key stable per message.
