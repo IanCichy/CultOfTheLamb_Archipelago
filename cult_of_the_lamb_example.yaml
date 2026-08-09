@@ -40,12 +40,40 @@ Cult of the Lamb:
   # in the game would have nothing to put on it.
   starting_weapons: 1
 
+  # Divine Inspiration - the buildings/rituals tree at the Shrine. 69 upgrades, 69 checks.
+  # The check fires when you FILL THE DEVOTION METER - the Nth point earned is the Nth check -
+  # not when you spend it. Same shape as the sermon bar.
+  #
+  # off               : no interaction.
+  # checks_only       : filling the meter sends a check and you keep the point, as in vanilla.
+  # checks_and_points : filling the meter sends a check and the point is taken; points come
+  #                     back from Archipelago to spend on whatever you like.
+  # checks_and_techs  : the point is taken and never returns; Archipelago grants the upgrades
+  #                     directly. The only mode where the multiworld knows what you hold.
+  divine_inspiration_mode: checks_and_points
+
+  # Most Devotion one ability point may cost. 0 = leave the game's economy alone.
+  #
+  # Vanilla climbs to 465 per point, so all 69 cost ~24,000 Devotion - a completionist number.
+  # Since every check is a filled meter, uncapped puts most of this block out of reach.
+  #   cap 200 -> ~12,300   cap 150 -> ~9,400   cap 100 -> ~6,500   cap 65 -> ~4,300
+  divine_inspiration_devotion_cap: 100
+
+  # Rearranges which tier each upgrade sits in. Logic-neutral - the tier gate is a count, not a
+  # prerequisite chain - so it combines freely with any mode above.
+  #
+  # default / random_except_first (tier 1 frozen) / true_random.
+  # The five central nodes (Temple, Cult II, Refinery, Cult III, Cult IV) always stay put:
+  # each must be bought to open the next tier.
+  divine_inspiration_shuffle: default
+
   # Let Legendary weapons turn up on ordinary weapon podiums, in place of a normal weapon of
   # a family you already hold. off / rare (~1 offer in 10) / common (~1 in 4) / always.
   #
   # WOOLHAVEN ONLY - forced off without include_woolhaven, since Legendaries are DLC content.
-  # No check and no item; nothing is written to your save, and the Blacksmith's Broken Hammer
-  # questline still unlocks them normally.
+  # No check and no item, and the Blacksmith's Broken Hammer questline still unlocks them
+  # normally. Note picking one up does add it to your weapon pool for good - the game records
+  # whatever you collect - so its plinth will display it early.
   legendary_weapons: off
 
   # The curse-side counterpart, covering Flaming Shot, Touch of Turua, Divine Blast,
