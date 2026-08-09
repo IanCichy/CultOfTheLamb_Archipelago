@@ -299,9 +299,25 @@ public partial class ArchipelagoClient
             CursePoolService.Register();
         }
 
+        var diMode = (int)GetLong(successResult.SlotData, "divineInspirationMode");
+        if (diMode != DivineInspirationService.ModeOff)
+        {
+            DivineInspirationService = new DivineInspirationService(
+                session,
+                diMode,
+                GetLong(successResult.SlotData, "divineInspirationLocationBaseId"),
+                (int)GetLong(successResult.SlotData, "divineInspirationLocationCount"),
+                DivineInspirationService.ParseUpgrades(successResult.SlotData),
+                GetString(successResult.SlotData, "divineInspirationPointItem"),
+                (int)GetLong(successResult.SlotData, "divineInspirationShuffle"),
+                (int)GetLong(successResult.SlotData, "divineInspirationShuffleSeed"),
+                (int)GetLong(successResult.SlotData, "divineInspirationDevotionCap"));
+            DivineInspirationService.Register();
+        }
+
         ItemLogic = new ArchipelagoItemLogicController(
             session, RegionUnlockService, SermonService, TarotService,
-            WeaponPoolService, CursePoolService);
+            WeaponPoolService, CursePoolService, DivineInspirationService);
         ItemLogic.Register();
     }
 
@@ -400,6 +416,9 @@ public partial class ArchipelagoClient
     private static float GetFloat(IReadOnlyDictionary<string, object> slotData, string key) =>
         slotData.TryGetValue(key, out var value) ? Convert.ToSingle(value) : 0f;
 
+    private static string GetString(IReadOnlyDictionary<string, object> slotData, string key) =>
+        slotData.TryGetValue(key, out var value) ? value?.ToString() : null;
+
     /// <summary>
     /// Unsubscribes session-level events and nulls the session.
     /// Optionally disconnects the socket if still connected.
@@ -435,6 +454,8 @@ public partial class ArchipelagoClient
         WeaponPoolService = null;
         CursePoolService?.Unregister();
         CursePoolService = null;
+        DivineInspirationService?.Unregister();
+        DivineInspirationService = null;
         ItemLogic?.Unregister();
         ItemLogic = null;
 

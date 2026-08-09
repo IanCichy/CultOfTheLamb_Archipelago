@@ -1,21 +1,24 @@
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from BaseClasses import Tutorial
 from worlds.AutoWorld import WebWorld, World
 
 from .items import (
-    CURSES, SERMON_ITEM_OFFSET, SERMON_ITEM_UPGRADES, WEAPONS, CultOfTheLambItem,
-    EquipmentData, PROGRESSIVE_REGION_ACCESS, TarotCardData, create_item, filler_table,
-    item_table, offset, poolable_equipment, poolable_tarot_cards, sermon_item_counts,
-    trap_table, weighted_filler_names,
+    CURSES, DI_POINT, DI_TIER_THRESHOLDS, DIVINE_INSPIRATION, SERMON_ITEM_OFFSET,
+    SERMON_ITEM_UPGRADES, WEAPONS, CultOfTheLambItem, EquipmentData,
+    PROGRESSIVE_REGION_ACCESS, TarotCardData, create_item, filler_table, item_table, offset,
+    poolable_equipment, poolable_tarot_cards, sermon_item_counts, trap_table,
+    weighted_filler_names,
 )
 from .locations import (
-    FOLLOWER_MILESTONE_COUNT, SNAIL_SHRINE_COUNT, TAROT_SHOP_CARDS, TAROT_SHOP_HUBS,
+    DIVINE_INSPIRATION_COUNT, FOLLOWER_MILESTONE_COUNT, SNAIL_SHRINE_COUNT, TAROT_SHOP_CARDS,
+    TAROT_SHOP_HUBS,
     location_name_to_id,
     location_table,
 )
 from .options import (
-    CultOfTheLambOptions, LegendaryWeapons, RegionAccessOrder, StartingTarotPool,
+    CultOfTheLambOptions, DivineInspirationMode, LegendaryWeapons, RegionAccessOrder,
+    StartingTarotPool,
 )
 from .regions import REGION_NAMES, SACRIFICE_GATED_REGION, create_regions
 from .rules import set_rules
@@ -50,6 +53,9 @@ class CultOfTheLambWorld(World):
         "Tarot Cards": {name for name, data in item_table.items() if data.category == "Tarot"},
         "Relics": {name for name, data in item_table.items() if data.category == "Relic"},
         "Sermon Upgrades": {name for name, data in item_table.items() if data.category == "Sermon"},
+        "Divine Inspiration": {
+            name for name, data in item_table.items() if data.category == "DivineInspiration"
+        },
     }
 
     web = CultOfTheLambWeb()
@@ -176,6 +182,29 @@ class CultOfTheLambWorld(World):
         return self.random.sample(REGION_NAMES, len(REGION_NAMES))
 
     @property
+    def divine_inspiration_enabled(self) -> bool:
+        """Whether this seed creates the 69 Divine Inspiration locations."""
+        return self.options.divine_inspiration_mode != DivineInspirationMode.option_off
+
+    @property
+    def divine_inspiration_gives_items(self) -> Optional[List[str]]:
+        """The item names that buy Divine Inspiration unlocks, or None if this mode has none.
+
+        A one-element list means many copies of one item (checks_and_points); a longer one means
+        one copy each (checks_and_techs). rules.py branches on the length, and create_items
+        builds the pool from the same answer so the two can't disagree.
+        """
+        mode = self.options.divine_inspiration_mode
+
+        if mode == DivineInspirationMode.option_checks_and_points:
+            return [DI_POINT]
+        if mode == DivineInspirationMode.option_checks_and_techs:
+            return [u.display for u in DIVINE_INSPIRATION]
+
+        # off and checks_only: the player keeps their own ability points.
+        return None
+
+    @property
     def goal_reaches_postgame(self) -> bool:
         """Whether finishing this seed takes the player past the vanilla final boss.
 
@@ -228,6 +257,17 @@ class CultOfTheLambWorld(World):
             for family in families:
                 if family.display not in held:
                     item_pool.append(self.create_item(family.display))
+
+        # One item per Divine Inspiration location, so spending them all is exactly enough to
+        # clear the block and the pool never has to compete with filler for room.
+        di_items = self.divine_inspiration_gives_items
+        if di_items is not None:
+            if len(di_items) == 1:
+                for _ in range(DIVINE_INSPIRATION_COUNT):
+                    item_pool.append(self.create_item(di_items[0]))
+            else:
+                for name in di_items:
+                    item_pool.append(self.create_item(name))
 
         # Count the locations actually created rather than the whole table: options can
         # disable whole blocks (sermons, cards, DLC content), and padding to the table size
@@ -324,6 +364,28 @@ class CultOfTheLambWorld(World):
                 c.internal: location_name_to_id[f"Curse - {c.display}"]
                 for c in self.curses if c not in self.starting_curses
             },
+
+            "divineInspirationMode": self.options.divine_inspiration_mode.value,
+            "divineInspirationShuffle": self.options.divine_inspiration_shuffle.value,
+            # Most Devotion one ability point may cost; 0 leaves the game's curve alone. The
+            # client clamps DataManager.GetTargetXP to this.
+            "divineInspirationDevotionCap":
+                self.options.divine_inspiration_devotion_cap.value,
+            # "Divine Inspiration N" ids are contiguous from here, so the client turns a count
+            # of tree unlocks straight into a check id - same shape as the sermon block.
+            "divineInspirationLocationBaseId": location_name_to_id["Divine Inspiration 1"],
+            "divineInspirationLocationCount": DIVINE_INSPIRATION_COUNT,
+            # AP item name -> UpgradeSystem.Type, for checks_and_techs. Sent rather than
+            # hardcoded client-side for the same reason as sermonUpgrades: these are
+            # ScriptableObject data, and the two sides drifting would be silent.
+            "divineInspirationUpgrades": {u.display: u.internal for u in DIVINE_INSPIRATION},
+            # The item that carries one ability point in checks_and_points.
+            "divineInspirationPointItem": DI_POINT,
+            # Cumulative unlocks per tier, so a shuffle can rebuild the tree without the client
+            # having to re-derive thresholds it would only get wrong.
+            "divineInspirationTierThresholds": DI_TIER_THRESHOLDS,
+            # Deterministic per seed so a reconnect rebuilds the identical tree.
+            "divineInspirationShuffleSeed": self.random.getrandbits(31),
 
             "snailShrineChecks": bool(self.options.snail_shrine_checks.value),
             # ShellsGifted_0.._4 map to contiguous ids from here.

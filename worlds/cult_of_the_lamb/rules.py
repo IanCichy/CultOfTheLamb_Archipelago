@@ -45,6 +45,24 @@ def set_rules(world: "CultOfTheLambWorld") -> None:
         if world.options.randomize_tarot_cards:
             set_depth_rules(world, "TarotCard")
 
+        # Bands in every mode. The checks fire on filling the Devotion meter, which is pure
+        # play time - no item this world hands out makes it fill faster - so there is nothing
+        # to write a real rule against, in any mode.
+        #
+        # exclude_tail=False, uniquely. Two reasons, and the first is a hard constraint:
+        #
+        # - At 69 locations the deepest band is 18 of them, and this block brings exactly as
+        #   many items as it has locations (69 points, or 69 techs), so it contributes no
+        #   filler of its own to pay for them. Excluding the tail overdraws the seed's filler
+        #   and generation fails outright with "not enough filler items for excluded
+        #   locations".
+        # - Nothing can be *blocked* down there anyway. The deepest band already requires every
+        #   Progressive Bishop's Domain copy, so an item placed at "Divine Inspiration 65" can't
+        #   gate anything the player hasn't already reached - it would only be tedious, not
+        #   unwinnable, and the band rule alone keeps it out of the early spheres.
+        if world.divine_inspiration_enabled:
+            set_depth_rules(world, "DivineInspiration", exclude_tail=False)
+
     # Deliberately outside the `regions_are_gated` block above, and deliberately not using
     # set_depth_rules: these have real logic rather than an approximated band, so they hold up
     # in an all_unlocked seed too. set_rule overwrites rather than composes, so a location can
@@ -53,6 +71,7 @@ def set_rules(world: "CultOfTheLambWorld") -> None:
         set_equipment_rules(world, "Weapon", world.weapons, world.starting_weapons)
     if world.options.randomize_curses:
         set_equipment_rules(world, "Curse", world.curses, world.starting_curses)
+
 
     # Reaching a Bishop/Witness location implies being equipped to beat them (the standard
     # AP assumption that "can reach" == "can complete"), so victory is defined by reachable
@@ -97,7 +116,9 @@ def set_equipment_rules(world: "CultOfTheLambWorld", prefix, families, starting)
         )
 
 
-def set_depth_rules(world: "CultOfTheLambWorld", category: str) -> None:
+def set_depth_rules(
+    world: "CultOfTheLambWorld", category: str, exclude_tail: bool = True
+) -> None:
     """Spread a repeatable check block across spheres, and keep progression out of its tail.
 
     These blocks all live in "Cult", which is free from seed start, so without this every one
@@ -164,5 +185,5 @@ def set_depth_rules(world: "CultOfTheLambWorld", category: str) -> None:
                 ),
             )
 
-        if required == _MAX_REGION_COPIES:
+        if required == _MAX_REGION_COPIES and exclude_tail:
             location.progress_type = LocationProgressType.EXCLUDED

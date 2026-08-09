@@ -35,6 +35,8 @@ public partial class ArchipelagoClient : IDisposable
     internal EquipmentPoolService WeaponPoolService { get; private set; }
     internal EquipmentPoolService CursePoolService { get; private set; }
 
+    internal DivineInspirationService DivineInspirationService { get; private set; }
+
     public ArchipelagoItemLogicController ItemLogic;
 
     private ArchipelagoSession session;

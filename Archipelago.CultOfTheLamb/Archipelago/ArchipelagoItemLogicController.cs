@@ -19,6 +19,7 @@ public partial class ArchipelagoItemLogicController : IService
     private readonly TarotService tarotService;
     private readonly EquipmentPoolService weaponPoolService;
     private readonly EquipmentPoolService cursePoolService;
+    private readonly DivineInspirationService divineInspirationService;
     private readonly ConcurrentQueue<long> pendingItemIds = new();
 
     internal ArchipelagoItemLogicController(
@@ -27,8 +28,10 @@ public partial class ArchipelagoItemLogicController : IService
         SermonService sermonService,
         TarotService tarotService,
         EquipmentPoolService weaponPoolService,
-        EquipmentPoolService cursePoolService)
+        EquipmentPoolService cursePoolService,
+        DivineInspirationService divineInspirationService)
     {
+        this.divineInspirationService = divineInspirationService;
         this.session = session;
         this.regionUnlockService = regionUnlockService;
         this.sermonService = sermonService;
@@ -155,6 +158,15 @@ public partial class ArchipelagoItemLogicController : IService
         // memory, so the item history is the only thing that rebuilds it on connect.
         if (weaponPoolService != null && weaponPoolService.TryApplyItem(itemName)) return;
         if (cursePoolService != null && cursePoolService.TryApplyItem(itemName)) return;
+
+        // Handles its own replay rule rather than sitting on either side of the line: granting a
+        // tech is a set Add and must replay, but granting an ability point is a counter and
+        // must not.
+        if (divineInspirationService != null
+            && divineInspirationService.TryApplyItem(itemName, isReplay))
+        {
+            return;
+        }
 
         // --- non-idempotent, suppressed on replay ---
 

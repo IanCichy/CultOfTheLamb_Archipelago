@@ -187,10 +187,17 @@ class LegendaryWeapons(Choice):
     A Legendary can only appear for a family you already hold, so this makes the weapons you
     have better rather than handing you one you can't otherwise use.
 
-    Nothing is written to your save and no check or item is involved - the Legendary is simply
-    offered in place of a normal weapon. Your Blacksmith questline is untouched and still
-    unlocks them properly, which is deliberate: writing them into the weapon pool is what
-    would break the Legendary plinths and job-board objectives.
+    No check and no item - the Legendary is simply offered in place of a normal weapon, and the
+    Blacksmith's Broken Hammer questline still unlocks them properly. Claiming one from a plinth
+    goes through `LegendaryWeaponsJobBoardCompleted`, which this never touches.
+
+    One side effect, verified in play: **picking a substituted Legendary up does add it to your
+    weapon pool permanently**, because the game's own pickup code records whatever you collect
+    (`Interaction_WeaponSelectionPodium.cs:866`). The client doesn't write that - it hands the
+    game a weapon and the game writes it. Consequences are small: its Woolhaven plinth displays
+    the weapon early (you still can't claim it), and collecting all seven this way would pop the
+    ALL_LEGENDARY_WEAPONS achievement without the questlines. It also persists after you stop
+    using the mod, which the project's save policy puts out of scope.
 
     off: vanilla. Legendaries only from the Blacksmith.
     rare: roughly 1 weapon offer in 10.
@@ -228,6 +235,106 @@ class StartingCurses(Range):
     default = 1
 
 
+class DivineInspirationMode(Choice):
+    """How Archipelago interacts with the Divine Inspiration tree - the buildings-and-rituals
+    tree you open at the Shrine, not the Temple sermon tree.
+
+    69 upgrades across 5 tiers, and 69 checks. **The check fires when you fill the Devotion
+    meter** - the Nth ability point you earn is the Nth check - not when you spend it. Earning
+    the point is the thing you did; spending it is a menu click. Same shape as the sermon bar.
+
+    See Divine Inspiration Devotion Cap: without it, all 69 points cost ~24,000 Devotion and
+    most of this block is out of reach in a normal seed.
+
+    off: no interaction at all. The tree behaves exactly as vanilla.
+
+    checks_only: filling the meter sends a check and you keep the point, exactly as in vanilla.
+      69 checks, no items.
+
+    checks_and_points: filling the meter sends a check and the point is taken. Points arrive
+      from Archipelago instead, and you spend them on whatever you like. 69 points go out as
+      checks and 69 come back as items, so the totals match vanilla - they just arrive in
+      bursts, on the multiworld's schedule rather than one-for-one.
+
+    checks_and_techs: the point is taken and never comes back; Archipelago grants the upgrades
+      directly. The only mode where the multiworld knows exactly which upgrades you hold, which
+      matters for anything later that wants to gate on a specific building. The cost is that you
+      never choose anything - the tree unlocks itself.
+
+    checks_and_points is the default because it keeps the part of the tree that's actually a
+    decision: which upgrade you want next.
+
+    None of these add logical length - nothing Archipelago hands out makes the meter fill
+    faster - so the block spreads across spheres via the depth bands, like the sermon block.
+
+    Independent of Divine Inspiration Shuffle - any combination is a legal seed."""
+    display_name = "Divine Inspiration Mode"
+    option_off = 0
+    option_checks_only = 1
+    option_checks_and_points = 2
+    option_checks_and_techs = 3
+    default = 2
+
+
+class DivineInspirationDevotionCap(Range):
+    """The most Devotion a single ability point is allowed to cost.
+
+    Vanilla's cost curve runs 1, 13, 29, 45 ... and climbs to 465, where it stays. Earning all
+    69 points therefore costs roughly **24,000 Devotion** - a completionist number, not
+    something you finish in one seed. Since every one of the 69 checks is a filled meter, that
+    would leave most of the block unreachable in practice.
+
+    Capping the cost keeps the early curve exactly as the game wrote it and only flattens the
+    expensive tail:
+
+    | Cap | Devotion for all 69 |
+    |-----|---------------------|
+    | 0 (off) | ~24,000 |
+    | 200 | ~12,300 |
+    | 150 | ~9,400 |
+    | 100 | ~6,500 |
+    | 65  | ~4,300 |
+
+    100 is the default: all 69 points for about what 30 costs in vanilla.
+
+    Set 0 to leave the game's economy completely alone - fine if you want a very long seed, or
+    if you're not using Divine Inspiration checks at all.
+
+    Side benefit: the game triples the cost of every point once nothing is left to unlock
+    (`AllUnlockedMultiplier`). The cap is applied after that multiplier, so it flattens that
+    cliff too."""
+    display_name = "Divine Inspiration Devotion Cap"
+    range_start = 0
+    range_end = 465
+    default = 100
+
+
+class DivineInspirationShuffle(Choice):
+    """Rearranges which tier each Divine Inspiration upgrade sits in.
+
+    Purely a layout change - it moves upgrades between rows of the tree without changing what
+    Archipelago checks or grants, because the tier gate is a *count* ("have you bought 10
+    things") rather than a prerequisite chain. That's why this is safe to combine with any
+    Divine Inspiration Mode.
+
+    default: the game's own layout.
+
+    random_except_first: tier 1 is frozen - the Temple, the starting bed, the rest of row 1 stay
+      put - and the other four tiers are reshuffled. The safer choice: an unchanged opening.
+
+    true_random: every upgrade is reassigned a tier, so Crypt III can turn up in row 1 and
+      Sleeping Bags in row 5. The wild one - fine, but a very different opening.
+
+    Either way the five central nodes (Temple, Cult II, Refinery, Cult III, Cult IV) stay in
+    their own tier. Each must be bought to open the next tier, so moving one would make that
+    tier permanently unopenable."""
+    display_name = "Divine Inspiration Shuffle"
+    option_default = 0
+    option_random_except_first = 1
+    option_true_random = 2
+    default = 0
+
+
 @dataclass
 class CultOfTheLambOptions(PerGameCommonOptions):
     goal: Goal
@@ -246,4 +353,7 @@ class CultOfTheLambOptions(PerGameCommonOptions):
     legendary_weapons: LegendaryWeapons
     randomize_curses: RandomizeCurses
     starting_curses: StartingCurses
+    divine_inspiration_mode: DivineInspirationMode
+    divine_inspiration_shuffle: DivineInspirationShuffle
+    divine_inspiration_devotion_cap: DivineInspirationDevotionCap
     trap_percentage: TrapPercentage

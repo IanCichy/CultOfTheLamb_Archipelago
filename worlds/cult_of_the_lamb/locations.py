@@ -2,7 +2,9 @@ from typing import Dict, List, NamedTuple, Optional, Set
 
 from BaseClasses import Location
 
-from .items import CURSES, SERMON_UPGRADES, TAROT_CARDS, WEAPONS, tarot_tier
+from .items import (
+    CURSES, DIVINE_INSPIRATION, SERMON_UPGRADES, TAROT_CARDS, WEAPONS, tarot_tier,
+)
 
 # Must not overlap worlds/cult_of_the_lamb/items.py's offset range.
 location_offset = 3_051_000
@@ -180,6 +182,23 @@ for _weapon in WEAPONS:
 
 for _curse in CURSES:
     location_table[f"Curse - {_curse.display}"] = LocationData("Cult", "Curse", _curse.dlc)
+
+# Divine Inspiration unlocks. Sequential - the Nth upgrade unlocked in that tree is the Nth
+# check - rather than one named location per upgrade, because that shape is the only one that
+# works in all four divine_inspiration_mode values. In checks_and_techs the player never picks
+# anything (Archipelago grants the techs), so a per-upgrade location would fire for whatever the
+# multiworld happened to hand over rather than for anything the player did.
+#
+# It also sidesteps the tree's prerequisites entirely: 11 of the 69 sit behind external systems
+# (PleasureSystem, TailorSystem, DiscipleSystem, System_PlayerTent), which would each need real
+# logic if the locations were named. Sequentially, the player just unlocks 69 things in whatever
+# order the game allows.
+#
+# Same reasoning as "Sermon Upgrade N", which this deliberately mirrors.
+DIVINE_INSPIRATION_COUNT = len(DIVINE_INSPIRATION)
+
+for _n in range(1, DIVINE_INSPIRATION_COUNT + 1):
+    location_table[f"Divine Inspiration {_n}"] = LocationData("Cult", "DivineInspiration")
 
 # Append-only: ids come from enumeration order, and the C# client hardcodes the same
 # offsets (see Utilities/CultOfTheLambIds.cs). Reordering this dict silently repoints every

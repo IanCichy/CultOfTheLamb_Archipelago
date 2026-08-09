@@ -189,6 +189,111 @@ def poolable_equipment(equipment: List[EquipmentData], include_woolhaven: bool):
     return [e for e in equipment if include_woolhaven or not e.dlc]
 
 
+# The Divine Inspiration tree - the buildings-and-rituals tree opened at the Shrine, not the
+# Temple sermon tree. 69 upgrades across 5 tiers, all read from a live F4 dump rather than
+# guessed: they're Unity ScriptableObject data and aren't in the decompile at all.
+#
+# Tier access is a *count*, not a prerequisite chain: UpgradeTreeNode.cs:296 gates a tier on
+# NumUnlockedUpgrades() >= a cumulative threshold, so "have you bought K things" rather than
+# "have you bought these things". That's what makes DI a real sphere source - see rules.py.
+#
+# Order here is tier order, which defines the item ids (DI_ITEM_OFFSET + index) and must stay
+# append-only.
+DI_ITEM_OFFSET = 700
+
+# Cumulative unlocks needed to reach each tier, from the same dump. Tier 1 is free.
+DI_TIER_THRESHOLDS = [0, 4, 10, 20, 25]
+
+
+class DivineInspirationData(NamedTuple):
+    display: str
+    internal: str
+    tier: int  # 1-5
+
+
+DIVINE_INSPIRATION = [
+    # Tier 1 - 6 members, free from the start.
+    DivineInspirationData("Temple", "Building_Temple", 1),
+    DivineInspirationData("Farming Bundle", "Building_FollowerFarming", 1),
+    DivineInspirationData("Farm Plot", "Building_Farms", 1),
+    DivineInspirationData("Sleeping Bags", "Building_Beds", 1),
+    DivineInspirationData("Body Pit", "Building_BodyPit", 1),
+    DivineInspirationData("Tailor", "Building_Tailor", 1),
+    # Tier 2 - 11 members, opens at 4 unlocks.
+    DivineInspirationData("Cult II", "Building_Temple2", 2),
+    DivineInspirationData("Demonic Summoning Circle", "Building_DemonSummoner", 2),
+    DivineInspirationData("Lumberyard", "Economy_Lumberyard", 2),
+    DivineInspirationData("Stone Mine", "Economy_Mine", 2),
+    DivineInspirationData("Scarecrow", "Building_AdvancedFarming", 2),
+    DivineInspirationData("Missionary", "Building_Missionary", 2),
+    DivineInspirationData("Basic Decorations", "Building_Decorations1", 2),
+    DivineInspirationData("Shelter", "Building_BetterBeds", 2),
+    DivineInspirationData("Prison", "Building_Prison", 2),
+    DivineInspirationData("Offering Statue", "Shrine_OfferingStatue", 2),
+    DivineInspirationData("Tabernacle", "Shrine_PassiveShrines", 2),
+    # Tier 3 - 14 members, opens at 10.
+    DivineInspirationData("Refinery", "Economy_Refinery", 3),
+    DivineInspirationData("Demonic Summoning Circle II", "Building_DemonSummoner_2", 3),
+    DivineInspirationData("Missionary II", "Building_MissionaryII", 3),
+    DivineInspirationData("Harvest Totem", "Building_HarvestTotem", 3),
+    DivineInspirationData("Fertiliser Silo", "Building_SiloFertiliser", 3),
+    DivineInspirationData("Healing Bay", "Building_HealingBay", 3),
+    DivineInspirationData("Outhouse", "Building_Outhouse", 3),
+    DivineInspirationData("Janitor Station", "Building_JanitorStation", 3),
+    DivineInspirationData("Confession Booth", "Building_ConfessionBooth", 3),
+    DivineInspirationData("Propaganda Speakers", "Building_PropagandaSpeakers", 3),
+    DivineInspirationData("Shrine Flame Bundle", "Shrine_Flame", 3),
+    DivineInspirationData("Cheaper Rituals", "Temple_CheaperRituals", 3),
+    DivineInspirationData("Crypt I", "Building_Crypt_1", 3),
+    DivineInspirationData("Empowered Shrine of Disciples", "Building_Shrine_Disciple_Boost", 3),
+    # Tier 4 - 18 members, opens at 20.
+    DivineInspirationData("Cult III", "Temple_III", 4),
+    DivineInspirationData("Bone Decorations", "Building_Decorations2", 4),
+    DivineInspirationData("Refinery II", "Economy_Refinery_2", 4),
+    DivineInspirationData("Trap Scarecrow", "Building_Scarecrow2", 4),
+    DivineInspirationData("Compost", "Followers_Compost", 4),
+    DivineInspirationData("Farmer Station II", "Building_FarmStationII", 4),
+    DivineInspirationData("Grand Shelter", "Building_Beds3", 4),
+    DivineInspirationData("Janitor Station II", "Building_JanitorStation_2", 4),
+    DivineInspirationData("Tabernacle II", "Shrine_PassiveShrinesII", 4),
+    DivineInspirationData("Shrine Flame II", "Shrine_FlameII", 4),
+    DivineInspirationData("Ritual Cool Downs", "Temple_FasterCoolDowns", 4),
+    DivineInspirationData("Crypt II", "Building_Crypt_2", 4),
+    DivineInspirationData("Shared Shelter", "Building_Shared_House", 4),
+    DivineInspirationData("Morgue I", "Building_Morgue_1", 4),
+    DivineInspirationData(
+        "Collected Shrine of Disciples", "Building_Shrine_Disciple_Collection", 4),
+    DivineInspirationData("Drinkhouse", "Building_Pub", 4),
+    DivineInspirationData("Mating Tent", "Building_MatingTent", 4),
+    DivineInspirationData("Drum Circle", "Building_Drum", 4),
+    # Tier 5 - 20 members, opens at 25.
+    DivineInspirationData("Cult IV", "Temple_IV", 5),
+    DivineInspirationData("Missionary III", "Building_MissionaryIII", 5),
+    DivineInspirationData("Stone Mine II", "Economy_MineII", 5),
+    DivineInspirationData("Lumberyard II", "Economy_LumberyardII", 5),
+    DivineInspirationData("Devotion Harvest Totem", "Building_HarvestTotem2", 5),
+    DivineInspirationData("Healing Bay II", "Building_HealingBay2", 5),
+    DivineInspirationData("Outhouse II", "Building_Outhouse2", 5),
+    DivineInspirationData("Tabernacle III", "Shrine_PassiveShrinesIII", 5),
+    DivineInspirationData("Shrine Flame III", "Shrine_FlameIII", 5),
+    DivineInspirationData("Demonic Summoning Circle III", "Building_DemonSummoner_3", 5),
+    DivineInspirationData("Crypt III", "Building_Crypt_3", 5),
+    DivineInspirationData("Kitchen", "Building_Kitchen", 5),
+    DivineInspirationData("Morgue II", "Building_Morgue_2", 5),
+    DivineInspirationData("Fertiliser Storage", "Building_PoopBucket", 5),
+    DivineInspirationData("Seed Storage", "Building_SeedBucket", 5),
+    DivineInspirationData("Hatchery II", "Building_Hatchery_2", 5),
+    DivineInspirationData("Drinkhouse II", "Building_Pub_2", 5),
+    DivineInspirationData("Re-Indoctrination Stone", "Building_UpgradedIndoctrination", 5),
+    DivineInspirationData("Leader Tent", "Building_LeaderTent", 5),
+    DivineInspirationData("Nursery", "Building_Daycare", 5),
+]
+
+# The item that carries an ability point in checks_and_points mode. One copy per location, so
+# spending them all is exactly enough to clear the block.
+DI_POINT = "Divine Inspiration Point"
+
+
 # Every tarot card the game has (DataManager.AllTrinkets, 85 of them), whether or not a seed
 # can use it - the flags decide that, not membership of this list.
 #
@@ -463,6 +568,29 @@ item_table.update({
     e.display: ItemData(e.code, ItemClassification.progression, "Curse", e.dlc)
     for e in CURSES
 })
+
+
+# Divine Inspiration. 'useful', not 'progression': the checks fire when the player fills the
+# Devotion meter, which these items don't affect, so no rule in rules.py references them. They
+# are real power - they're what lets you buy anything in the tree - but this world's bar for
+# 'progression' is that a rule names the item, and none does.
+#
+# The point item is the checks_and_points equivalent - one name, many copies - and gets an id of
+# its own so the two modes never share an item.
+item_table.update({
+    u.display: ItemData(offset + DI_ITEM_OFFSET + i, ItemClassification.useful,
+                        "DivineInspiration")
+    for i, u in enumerate(DIVINE_INSPIRATION)
+})
+item_table[DI_POINT] = ItemData(
+    offset + DI_ITEM_OFFSET + len(DIVINE_INSPIRATION),
+    ItemClassification.useful,
+    "DivineInspirationPoint",
+)
+
+# A duplicate display name would silently overwrite an earlier entry in this dict and shrink the
+# id space without failing, so it's asserted rather than trusted.
+assert len(item_table) == len(set(item_table)), "duplicate item name in item_table"
 
 
 filler_table = [name for name, data in item_table.items() if data.category == "Filler"]

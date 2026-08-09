@@ -585,6 +585,10 @@ internal static class DebugActions
         DumpGameBossState();
         DumpTarotState();
         DumpEquipmentPools(ap);
+        if (ap?.DivineInspirationService != null)
+        {
+            Log.LogInfo($"[AP] {ap.DivineInspirationService.DescribeState()}");
+        }
         DumpMiniBossesInScene();
         DumpSnailShrines();
         Log.LogInfo("[AP] ---- end dump ----");
