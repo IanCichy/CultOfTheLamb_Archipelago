@@ -294,6 +294,71 @@ DIVINE_INSPIRATION = [
 DI_POINT = "Divine Inspiration Point"
 
 
+# A curated set of buildings whose *first* construction sends a check. Not every buildable -
+# StructuresData.AllStructures has 332 entries, ~85 of them real base-game buildings, which would
+# nearly double a seed.
+#
+# `internal` is the StructureBrain.TYPES name the client reads off Data.ToBuildType. `tier` is the
+# tier of the Divine Inspiration upgrade that unlocks it (from the F4 coupling dump), and exists
+# so the depth bands in rules.py mean something: a tier-1 building really is available from the
+# start, and Kitchen really isn't.
+#
+# **Every entry must be free of external-system prerequisites.** Ten DI upgrades sit behind
+# PleasureSystem, TailorSystem or DiscipleSystem - Drinkhouse, Mating Tent, Nursery, Drum Circle,
+# Tailor, both Disciple shrines and the Re-Indoctrination Stone. PleasureSystem in particular
+# comes from a doctrine branch, so a player who picks Work or Faith can *never* build those, and
+# a check on one would be dead for the whole seed. Leader Tent is fine despite needing
+# System_PlayerTent, which GameManager.cs:171 grants unconditionally outside Survival mode.
+#
+# Order defines nothing but the depth bands, but keep it append-only anyway - location ids come
+# from enumeration order.
+
+
+class BuildingData(NamedTuple):
+    display: str
+    internal: str  # StructureBrain.TYPES
+    tier: int      # of the DI upgrade that unlocks it
+
+
+BUILDINGS = [
+    # Tier 1 - buildable from the start.
+    BuildingData("Temple", "TEMPLE", 1),
+    BuildingData("Sleeping Bags", "BED", 1),
+    BuildingData("Body Pit", "BODY_PIT", 1),
+    BuildingData("Farm Plot", "FARM_PLOT", 1),
+    BuildingData("Farmer Station", "FARM_STATION", 1),
+    # Tier 2
+    BuildingData("Missionary", "MISSIONARY", 2),
+    BuildingData("Offering Statue", "OFFERING_STATUE", 2),
+    BuildingData("Tabernacle", "SHRINE_PASSIVE", 2),
+    BuildingData("Shelter", "BED_2", 2),
+    BuildingData("Prison", "PRISON", 2),
+    BuildingData("Lumberyard", "LUMBERJACK_STATION", 2),
+    BuildingData("Stone Mine", "BLOODSTONE_MINE", 2),
+    BuildingData("Demonic Summoning Circle", "DEMON_SUMMONER", 2),
+    # Tier 3
+    BuildingData("Confession Booth", "CONFESSION_BOOTH", 3),
+    BuildingData("Refinery", "REFINERY", 3),
+    BuildingData("Healing Bay", "HEALING_BAY", 3),
+    BuildingData("Outhouse", "OUTHOUSE", 3),
+    BuildingData("Janitor Station", "JANITOR_STATION", 3),
+    BuildingData("Fertiliser Silo", "SILO_FERTILISER", 3),
+    BuildingData("Harvest Totem", "HARVEST_TOTEM", 3),
+    # Tier 4
+    BuildingData("Compost", "COMPOST_BIN", 4),
+    BuildingData("Shared Shelter", "SHARED_HOUSE", 4),
+    BuildingData("Morgue", "MORGUE_1", 4),
+    # Tier 5
+    BuildingData("Kitchen", "KITCHEN", 5),
+    BuildingData("Leader Tent", "LEADER_TENT", 5),
+]
+
+# Broom levels. Sweeping raises DataManager.ChoreXPLevel, which is monotonic and save-persisted -
+# the same shape as the sermon and Divine Inspiration counters - so the Nth level is the Nth
+# check. Ten levels, costing 3/5/10/20/30/50/75/100/150/200 chore XP (DataManager.TargetChoreXP).
+BROOM_LEVEL_COUNT = 10
+
+
 # Every tarot card the game has (DataManager.AllTrinkets, 85 of them), whether or not a seed
 # can use it - the flags decide that, not membership of this list.
 #

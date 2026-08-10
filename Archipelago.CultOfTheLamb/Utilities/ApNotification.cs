@@ -1,5 +1,7 @@
+using System;
 using System.Collections.Generic;
 using I2.Loc;
+using UnityEngine;
 
 namespace Archipelago.CultOfTheLamb;
 
@@ -34,36 +36,119 @@ internal static class ApNotification
     /// boss, finishing a ritual. Showing immediately meant the player saw nothing for most of
     /// the checks that matter, with nothing in the log to say so.
     /// </summary>
-    internal static void Show(string text, NotificationBase.Flair flair = NotificationBase.Flair.None)
+    /// <param name="glow">
+    /// What the popup's flair should glow. Null keeps the default AP green. See ApColors - the
+    /// glow carries the *direction* of the event, which is what's readable from the corner of
+    /// the eye mid-crusade, while the wording carries the detail.
+    /// </param>
+    internal static void Show(
+        string text,
+        NotificationBase.Flair flair = NotificationBase.Flair.None,
+        Color32? glow = null)
     {
         if (string.IsNullOrEmpty(text)) return;
 
-        pending.Enqueue(new PendingNotification { Text = text, Flair = flair });
+        pending.Enqueue(new PendingNotification { Text = text, Flair = flair, Glow = glow });
         Flush();
     }
 
-    /// <summary>Called each frame from the plugin; does nothing once the queue drains.</summary>
+    /// <summary>
+    /// Loc key -> the glow that message asked for. NotificationGeneric.Configure is handed only
+    /// the key, so this is how the colour reaches the patch.
+    ///
+    /// Bounded by the number of distinct messages a session produces, and each entry is a key
+    /// and a colour - so it's left to grow rather than evicted, the same as registeredTerms.
+    /// </summary>
+    private static readonly Dictionary<string, Color32> keyGlows = new();
+
+    /// <summary>The glow registered for a key, or null if it wasn't ours or didn't ask.</summary>
+    internal static Color32? GlowFor(string key) =>
+        key != null && keyGlows.TryGetValue(key, out var colour) ? colour : null;
+
+    /// <summary>
+    /// Called each frame from the plugin; does nothing once the queue drains.
+    ///
+    /// **One per frame**, not a drain loop. Several messages routinely queue together - a check
+    /// sent and the item it paid out arrive within a frame of each other, and the HUD is hidden
+    /// through cutscenes like follower recruitment so a backlog builds - and firing them all
+    /// into NotificationCentre in the same frame means they collide instead of queueing on
+    /// screen.
+    /// </summary>
     internal static void Flush()
     {
-        while (pending.Count > 0 && CanShowNow())
+        if (pending.Count == 0) return;
+
+        if (!CanShowNow())
         {
-            var next = pending.Peek();
+            LogDeferralOnce();
+            return;
+        }
 
-            var key = RegisterTerm(next.Text);
-            if (key == null)
-            {
-                // Localization isn't up yet. Leave it queued rather than dropping it - this is
-                // a "not yet", the same as a hidden HUD.
-                return;
-            }
+        var next = pending.Peek();
 
-            pending.Dequeue();
+        var key = RegisterTerm(next.Text);
+        if (key == null)
+        {
+            // Localization isn't up yet. Leave it queued rather than dropping it - this is a
+            // "not yet", the same as a hidden HUD.
+            return;
+        }
 
-            // NotificationCentre dedupes by key within a frame, which is why the key is derived
-            // from the message text rather than being a single shared constant.
-            NotificationCentre.Instance.PlayGenericNotification(key, next.Flair);
+        pending.Dequeue();
+
+        // Recorded before the popup is asked for, since Configure runs inside that call.
+        if (next.Glow.HasValue) keyGlows[key] = next.Glow.Value;
+
+        // The single most useful line for diagnosing "I never saw that popup": it reads the
+        // term straight back out of I2 after registering it. If this logs an empty or mangled
+        // translation, the popup is being drawn blank and the fault is term registration, not
+        // anything upstream. Diagnosing this by inference cost three separate attempts.
+        var readBack = SafeTranslation(key);
+        var matches = string.Equals(readBack, next.Text, StringComparison.Ordinal);
+        Log.LogInfo($"[AP] Notification -> \"{Oneline(next.Text)}\" (key {key}, "
+            + $"{pending.Count} still queued). I2 read-back "
+            + (matches ? "OK." : $"MISMATCH: \"{Oneline(readBack)}\"."));
+
+        deferralLogged = false;
+        NotificationCentre.Instance.PlayGenericNotification(key, next.Flair);
+    }
+
+    private static bool deferralLogged;
+
+    /// <summary>
+    /// Says why the queue is stuck, once per stall rather than once per frame - all three of
+    /// these conditions make PlayGenericNotification a silent no-op, and the game reports none
+    /// of them.
+    /// </summary>
+    private static void LogDeferralOnce()
+    {
+        if (deferralLogged) return;
+        deferralLogged = true;
+
+        string reason;
+        if (NotificationCentre.Instance == null) reason = "no NotificationCentre yet";
+        else if (!NotificationCentre.NotificationsEnabled) reason = "notifications are disabled";
+        else reason = "the HUD is hidden";
+
+        Log.LogInfo($"[AP] Holding {pending.Count} notification(s) - {reason}. They'll show "
+            + "when the game is willing.");
+    }
+
+    private static string SafeTranslation(string key)
+    {
+        try
+        {
+            return LocalizationManager.GetTranslation(key, true, 0, true, false, null, null, true);
+        }
+        catch (Exception e)
+        {
+            return $"<lookup threw: {e.Message}>";
         }
     }
+
+    /// <summary>Messages are multi-line now, and a wrapped log line is hard to grep.</summary>
+    private static string Oneline(string text) =>
+        text == null ? "<null>" : text.Replace("\n", " | ");
 
     /// <summary>
     /// Whether the game would actually display one right now. All three conditions make
@@ -82,6 +167,7 @@ internal static class ApNotification
     {
         internal string Text;
         internal NotificationBase.Flair Flair;
+        internal Color32? Glow;
     }
 
     private static readonly Queue<PendingNotification> pending = new();

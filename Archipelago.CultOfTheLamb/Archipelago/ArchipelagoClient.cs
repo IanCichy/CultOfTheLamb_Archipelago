@@ -36,6 +36,15 @@ public partial class ArchipelagoClient : IDisposable
     internal EquipmentPoolService CursePoolService { get; private set; }
 
     internal DivineInspirationService DivineInspirationService { get; private set; }
+    /// <summary>What the multiworld put at each location. Shared by the shop panels and the
+    /// sent-check popups, so the scout happens once.</summary>
+    internal ScoutCache Scouts { get; private set; }
+
+    /// <summary>The seed's pacing caps. Always registers - see EconomyService.</summary>
+    internal EconomyService EconomyService { get; private set; }
+
+    internal BuildingService BuildingService { get; private set; }
+    internal BroomService BroomService { get; private set; }
 
     public ArchipelagoItemLogicController ItemLogic;
 

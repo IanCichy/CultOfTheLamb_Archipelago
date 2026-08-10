@@ -4,6 +4,7 @@ from BaseClasses import Tutorial
 from worlds.AutoWorld import WebWorld, World
 
 from .items import (
+    BROOM_LEVEL_COUNT, BUILDINGS,
     CURSES, DI_POINT, DI_TIER_THRESHOLDS, DIVINE_INSPIRATION, SERMON_ITEM_OFFSET,
     SERMON_ITEM_UPGRADES, WEAPONS, CultOfTheLambItem, EquipmentData,
     PROGRESSIVE_REGION_ACCESS, TarotCardData, create_item, filler_table, item_table, offset,
@@ -386,6 +387,27 @@ class CultOfTheLambWorld(World):
             "divineInspirationTierThresholds": DI_TIER_THRESHOLDS,
             # Deterministic per seed so a reconnect rebuilds the identical tree.
             "divineInspirationShuffleSeed": self.random.getrandbits(31),
+
+            # Pacing caps. Independent of whether the matching block is randomized - they're
+            # quality of life, not randomizer settings, so a seed with sermons off still gets
+            # the sermon cap. All three are the same shape client-side: one postfix clamping a
+            # single public static.
+            "sermonXpCap": self.options.sermon_xp_cap.value,
+            "buildTimeCap": self.options.build_time_cap.value,
+
+            "buildingChecks": bool(self.options.building_checks.value),
+            # StructureBrain.TYPES name -> location id. Keyed by enum name because that's what
+            # the client reads off Structures_BuildSite.Data.ToBuildType; display names are ours,
+            # not the game's.
+            "buildingLocations": {
+                b.internal: location_name_to_id[f"Build - {b.display}"] for b in BUILDINGS
+            },
+
+            "broomChecks": bool(self.options.broom_checks.value),
+            # "Broom Level N" ids are contiguous from here, so the client turns
+            # DataManager.ChoreXPLevel straight into a check id.
+            "broomLocationBaseId": location_name_to_id["Broom Level 1"],
+            "broomLocationCount": BROOM_LEVEL_COUNT,
 
             "snailShrineChecks": bool(self.options.snail_shrine_checks.value),
             # ShellsGifted_0.._4 map to contiguous ids from here.

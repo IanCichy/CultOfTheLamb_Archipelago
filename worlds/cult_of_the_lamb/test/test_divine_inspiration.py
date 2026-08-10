@@ -195,7 +195,8 @@ class TestSlotData(DITestBase):
             self.world.fill_slot_data()["divineInspirationTierThresholds"], [0, 4, 10, 20, 25])
 
     def test_devotion_cap_reaches_slot_data(self):
-        self.assertEqual(self.world.fill_slot_data()["divineInspirationDevotionCap"], 100)
+        """70, lowered from 100 after a play session reached only 22 of the 69 points."""
+        self.assertEqual(self.world.fill_slot_data()["divineInspirationDevotionCap"], 70)
 
 
 class TestDevotionCapOff(DITestBase):

@@ -217,6 +217,21 @@ public partial class ArchipelagoClient
         session.Socket.ErrorReceived += Socket_ErrorReceived;
         ArchipelagoConsoleCommand.OnArchipelagoReconnectCommandCalled += ArchipelagoConsoleCommand_OnArchipelagoReconnectCommandCalled;
 
+        // Before any service, because both the shop panels and the sent-check popups read it.
+        // The scout is async, so this only starts the round trip - every reader falls back to
+        // the location name until it lands.
+        Scouts = new ScoutCache(session, "Cult of the Lamb");
+        Scouts.ScoutAll();
+        CheckNotifier.Scouts = Scouts;
+
+        // Unconditional: the pacing caps are quality of life, not randomizer settings, so they
+        // apply whether or not the matching block is being randomized this seed.
+        EconomyService = new EconomyService(
+            (int)GetLong(successResult.SlotData, "divineInspirationDevotionCap"),
+            (int)GetLong(successResult.SlotData, "sermonXpCap"),
+            (int)GetLong(successResult.SlotData, "buildTimeCap"));
+        EconomyService.Register();
+
         LocationCheckService = new LocationCheckService(session);
         LocationCheckService.Register();
         RegionUnlockService = new RegionUnlockService(regionOrder);
@@ -254,7 +269,7 @@ public partial class ArchipelagoClient
 
             // Same mapping, different job: TarotShopService sends the check, ShopIconService
             // makes the slot look like one beforehand.
-            ShopIconService = new ShopIconService(session, tarotShopLocations);
+            ShopIconService = new ShopIconService(session, tarotShopLocations, Scouts);
             ShopIconService.Register();
         }
 
@@ -299,6 +314,22 @@ public partial class ArchipelagoClient
             CursePoolService.Register();
         }
 
+        if (GetBool(successResult.SlotData, "buildingChecks"))
+        {
+            BuildingService = new BuildingService(
+                session, BuildingService.ParseLocations(successResult.SlotData));
+            BuildingService.Register();
+        }
+
+        if (GetBool(successResult.SlotData, "broomChecks"))
+        {
+            BroomService = new BroomService(
+                session,
+                GetLong(successResult.SlotData, "broomLocationBaseId"),
+                (int)GetLong(successResult.SlotData, "broomLocationCount"));
+            BroomService.Register();
+        }
+
         var diMode = (int)GetLong(successResult.SlotData, "divineInspirationMode");
         if (diMode != DivineInspirationService.ModeOff)
         {
@@ -310,8 +341,7 @@ public partial class ArchipelagoClient
                 DivineInspirationService.ParseUpgrades(successResult.SlotData),
                 GetString(successResult.SlotData, "divineInspirationPointItem"),
                 (int)GetLong(successResult.SlotData, "divineInspirationShuffle"),
-                (int)GetLong(successResult.SlotData, "divineInspirationShuffleSeed"),
-                (int)GetLong(successResult.SlotData, "divineInspirationDevotionCap"));
+                (int)GetLong(successResult.SlotData, "divineInspirationShuffleSeed"));
             DivineInspirationService.Register();
         }
 
@@ -456,6 +486,14 @@ public partial class ArchipelagoClient
         CursePoolService = null;
         DivineInspirationService?.Unregister();
         DivineInspirationService = null;
+        BuildingService?.Unregister();
+        BuildingService = null;
+        BroomService?.Unregister();
+        BroomService = null;
+        EconomyService?.Unregister();
+        EconomyService = null;
+        CheckNotifier.Scouts = null;
+        Scouts = null;
         ItemLogic?.Unregister();
         ItemLogic = null;
 

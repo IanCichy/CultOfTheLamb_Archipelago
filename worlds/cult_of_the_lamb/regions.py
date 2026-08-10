@@ -53,6 +53,10 @@ def create_regions(world: "CultOfTheLambWorld") -> None:
         cult_categories.add("Curse")
     if world.divine_inspiration_enabled:
         cult_categories.add("DivineInspiration")
+    if world.options.building_checks:
+        cult_categories.add("Building")
+    if world.options.broom_checks:
+        cult_categories.add("Broom")
     if cult_categories:
         # Weapon/curse families the player begins with are dropped for the same reason as
         # starting tarot cards: you can't earn what you already have. Their names are added

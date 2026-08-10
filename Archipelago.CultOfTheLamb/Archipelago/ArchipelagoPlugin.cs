@@ -90,6 +90,7 @@ public class ArchipelagoPlugin : BaseUnityPlugin
             followerPollTimer = 0f;
             AP?.FollowerMilestoneService?.Tick();
             AP?.SnailShrineService?.Tick();
+            AP?.BroomService?.Tick();
 
             // Takes back any managed card the game has put into the collection since the last
             // tick - GameManager.Awake re-seeds fifteen of them whenever it finds the list

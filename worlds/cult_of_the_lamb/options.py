@@ -81,6 +81,77 @@ class FollowerMilestoneChecks(Toggle):
     default = True
 
 
+class SermonXpCap(Range):
+    """The most sermon XP one Temple upgrade is allowed to need, in tenths.
+
+    Tenths because that's what the game's own bar counts in - it renders `12/30`, so a cap of 30
+    means the bar never asks for more than that.
+
+    Vanilla's curve is 0.3, 0.4, 1.1 ... climbing to 10.0 and then staying there, and there are
+    38 sermon upgrades - so the last 25 all sit at the ceiling and the block totals roughly 298
+    XP. One sermon gives about `followers / 10`, so at a 20-strong flock that's ~150 sermons.
+    Since a sermon is a once-a-day ritual rather than a trickle, that's far worse than the
+    Divine Inspiration grind.
+
+    | Cap | Total XP | ~sermons at 20 followers |
+    |-----|----------|--------------------------|
+    | 0 (off) | 298 | ~150 |
+    | 50 | 163 | ~80 |
+    | 30 | 102 | ~51 |
+    | 20 | 70 | ~35 |
+
+    Only affects the Temple upgrade sermon - the five doctrine categories share the same method
+    but a much steeper curve, and this world doesn't randomize them yet, so speeding them up
+    would change content you didn't ask to change."""
+    display_name = "Sermon XP Cap"
+    range_start = 0
+    range_end = 100
+    default = 20
+
+
+class BuildTimeCap(Range):
+    """The longest any structure may take to build, in game-minutes. 0 leaves the game alone.
+
+    Vanilla ranges from 10 minutes to **9000** for the late Temple tiers, with the common
+    buildings at 30, 300 or 600. A Sleeping Bag is 30, so the default makes everything build as
+    fast as one - two hits and done.
+
+    Pure quality of life. It changes no logic and no checks; it only stops the cult-management
+    half of the game being mostly waiting, which matters more here than in vanilla because
+    building is now a check."""
+    display_name = "Build Time Cap"
+    range_start = 0
+    range_end = 9000
+    default = 30
+
+
+class BuildingChecks(Toggle):
+    """Send a check the first time you construct each of 25 curated buildings.
+
+    Temple, Sleeping Bags, Missionary, Tabernacle, Offering Statue, Confession Booth, Kitchen and
+    so on - the buildings that mark real progress in the cult, not the 200-odd decorations.
+    Upgrade tiers are excluded except Shelter, since a second Healing Bay isn't a milestone.
+
+    Only the first construction of each counts, and it's tracked per seed rather than per save,
+    so demolishing and rebuilding won't pay twice.
+
+    These interact with Divine Inspiration - every building is gated behind a DI upgrade - but
+    only loosely: Archipelago can't know which upgrades you chose to buy, so these get depth
+    bands ordered by the tier of the upgrade that unlocks them rather than real item logic."""
+    display_name = "Building Checks"
+    default = True
+
+
+class BroomChecks(Toggle):
+    """Send a check for each of the 10 broom levels.
+
+    Sweeping raises your chore level, which makes cleaning faster. Ten levels, costing 3, 5, 10,
+    20, 30, 50, 75, 100, 150 and 200 chore XP - a slow background trickle rather than something
+    you grind, so these spread naturally across a run."""
+    display_name = "Broom Checks"
+    default = True
+
+
 class TrapPercentage(Range):
     """What percentage of the filler items in your seed are traps instead.
 
@@ -293,9 +364,11 @@ class DivineInspirationDevotionCap(Range):
     | 200 | ~12,300 |
     | 150 | ~9,400 |
     | 100 | ~6,500 |
+    | 70  | ~4,600 |
     | 65  | ~4,300 |
 
-    100 is the default: all 69 points for about what 30 costs in vanilla.
+    70 is the default, set from a real play session: at a cap of 100 a full evening reached 22 of
+    the 69 points, which would have made the block a three-session grind.
 
     Set 0 to leave the game's economy completely alone - fine if you want a very long seed, or
     if you're not using Divine Inspiration checks at all.
@@ -306,7 +379,7 @@ class DivineInspirationDevotionCap(Range):
     display_name = "Divine Inspiration Devotion Cap"
     range_start = 0
     range_end = 465
-    default = 100
+    default = 70
 
 
 class DivineInspirationShuffle(Choice):
@@ -356,4 +429,8 @@ class CultOfTheLambOptions(PerGameCommonOptions):
     divine_inspiration_mode: DivineInspirationMode
     divine_inspiration_shuffle: DivineInspirationShuffle
     divine_inspiration_devotion_cap: DivineInspirationDevotionCap
+    sermon_xp_cap: SermonXpCap
+    build_time_cap: BuildTimeCap
+    building_checks: BuildingChecks
+    broom_checks: BroomChecks
     trap_percentage: TrapPercentage

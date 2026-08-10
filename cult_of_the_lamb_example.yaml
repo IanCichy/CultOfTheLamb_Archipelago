@@ -1,29 +1,56 @@
-description: Cult of the Lamb - Archipelago example/test settings
+description: Cult of the Lamb - Archipelago example settings
 name: IanCotL
 game: Cult of the Lamb
 
+# Every option the world supports, set to its default. Delete anything you don't want to
+# change - omitted options use these same values.
+
 Cult of the Lamb:
+  # ---------------------------------------------------------------------------
+  # Goal
+  # ---------------------------------------------------------------------------
+
   # bishops:   defeat N of Leshy / Heket / Kallamar / Shamura
   # witnesses: defeat N of Agares / Bathin / Astaroth / Allocer
   #            (each Witness only becomes fightable after its region's Bishop is beaten)
   goal: bishops
 
-  # How many of the goal's four encounters are required to win (1-4).
+  # How many of the goal's four encounters are required to win (1-4). Lowering this does not
+  # change the location or item counts, only how early the completion condition trips.
   required_count: 4
 
-  # true:  one of the four regions is randomly free at seed start, the other three each
-  #        need a "Progressive Bishop's Domain" item (random per-seed unlock order).
-  # false: all four regions open from the start.
-  randomize_region_access: true
+  # ---------------------------------------------------------------------------
+  # Region access
+  # ---------------------------------------------------------------------------
 
-  # Randomize the Temple sermon upgrades. When on, filling the sermon bar sends a check
-  # instead of opening the upgrade-choice screen, and the upgrades arrive as Archipelago
-  # items. Adds 32 checks (38 with Woolhaven).
+  # vanilla_order:         the game's own order, still gated one region at a time
+  # randomized:            any region can be the free starting one
+  # randomized_safe_start: as randomized, but never Silk Cradle first (its door costs a
+  #                        Follower sacrifice, which is brutal as an opening move)
+  # all_unlocked:          no gating at all, and NO progression items - single sphere
   #
-  # Might of the Devout, Hearts of the Faithful and Fervour of the Righteous are progressive
-  # (the Nth copy grants the Nth tier); everything else - the weapon affixes, curse packs,
-  # Heavy Attack masteries and relic unlocks - is its own named item.
-  randomize_sermon_upgrades: true
+  # (This replaces the old randomize_region_access toggle. true/false still work as aliases
+  # for randomized/all_unlocked, but the named values are the real option.)
+  region_access_order: randomized_safe_start
+
+  # ---------------------------------------------------------------------------
+  # DLC
+  # ---------------------------------------------------------------------------
+
+  # Include content from the paid Woolhaven DLC.
+  #
+  # Only enable this if you actually own Woolhaven. The client cannot grant DLC content you
+  # don't have, so a seed generated with this on and played without the DLC is unbeatable.
+  #
+  # On:  38 sermon checks, Might of the Devout runs to VII, the Flail is a 7th weapon family,
+  #      19 extra tarot cards, and legendary_weapons below is allowed to do anything.
+  # Off: 32 sermon checks, Might of the Devout stops at VI, 6 weapon families, and
+  #      legendary_weapons is forced off regardless of what you set it to.
+  include_woolhaven: false
+
+  # ---------------------------------------------------------------------------
+  # Weapons and curses
+  # ---------------------------------------------------------------------------
 
   # Randomize which weapon families you can find. Vanilla hands out the Axe, Dagger, Hammer,
   # Gauntlets, Blunderbuss and Flail on a fixed schedule - the first floor of each run gives
@@ -31,61 +58,146 @@ Cult of the Lamb:
   # podiums, chests and choice rooms only offer families the multiworld has granted, and
   # equipping one for the first time sends a check.
   #
-  # Your save is never edited - existing weapons aren't taken away - so this is safe to turn
-  # on partway through a file. It only changes what gets offered.
+  # Your save is never edited - existing weapons aren't taken away, and WeaponPool/CursePool
+  # are never written to - so this is safe to turn on partway through a file. It only changes
+  # what gets offered.
   randomize_weapons: true
 
   # How many weapon families you begin with (1-7). These get neither a check nor an item, so
-  # each one removes one of each. 1 is the floor: with nothing granted, every weapon podium
-  # in the game would have nothing to put on it.
+  # each one removes one of each. 1 is the floor: with nothing granted, every weapon podium in
+  # the game would have nothing to put on it.
   starting_weapons: 1
 
-  # Divine Inspiration - the buildings/rituals tree at the Shrine. 69 upgrades, 69 checks.
-  # The check fires when you FILL THE DEVOTION METER - the Nth point earned is the Nth check -
-  # not when you spend it. Same shape as the sermon bar.
-  #
-  # off               : no interaction.
-  # checks_only       : filling the meter sends a check and you keep the point, as in vanilla.
-  # checks_and_points : filling the meter sends a check and the point is taken; points come
-  #                     back from Archipelago to spend on whatever you like.
-  # checks_and_techs  : the point is taken and never returns; Archipelago grants the upgrades
-  #                     directly. The only mode where the multiworld knows what you hold.
-  divine_inspiration_mode: checks_and_points
-
-  # Most Devotion one ability point may cost. 0 = leave the game's economy alone.
-  #
-  # Vanilla climbs to 465 per point, so all 69 cost ~24,000 Devotion - a completionist number.
-  # Since every check is a filled meter, uncapped puts most of this block out of reach.
-  #   cap 200 -> ~12,300   cap 150 -> ~9,400   cap 100 -> ~6,500   cap 65 -> ~4,300
-  divine_inspiration_devotion_cap: 100
-
-  # Rearranges which tier each upgrade sits in. Logic-neutral - the tier gate is a count, not a
-  # prerequisite chain - so it combines freely with any mode above.
-  #
-  # default / random_except_first (tier 1 frozen) / true_random.
-  # The five central nodes (Temple, Cult II, Refinery, Cult III, Cult IV) always stay put:
-  # each must be bought to open the next tier.
-  divine_inspiration_shuffle: default
-
-  # Let Legendary weapons turn up on ordinary weapon podiums, in place of a normal weapon of
-  # a family you already hold. off / rare (~1 offer in 10) / common (~1 in 4) / always.
-  #
-  # WOOLHAVEN ONLY - forced off without include_woolhaven, since Legendaries are DLC content.
-  # No check and no item, and the Blacksmith's Broken Hammer questline still unlocks them
-  # normally. Note picking one up does add it to your weapon pool for good - the game records
-  # whatever you collect - so its plinth will display it early.
-  legendary_weapons: off
-
-  # The curse-side counterpart, covering Flaming Shot, Touch of Turua, Divine Blast,
-  # Ichor Thrown and Death's Sweep. Fully independent of randomize_weapons - either, both or
+  # The curse-side counterpart, covering Flaming Shot, Touch of Turua, Divine Blast, Ichor
+  # Thrown and Death's Sweep. Fully independent of randomize_weapons - either, both or
   # neither. The Teleport and Barrier curses aren't here; they come from sermon upgrades.
   randomize_curses: true
 
   # How many curse families you begin with (1-5). Same rules as starting_weapons.
   starting_curses: 1
 
-  # Include content from the paid Woolhaven DLC.
+  # Let Legendary weapons turn up on ordinary weapon podiums, in place of a normal weapon of a
+  # family you already hold. off / rare (~1 offer in 10) / common (~1 in 4) / always.
   #
-  # Only enable this if you actually own Woolhaven. The client cannot grant DLC content you
-  # don't have, so a seed generated with this on and played without the DLC is unbeatable.
-  include_woolhaven: false
+  # WOOLHAVEN ONLY - forced off without include_woolhaven, since Legendaries are DLC content.
+  # No check and no item, and the Blacksmith's Broken Hammer questline still unlocks them
+  # normally. Note that picking one up does add it to your weapon pool for good - the game
+  # records whatever you collect - so its plinth will display it early.
+  legendary_weapons: off
+
+  # ---------------------------------------------------------------------------
+  # Divine Inspiration
+  # ---------------------------------------------------------------------------
+
+  # The buildings/rituals tree at the Shrine, not the Temple sermon tree. 69 upgrades, 69
+  # checks. THE CHECK FIRES WHEN YOU FILL THE DEVOTION METER - the Nth point you earn is the
+  # Nth check - not when you spend it. Earning is the thing you did; spending is a menu click.
+  #
+  # off               : no interaction at all.
+  # checks_only       : filling the meter sends a check and you keep the point, as in vanilla.
+  # checks_and_points : filling the meter sends a check and the point is taken. Points come
+  #                     back from Archipelago instead, to spend on whatever you like. 69 out,
+  #                     69 back - same totals as vanilla, just on the multiworld's schedule.
+  # checks_and_techs  : the point is taken and never returns; Archipelago grants the upgrades
+  #                     directly. The only mode where the multiworld knows what you hold.
+  divine_inspiration_mode: checks_and_points
+
+  # Most Devotion a single ability point may cost. 0 = leave the game's economy alone.
+  #
+  # Vanilla's curve is 1, 13, 29 ... climbing to 465 and staying there, so all 69 points cost
+  # about 24,000 Devotion - a completionist number, not a one-seed number. Since every check
+  # is a filled meter, uncapped would leave most of this block out of reach.
+  #   cap 200 -> ~12,300   cap 150 -> ~9,400   cap 100 -> ~6,500   cap 70 -> ~4,600
+  divine_inspiration_devotion_cap: 70
+
+  # Rearranges which tier each upgrade sits in. Logic-neutral: the tier gate is a *count*
+  # ("have you bought 10 things"), not a prerequisite chain, so this changes nothing
+  # Archipelago places or requires and combines freely with any mode above.
+  #
+  # default             : the game's own layout
+  # random_except_first : tier 1 frozen (Temple, Farm Plot, Sleeping Bags, Body Pit, Farming
+  #                       Bundle, Tailor), tiers 2-5 rearranged. Unchanged opening.
+  # true_random         : every tier rearranged
+  #
+  # The five central nodes (Temple, Cult II, Refinery, Cult III, Cult IV) always stay in their
+  # own tier - each must be bought to open the next one, so moving one would make that tier
+  # permanently unopenable.
+  divine_inspiration_shuffle: default
+
+  # ---------------------------------------------------------------------------
+  # Other check blocks
+  # ---------------------------------------------------------------------------
+
+  # Randomize the Temple sermon upgrades. When on, filling the sermon bar sends a check
+  # instead of opening the upgrade-choice screen, and the upgrades arrive as Archipelago
+  # items. 32 checks, or 38 with Woolhaven.
+  #
+  # Might of the Devout, Hearts of the Faithful and Fervour of the Righteous are progressive
+  # (the Nth copy grants the Nth tier); everything else - the weapon affixes, curse packs,
+  # Heavy Attack masteries and relic unlocks - is its own named item.
+  randomize_sermon_upgrades: true
+
+  # Randomize the Tarot Card collection. Your collection is emptied on connect and every card
+  # becomes both a check and an item. Adds no logical length - no card is ever required.
+  randomize_tarot_cards: true
+
+  # How many Tarot Cards to start with, replacing the 15 the game normally gives you. These
+  # have neither a check nor an item, so each one removes one of each.
+  starting_tarot_cards: 8
+
+  # Which cards the starting ones are drawn from.
+  # vanilla_defaults: the 15 the game normally starts you with
+  # any:              any randomizable card, Woolhaven ones included if the DLC is on
+  starting_tarot_pool: vanilla_defaults
+
+  # Send a check for each Tarot Card bought from a hub shop (16 slots across the four hubs).
+  # A shop card's check is its slot - it does not also get a "Tarot Card - X" unlock check.
+  tarot_shop_checks: true
+
+  # Send a check for each of your first 20 recruited Followers. Counted as ever-recruited, so
+  # losing Followers can't make a passed milestone unreachable.
+  follower_milestone_checks: true
+
+  # Send a check the first time you construct each of 25 curated buildings - Temple, Sleeping
+  # Bags, Missionary, Tabernacle, Offering Statue, Confession Booth, Kitchen and so on. Not
+  # the ~200 decorations, and not upgrade tiers (except Shelter).
+  #
+  # First construction only, tracked per seed, so demolishing and rebuilding won't pay twice.
+  # Connecting on a save that already has buildings standing sends the whole backlog at once.
+  #
+  # Nothing behind PleasureSystem / TailorSystem / DiscipleSystem is on the list - those come
+  # from doctrine branches, so a check on one could be permanently unreachable.
+  building_checks: true
+
+  # Send a check for each of the 10 broom levels. Sweeping raises your chore level; the levels
+  # cost 3, 5, 10, 20, 30, 50, 75, 100, 150 and 200 chore XP, so these trickle in across a run
+  # rather than needing to be ground for.
+  broom_checks: true
+
+  # Send a check for each of the 5 Snail Shrines you make a Shell offering at.
+  snail_shrine_checks: true
+
+  # ---------------------------------------------------------------------------
+  # Pacing
+  # ---------------------------------------------------------------------------
+
+  # Most sermon XP one Temple upgrade may need, in TENTHS - the unit the game's own bar counts
+  # in, so 20 means the bar never shows more than "x/20". 0 = leave the curve alone.
+  #
+  # Vanilla climbs to 10.0 and holds there for the last 25 of the 38 upgrades: ~298 XP total,
+  # and a sermon only gives about followers/10, so that's ~150 sermons at a 20-strong flock.
+  #   cap 50 -> ~80 sermons   cap 30 -> ~51   cap 20 -> ~35
+  sermon_xp_cap: 20
+
+  # Longest any structure may take to build, in game-minutes. 0 = leave the game alone.
+  # Vanilla runs 10 to 9000 (the late Temple tiers), with most buildings at 30, 300 or 600.
+  # A Sleeping Bag is 30, so this makes everything build about as fast as one.
+  build_time_cap: 30
+
+  # ---------------------------------------------------------------------------
+  # Filler
+  # ---------------------------------------------------------------------------
+
+  # What percentage of the filler items in your seed are traps instead (0-50). Traps replace
+  # filler only, never a real item, so this can't make a seed harder to complete.
+  trap_percentage: 5

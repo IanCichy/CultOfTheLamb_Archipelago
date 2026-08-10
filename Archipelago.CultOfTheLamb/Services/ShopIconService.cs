@@ -27,10 +27,9 @@ internal class ShopIconService : IService
     private readonly ArchipelagoSession session;
     private readonly Dictionary<string, long> cardToCheckId;
 
-    // location id -> what the multiworld put there. Written from the scout continuation (a
-    // background thread) and read from the UI patches (the main thread), so it's swapped
-    // wholesale rather than mutated in place - a reference assignment is atomic, an Add is not.
-    private Dictionary<long, ScoutedCheck> scoutedItems = new();
+    // What the multiworld put at each location. Shared with CheckNotifier rather than scouted
+    // twice - see ScoutCache.
+    private readonly ScoutCache scouts;
 
     // Everything we've changed about a shop, so a disconnect can put it back rather than
     // leaving AP logos sitting in a now-vanilla shop.
@@ -48,14 +47,18 @@ internal class ShopIconService : IService
     // panel floating above the slot, and repeating it makes for a very long one-line prompt.
     private const string CardName = "AP Tarot";
 
-    // The panel's own header and flavour line, in the style of a real card's.
-    private const string CardTitle = "The Multiworld's Binding";
-    private const string CardLore = "Weakness begs exploitation.";
+    // Shown until the scout lands, and only until then - once we know what a slot holds, the
+    // item's own name is the card's name. Doubles as the loading state, which is why it reads
+    // like flavour rather than like an error.
+    private const string PendingTitle = "The Multiworld's Binding";
+    private const string PendingLore = "Weakness begs exploitation.";
 
-    internal ShopIconService(ArchipelagoSession session, Dictionary<string, long> cardToCheckId)
+    internal ShopIconService(
+        ArchipelagoSession session, Dictionary<string, long> cardToCheckId, ScoutCache scouts)
     {
         this.session = session;
         this.cardToCheckId = cardToCheckId ?? new Dictionary<string, long>();
+        this.scouts = scouts;
     }
 
     public void Register()
@@ -65,7 +68,6 @@ internal class ShopIconService : IService
         ShopSlotDisplayPatch.OnTarotDisplayBuilt += HandleTarotDisplayBuilt;
         ShopSlotDisplayPatch.SlotIsSpent = SlotIsSpent;
 
-        ScoutShopLocations();
         foreach (var manager in UnityEngine.Object.FindObjectsOfType<shopKeeperManager>())
         {
             Enqueue(manager);
@@ -115,44 +117,6 @@ internal class ShopIconService : IService
         if (pending.Any(p => p.Manager == manager)) return;
 
         pending.Add(new PendingShop { Manager = manager });
-    }
-
-    /// <summary>
-    /// One scout for every mapped shop location. HintCreationPolicy is left at the default (no
-    /// hint): this is a UI convenience, and burning the player's hint points to render a label
-    /// - let alone broadcasting hints to the whole multiworld on connect - would be hostile.
-    /// </summary>
-    private void ScoutShopLocations()
-    {
-        var ids = cardToCheckId.Values.Distinct().ToArray();
-        if (ids.Length == 0) return;
-
-        session.Locations.ScoutLocationsAsync(ids).ContinueWith(task =>
-        {
-            if (task.IsFaulted || task.Result == null)
-            {
-                Log.LogWarning("[AP] Could not scout shop locations - buy prompts stay vanilla: "
-                    + task.Exception?.GetBaseException().Message);
-                return;
-            }
-
-            var names = new Dictionary<long, ScoutedCheck>();
-            foreach (var entry in task.Result)
-            {
-                var item = entry.Value;
-                names[entry.Key] = new ScoutedCheck
-                {
-                    ItemName = item.ItemName,
-                    // Alias falls back to the slot name, so this is never empty.
-                    PlayerName = item.Player.Alias,
-                    Game = item.ItemGame,
-                    ForLocalPlayer = item.Player.Slot == session.ConnectionInfo.Slot,
-                };
-            }
-
-            scoutedItems = names;
-            Log.LogInfo($"[AP] Scouted {names.Count} shop location(s) for buy prompts.");
-        });
     }
 
     private void HandleShopInitialised(shopKeeperManager manager) => Enqueue(manager);
@@ -340,43 +304,31 @@ internal class ShopIconService : IService
     /// This panel, not the buy prompt, is where the check's details belong: it's the surface
     /// with room for them, and it's already the thing a player reads before deciding to spend.
     /// </summary>
+    /// <summary>
+    /// The item is the card's name, because it's the biggest text on the panel and it's what the
+    /// player is deciding about. Who it's for goes in the flavour line, and the location goes in
+    /// the body - it's the slot they're standing on, so it's the least surprising thing here.
+    /// </summary>
     private void HandleTarotDisplayBuilt(UITarotDisplay display, TarotCards.Card card)
     {
         if (!cardToCheckId.TryGetValue(card.ToString(), out var checkId)) return;
 
-        ShopSlotDisplayPatch.SetTarotDisplayText(
-            display, CardTitle, CardLore, DescribeCheck(checkId));
-    }
-
-    /// <summary>What this check holds and who it's for, in the panel's body.</summary>
-    private string DescribeCheck(long checkId)
-    {
         // Before the scout lands - one server round trip after connecting - there's nothing to
-        // name, and saying so beats naming the wrong thing.
-        if (!scoutedItems.TryGetValue(checkId, out var scouted))
+        // name. The vanilla-styled header stands in rather than an empty card.
+        if (scouts == null || !scouts.TryGet(checkId, out var scouted))
         {
-            return "An Archipelago check.\nAsking the server what it holds...";
+            ShopSlotDisplayPatch.SetTarotDisplayText(
+                display, PendingTitle, PendingLore, "Asking the server what this holds...");
+            return;
         }
 
-        var location = LocationName(checkId);
+        var recipient = scouted.ForLocalPlayer
+            ? "~ for you ~"
+            : $"~ for {ApColors.Tint(scouted.PlayerName, ApColors.YellowHex)} "
+                + $"({scouted.Game}) ~";
 
-        return scouted.ForLocalPlayer
-            ? $"Sends <b>{scouted.ItemName}</b> to you.\n<i>{location}</i>"
-            : $"Sends <b>{scouted.ItemName}</b> to <b>{scouted.PlayerName}</b>, "
-                + $"playing {scouted.Game}.\n<i>{location}</i>";
-    }
-
-    private string LocationName(long checkId)
-    {
-        try
-        {
-            var name = session.Locations.GetLocationNameFromId(checkId, "Cult of the Lamb");
-            return string.IsNullOrEmpty(name) ? $"Check {checkId}" : name;
-        }
-        catch
-        {
-            return $"Check {checkId}";
-        }
+        ShopSlotDisplayPatch.SetTarotDisplayText(
+            display, scouted.ItemName, recipient, $"<i>{scouts.LocationName(checkId)}</i>");
     }
 
     /// <summary>
@@ -421,12 +373,4 @@ internal class ShopIconService : IService
         internal int Attempts;
     }
 
-    /// <summary>What the multiworld put at one shop location.</summary>
-    private class ScoutedCheck
-    {
-        internal string ItemName;
-        internal string PlayerName;
-        internal string Game;
-        internal bool ForLocalPlayer;
-    }
 }

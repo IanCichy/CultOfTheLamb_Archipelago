@@ -3,7 +3,8 @@ from typing import Dict, List, NamedTuple, Optional, Set
 from BaseClasses import Location
 
 from .items import (
-    CURSES, DIVINE_INSPIRATION, SERMON_UPGRADES, TAROT_CARDS, WEAPONS, tarot_tier,
+    BROOM_LEVEL_COUNT, BUILDINGS, CURSES, DIVINE_INSPIRATION, SERMON_UPGRADES, TAROT_CARDS,
+    WEAPONS, tarot_tier,
 )
 
 # Must not overlap worlds/cult_of_the_lamb/items.py's offset range.
@@ -199,6 +200,22 @@ DIVINE_INSPIRATION_COUNT = len(DIVINE_INSPIRATION)
 
 for _n in range(1, DIVINE_INSPIRATION_COUNT + 1):
     location_table[f"Divine Inspiration {_n}"] = LocationData("Cult", "DivineInspiration")
+
+# First construction of each curated building. Named rather than sequential, unlike most blocks
+# here - which building you put up is a real choice, so "Build - Kitchen" is a more meaningful
+# check than "Building 12". The client maps Data.ToBuildType straight to an id.
+#
+# Sorted by the tier of the Divine Inspiration upgrade that unlocks each one, because that order
+# is what the depth bands read: tier-1 buildings land in early bands where they're genuinely
+# available, tier-5 ones land deep. Without it the bands would key off list order and mean
+# nothing.
+for _building in sorted(BUILDINGS, key=lambda b: b.tier):
+    location_table[f"Build - {_building.display}"] = LocationData("Cult", "Building")
+
+# Broom levels, from sweeping. DataManager.ChoreXPLevel is monotonic and save-persisted, so this
+# is the same sequential shape as the sermon block.
+for _n in range(1, BROOM_LEVEL_COUNT + 1):
+    location_table[f"Broom Level {_n}"] = LocationData("Cult", "Broom")
 
 # Append-only: ids come from enumeration order, and the C# client hardcodes the same
 # offsets (see Utilities/CultOfTheLambIds.cs). Reordering this dict silently repoints every

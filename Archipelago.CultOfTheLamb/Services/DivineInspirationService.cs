@@ -43,8 +43,11 @@ internal class DivineInspirationService : IService
     private readonly int shuffleMode;
     private readonly int shuffleSeed;
 
-    /// <summary>Most Devotion one point may cost. 0 leaves the game's curve alone.</summary>
-    private readonly int devotionCap;
+    /// <summary>
+    /// Most Devotion one point may cost, for reporting only - EconomyService owns the value, so
+    /// this reads it back off the patch rather than keeping a second copy that could disagree.
+    /// </summary>
+    private static int DevotionCap => DivineInspirationPatch.DevotionCap;
 
     internal DivineInspirationService(
         ArchipelagoSession session,
@@ -54,10 +57,8 @@ internal class DivineInspirationService : IService
         Dictionary<string, UpgradeSystem.Type> itemNameToUpgrade,
         string pointItemName,
         int shuffleMode = 0,
-        int shuffleSeed = 0,
-        int devotionCap = 0)
+        int shuffleSeed = 0)
     {
-        this.devotionCap = devotionCap;
         this.session = session;
         this.mode = mode;
         this.locationBaseId = locationBaseId;
@@ -72,7 +73,6 @@ internal class DivineInspirationService : IService
     {
         DivineInspirationPatch.PointEarned = OnPointEarned;
         DivineInspirationPatch.ResetWithholdLog();
-        DivineInspirationPatch.DevotionCap = devotionCap;
 
         // Both granting modes take the point away: in checks_and_points it comes back as an
         // item, in checks_and_techs it never exists because Archipelago grants the upgrade.
@@ -87,14 +87,13 @@ internal class DivineInspirationService : IService
         Log.LogInfo($"[AP] Divine Inspiration active: mode {ModeName}, {locationCount} "
             + $"location(s) from id {locationBaseId}, {EarnedCount()} point(s) earned so far."
             + (DivineInspirationPatch.WithholdPoints ? " Ability points withheld." : string.Empty)
-            + (devotionCap > 0 ? $" Devotion capped at {devotionCap}." : string.Empty));
+            + (DevotionCap > 0 ? $" Devotion capped at {DevotionCap}." : string.Empty));
     }
 
     public void Unregister()
     {
         DivineInspirationPatch.PointEarned = null;
         DivineInspirationPatch.WithholdPoints = false;
-        DivineInspirationPatch.DevotionCap = 0;
 
         // The shuffle edits a ScriptableObject, which lives for the whole process - without
         // this, disconnecting would leave the tree rearranged until the game restarts.
@@ -232,7 +231,7 @@ internal class DivineInspirationService : IService
             + $"{UpgradeSystem.AbilityPoints} held"
             + $"{(DivineInspirationPatch.WithholdPoints ? " (awards withheld)" : string.Empty)}."
             + $"\n  Next point costs {nextCost} Devotion"
-            + $"{(devotionCap > 0 ? $" (capped at {devotionCap})" : " (uncapped)")}, "
+            + $"{(DevotionCap > 0 ? $" (capped at {DevotionCap})" : " (uncapped)")}, "
             + $"currently {DataManager.Instance?.XP ?? 0}."
             + $"\n  Unlocked: {string.Join(", ", unlocked)}";
     }

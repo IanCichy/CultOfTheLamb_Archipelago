@@ -24,9 +24,12 @@ internal static class NotificationStylePatch
     /// check name mid-crusade. The game itself overrides this the same way for Winter flair,
     /// at 10s - so this sits comfortably inside what the game already does to itself.
     /// </summary>
-    private const float OnScreenSeconds = 8f;
+    private const float OnScreenSeconds = 12f;
 
-    private static readonly Color ApGreen = new Color32(0x64, 0xC8, 0x64, 0xFF);
+    // What a message glows when it didn't ask for anything specific. The shared palette, so the
+    // glow and any inline <color> tags agree - this used to be its own #64C864, close to the AP
+    // green but not it.
+    private static readonly Color DefaultGlow = ApColors.Green;
 
     /// <summary>
     /// Notifications are pooled - NotificationBase.Hide ends in ObjectPool.Recycle - so the
@@ -57,14 +60,17 @@ internal static class NotificationStylePatch
         // Non-AP popups are left on that reset value, which is the vanilla 3s path.
         if (mine) __instance.SetOverrideShowDuration(OnScreenSeconds);
 
-        Recolour(__instance, mine);
+        // The colour the message asked for, or the default AP green when it didn't. Carried on
+        // a side table keyed by loc key, because Configure is handed the key and nothing else.
+        Recolour(__instance, mine ? ApNotification.GlowFor(locKey) ?? DefaultGlow : null);
     }
 
     /// <summary>
-    /// Recolours the flair behind a Positive notification, or puts the original colours back.
-    /// The restore half is the point of the cache - see originalColours.
+    /// Recolours the flair behind a Positive notification, or puts the original colours back
+    /// when <paramref name="glow"/> is null. The restore half is the point of the cache - see
+    /// originalColours.
     /// </summary>
-    private static void Recolour(NotificationBase notification, bool mine)
+    private static void Recolour(NotificationBase notification, Color? glow)
     {
         GameObject flair;
         try
@@ -88,7 +94,7 @@ internal static class NotificationStylePatch
         // The one thing the decompile can't tell us is what _positiveFlair actually contains -
         // it's a serialized prefab reference. Logged once so the first run says what we hit
         // rather than leaving it to a second round of guessing.
-        if (mine && !loggedFlairContents)
+        if (glow.HasValue && !loggedFlairContents)
         {
             loggedFlairContents = true;
             Log.LogInfo($"[AP] Notification positive flair '{flair.name}' has {graphics.Length} "
@@ -102,7 +108,7 @@ internal static class NotificationStylePatch
 
             if (!originalColours.ContainsKey(graphic)) originalColours[graphic] = graphic.color;
 
-            graphic.color = mine ? ApGreen : originalColours[graphic];
+            graphic.color = glow ?? originalColours[graphic];
         }
     }
 }

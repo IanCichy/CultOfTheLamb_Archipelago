@@ -1,6 +1,8 @@
 using Archipelago.CultOfTheLamb.Services;
 using Archipelago.MultiClient.Net;
+using Archipelago.MultiClient.Net.Enums;
 using Archipelago.MultiClient.Net.Helpers;
+using Archipelago.MultiClient.Net.Models;
 using System.Collections.Concurrent;
 
 namespace Archipelago.CultOfTheLamb;
@@ -20,7 +22,7 @@ public partial class ArchipelagoItemLogicController : IService
     private readonly EquipmentPoolService weaponPoolService;
     private readonly EquipmentPoolService cursePoolService;
     private readonly DivineInspirationService divineInspirationService;
-    private readonly ConcurrentQueue<long> pendingItemIds = new();
+    private readonly ConcurrentQueue<PendingItem> pendingItemIds = new();
 
     internal ArchipelagoItemLogicController(
         ArchipelagoSession session,
@@ -58,7 +60,7 @@ public partial class ArchipelagoItemLogicController : IService
         var backlog = 0;
         while (session.Items.Any())
         {
-            pendingItemIds.Enqueue(session.Items.DequeueItem().ItemId);
+            pendingItemIds.Enqueue(Capture(session.Items.DequeueItem()));
             backlog++;
         }
 
@@ -76,21 +78,55 @@ public partial class ArchipelagoItemLogicController : IService
         session.Items.ItemReceived -= Items_ItemReceived;
     }
 
-    private void Items_ItemReceived(ReceivedItemsHelper helper)
+    private void Items_ItemReceived(ReceivedItemsHelper helper) =>
+        pendingItemIds.Enqueue(Capture(helper.DequeueItem()));
+
+    /// <summary>
+    /// Everything we need off the library's item DTO, taken here so nothing downstream depends
+    /// on its exact shape.
+    ///
+    /// The sender is read at dequeue time rather than looked up later: an item's origin is on
+    /// the packet, and by the time the main thread processes the queue there's nothing left to
+    /// ask. Null when the item came from our own world, so the popup can say "Received X" rather
+    /// than the strange "Received X from yourself" - which happened four times in one test run,
+    /// since this world's own points and cards land on its own locations.
+    /// </summary>
+    private PendingItem Capture(ItemInfo item)
     {
-        // Match RiskOfRain2's pattern: let type inference pick up whatever DequeueItem()
-        // returns rather than naming it explicitly, and only pull the ItemId field back out
-        // - avoids depending on the exact shape/namespace of the library's item DTO.
-        var newItem = helper.DequeueItem();
-        pendingItemIds.Enqueue(newItem.ItemId);
+        var fromSomeoneElse = item.Player != null
+            && item.Player.Slot != session.ConnectionInfo.Slot;
+
+        // Read off the flags rather than matched by name: "Dissent Trap" is the only one today,
+        // but Sprint 11 adds more and a hardcoded list would quietly stop being true.
+        var isTrap = item.Flags.HasFlag(ItemFlags.Trap);
+
+        return new PendingItem(
+            item.ItemId, fromSomeoneElse ? item.Player.Alias : null, isTrap);
+    }
+
+    private readonly struct PendingItem
+    {
+        internal readonly long ItemId;
+
+        /// <summary>Who found it, or null when it was our own world.</summary>
+        internal readonly string SenderName;
+
+        internal readonly bool IsTrap;
+
+        internal PendingItem(long itemId, string senderName, bool isTrap)
+        {
+            ItemId = itemId;
+            SenderName = senderName;
+            IsTrap = isTrap;
+        }
     }
 
     /// <summary>Call once per frame from the main thread (see ArchipelagoPlugin.Update).</summary>
     public void ProcessQueue()
     {
-        while (pendingItemIds.TryDequeue(out var itemId))
+        while (pendingItemIds.TryDequeue(out var item))
         {
-            ApplyItem(itemId);
+            ApplyItem(item.ItemId, item.SenderName, item.IsTrap);
         }
     }
 
@@ -115,7 +151,7 @@ public partial class ArchipelagoItemLogicController : IService
     /// sermons, equipment - need the replay to rebuild their state, and all of them are
     /// idempotent. Only the stacking grants (filler, Follower Level Up) are suppressed.
     /// </summary>
-    private void ApplyItem(long itemId)
+    private void ApplyItem(long itemId, string senderName, bool isTrap)
     {
         var itemName = session.Items.GetItemName(itemId);
 
@@ -124,7 +160,8 @@ public partial class ArchipelagoItemLogicController : IService
 
         if (!isReplay)
         {
-            Log.LogInfo($"[AP] Received item: {itemName} (id {itemId})");
+            Log.LogInfo($"[AP] Received item: {itemName} (id {itemId})"
+                + (senderName == null ? string.Empty : $" from {senderName}"));
             appliedCount++;
             AppliedItemStore.Set(storeKey, appliedCount);
 
@@ -132,8 +169,19 @@ public partial class ArchipelagoItemLogicController : IService
             // visible in the AP terminal unless the game happened to show its own banner
             // (resources do; an unlocked upgrade doesn't). Announce every genuinely new
             // item - replays are deliberately silent, since the player already saw them.
-            ApNotification.Show($"Archipelago: received {itemName}",
-                NotificationBase.Flair.Positive);
+            //
+            // Named sender when there is one, so this reads as the mirror of the sent popup.
+            var from = senderName == null
+                ? string.Empty
+                : $" from {ApColors.Tint(senderName, ApColors.YellowHex)}";
+
+            // Green glow = incoming, red = a trap landing on you. The one case where the colour
+            // is genuinely load-bearing rather than decorative: a trap is worth noticing before
+            // you work out why the game just got harder.
+            var glow = isTrap ? ApColors.Red : ApColors.Green;
+
+            ApNotification.Show(
+                $"Received {itemName}{from}", NotificationBase.Flair.Positive, glow);
         }
 
         // --- idempotent, always applied (including on replay) ---

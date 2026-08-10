@@ -21,6 +21,37 @@ namespace Archipelago.CultOfTheLamb.Patches;
 internal static class SermonUpgradePatch
 {
     /// <summary>
+    /// Most sermon XP one Temple upgrade may need, in tenths - the unit the game's own bar
+    /// counts in. 0 leaves the curve alone.
+    /// </summary>
+    internal static int XpCapTenths;
+
+    /// <summary>
+    /// Caps what the next Temple upgrade costs.
+    ///
+    /// Vanilla climbs 0.3, 0.4, 1.1 ... to 10.0 and holds there, so the last 25 of the 38
+    /// upgrades all sit at the ceiling - roughly 298 XP total, or ~150 sermons at a 20-strong
+    /// flock. Sermons are a once-a-day ritual rather than a trickle, which makes that a worse
+    /// grind than Devotion.
+    ///
+    /// **PlayerUpgrade only.** The five doctrine categories route through this same method on a
+    /// much steeper curve, and this world doesn't randomize them yet - capping them would speed
+    /// up content the player didn't ask to change.
+    /// </summary>
+    [HarmonyPatch(typeof(DoctrineUpgradeSystem),
+        nameof(DoctrineUpgradeSystem.GetXPTargetBySermon))]
+    internal static class SermonXpTarget
+    {
+        [HarmonyPostfix]
+        private static void Postfix(SermonCategory sermonCategory, ref float __result)
+        {
+            if (XpCapTenths <= 0 || sermonCategory != SermonCategory.PlayerUpgrade) return;
+
+            __result = UnityEngine.Mathf.Min(__result, XpCapTenths / 10f);
+        }
+    }
+
+    /// <summary>
     /// Set by SermonService while a session is randomizing sermons. When false the vanilla
     /// pick-an-upgrade flow runs untouched, so a disconnected or non-sermon seed plays normally.
     /// </summary>

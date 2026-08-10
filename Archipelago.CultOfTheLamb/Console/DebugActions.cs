@@ -589,6 +589,8 @@ internal static class DebugActions
         {
             Log.LogInfo($"[AP] {ap.DivineInspirationService.DescribeState()}");
         }
+        if (ap?.BuildingService != null) Log.LogInfo($"[AP] {ap.BuildingService.DescribeState()}");
+        if (ap?.BroomService != null) Log.LogInfo($"[AP] {ap.BroomService.DescribeState()}");
         DumpMiniBossesInScene();
         DumpSnailShrines();
         Log.LogInfo("[AP] ---- end dump ----");
