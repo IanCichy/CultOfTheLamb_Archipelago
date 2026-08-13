@@ -23,8 +23,8 @@ internal class SermonService : IService
     private readonly long locationBaseId;
     private readonly int locationCount;
 
-    /// <summary>How many copies of each sermon item we've already applied, for chain order.</summary>
-    private readonly Dictionary<string, int> grantedCounts = new();
+    /// <summary>Which tier of each progressive sermon chain comes next. See ProgressiveGrant.</summary>
+    private readonly ProgressiveGrant progressive = new();
 
     internal SermonService(
         ArchipelagoSession session,
@@ -51,7 +51,7 @@ internal class SermonService : IService
         SermonUpgradePatch.OnSermonUpgradeEarned -= HandleSermonUpgradeEarned;
         // Hand the vanilla pick-an-upgrade flow back, so a disconnected save is playable.
         SermonUpgradePatch.Active = false;
-        grantedCounts.Clear();
+        progressive.Clear();
     }
 
     private void HandleSermonUpgradeEarned(int level)
@@ -78,33 +78,19 @@ internal class SermonService : IService
     {
         if (itemName == null || !itemToUpgrades.TryGetValue(itemName, out var upgrades)) return false;
 
-        grantedCounts.TryGetValue(itemName, out var alreadyGranted);
-        if (alreadyGranted >= upgrades.Count)
+        if (!progressive.TryTake(itemName, upgrades.Count, out var tierIndex)) return true;
+
+        if (!SlotData.TryParseEnum<UpgradeSystem.Type>(
+                upgrades[tierIndex], itemName, out var upgrade))
         {
-            Log.LogWarning($"[AP] Received more copies of '{itemName}' than it has tiers "
-                + $"({upgrades.Count}) - ignoring the extra.");
             return true;
         }
-
-        var internalName = upgrades[alreadyGranted];
-        grantedCounts[itemName] = alreadyGranted + 1;
-
-        if (!Enum.IsDefined(typeof(UpgradeSystem.Type), internalName))
-        {
-            // Slot data naming an upgrade this build of the game doesn't have - most likely a
-            // seed generated against a newer apworld than the installed client.
-            Log.LogError($"[AP] Slot data names unknown upgrade '{internalName}' for item "
-                + $"'{itemName}' - this game build can't grant it.");
-            return true;
-        }
-
-        var upgrade = (UpgradeSystem.Type)Enum.Parse(typeof(UpgradeSystem.Type), internalName);
 
         // instant: true plays the game's own unlock-reveal, so an AP grant feels like a
         // normal unlock. Effects apply live - verified in-game.
         var granted = UpgradeSystem.UnlockAbility(upgrade, instant: true);
         Log.LogInfo($"[AP] Sermon item '{itemName}' -> {upgrade} "
-            + $"(tier {alreadyGranted + 1}/{upgrades.Count}), UnlockAbility returned {granted}");
+            + $"(tier {tierIndex + 1}/{upgrades.Count}), UnlockAbility returned {granted}");
 
         return true;
     }

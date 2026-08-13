@@ -5,10 +5,14 @@ from worlds.AutoWorld import WebWorld, World
 
 from .items import (
     BROOM_LEVEL_COUNT, BUILDINGS,
-    CURSES, DI_POINT, DI_TIER_THRESHOLDS, DIVINE_INSPIRATION, SERMON_ITEM_OFFSET,
+    CURSES, DI_CURATED_BUNDLES, DI_CURATED_ITEM_NAMES, DI_CURATED_PROGRESSIVE,
+    DI_EARLY_ITEM_NAMES,
+    DI_CURATED_SINGLES, DI_FREE_UPGRADES, DI_INTERNAL_BY_DISPLAY,
+    DI_POINT, DI_TIER_THRESHOLDS, DIVINE_INSPIRATION, SERMON_ITEM_OFFSET,
     SERMON_ITEM_UPGRADES, WEAPONS, CultOfTheLambItem, EquipmentData,
     PROGRESSIVE_REGION_ACCESS, TarotCardData, create_item, filler_table, item_table, offset,
-    poolable_equipment, poolable_tarot_cards, sermon_item_counts, trap_table,
+    ap_item_name, poolable_equipment, poolable_tarot_cards, sermon_item_counts,
+    sermon_item_name, trap_table,
     weighted_filler_names,
 )
 from .locations import (
@@ -188,19 +192,38 @@ class CultOfTheLambWorld(World):
         return self.options.divine_inspiration_mode != DivineInspirationMode.option_off
 
     @property
+    def divine_inspiration_is_curated(self) -> bool:
+        """Whether this seed uses the regrouped 38-item block rather than one item per upgrade."""
+        return (self.options.divine_inspiration_mode
+                == DivineInspirationMode.option_curated_checks)
+
+    @property
+    def divine_inspiration_location_count(self) -> int:
+        """How many checks this block creates.
+
+        Only curated_checks makes this an option; every other mode uses all 69, which is what
+        keeps the option a pure addition rather than a change to existing seeds.
+        """
+        if self.divine_inspiration_is_curated:
+            return self.options.divine_inspiration_checks.value
+        return DIVINE_INSPIRATION_COUNT
+
+    @property
     def divine_inspiration_gives_items(self) -> Optional[List[str]]:
         """The item names that buy Divine Inspiration unlocks, or None if this mode has none.
 
-        A one-element list means many copies of one item (checks_and_points); a longer one means
-        one copy each (checks_and_techs). rules.py branches on the length, and create_items
-        builds the pool from the same answer so the two can't disagree.
+        A one-element list means many copies of one item (checks_and_points); a longer one is the
+        pool verbatim, one entry per copy - so curated_checks repeats a progressive name once per
+        tier. create_items builds the pool from this same answer so the two can't disagree.
         """
         mode = self.options.divine_inspiration_mode
 
         if mode == DivineInspirationMode.option_checks_and_points:
             return [DI_POINT]
         if mode == DivineInspirationMode.option_checks_and_techs:
-            return [u.display for u in DIVINE_INSPIRATION]
+            return [u.item_name for u in DIVINE_INSPIRATION]
+        if mode == DivineInspirationMode.option_curated_checks:
+            return list(DI_CURATED_ITEM_NAMES)
 
         # off and checks_only: the player keeps their own ability points.
         return None
@@ -240,7 +263,7 @@ class CultOfTheLambWorld(World):
             counts = sermon_item_counts(bool(self.options.include_woolhaven))
             for name, count in counts.items():
                 for _ in range(count):
-                    item_pool.append(self.create_item(name))
+                    item_pool.append(self.create_item(sermon_item_name(name)))
 
         # One item per card the player doesn't already have. No cap and no competition with
         # filler: each of these has its own location - unlocking that card in game - so the
@@ -248,7 +271,7 @@ class CultOfTheLambWorld(World):
         starting = {c.display for c in self.starting_tarot_cards}
         for card in self.tarot_cards:
             if card.display not in starting:
-                item_pool.append(self.create_item(card.display))
+                item_pool.append(self.create_item(card.item_name))
 
         # One item per family the player doesn't begin with, matching the locations
         # regions.py created one-for-one.
@@ -257,18 +280,31 @@ class CultOfTheLambWorld(World):
             held = {e.display for e in begun}
             for family in families:
                 if family.display not in held:
-                    item_pool.append(self.create_item(family.display))
+                    item_pool.append(self.create_item(family.item_name))
 
         # One item per Divine Inspiration location, so spending them all is exactly enough to
         # clear the block and the pool never has to compete with filler for room.
         di_items = self.divine_inspiration_gives_items
         if di_items is not None:
             if len(di_items) == 1:
-                for _ in range(DIVINE_INSPIRATION_COUNT):
+                for _ in range(self.divine_inspiration_location_count):
                     item_pool.append(self.create_item(di_items[0]))
             else:
                 for name in di_items:
                     item_pool.append(self.create_item(name))
+
+        # Without passive lumber and stone, and without the only source of planks and bricks, the
+        # base economy has no floor - so these two are pinned to sphere 1 rather than left to land
+        # wherever. distribute_early_items has a non-advancement branch (Fill.py:441), so neither
+        # needs to be progression to qualify.
+        #
+        # Deliberately not LocationProgressType.PRIORITY: priority locations are filled from the
+        # progression pool only (Fill.py:524), so marking checks priority would push these out
+        # rather than pull them early. Keep this list short - overfilling sphere 1 logs "Ran out
+        # of early locations" and silently falls back to a normal fill.
+        if self.divine_inspiration_is_curated:
+            for name in DI_EARLY_ITEM_NAMES:
+                self.multiworld.local_early_items[self.player][name] = 1
 
         # Count the locations actually created rather than the whole table: options can
         # disable whole blocks (sermons, cards, DLC content), and padding to the table size
@@ -297,6 +333,18 @@ class CultOfTheLambWorld(World):
         return {
             "goal": self.options.goal.value,
             "requiredCount": self.options.required_count.value,
+
+            # Guidance only - no location, no item, no rule. The client renders these as an
+            # objective group in the game's own quest log, reading each line's progress back
+            # out of the keys already in this dict. Deliberately independent of the trim
+            # below: wanting a quieter game and wanting a checklist aren't the same wish.
+            "objectiveGuide": bool(self.options.archipelago_objective_guide.value),
+            "objectiveGuidePinning": self.options.objective_guide_pinning.value,
+            # How much of the game's own follower-quest table the client leaves in rotation.
+            # Vanilla quests are the main follower-loyalty-XP source, so the default trims
+            # rather than wipes - see options.py.
+            "vanillaFollowerQuests": self.options.vanilla_follower_quests.value,
+
             "randomizeRegionAccess": self.regions_are_gated,
             # Tells the C# client which region to force-open at start, and the order the
             # remaining three unlock in as Progressive Bishop's Domain copies arrive.
@@ -325,7 +373,7 @@ class CultOfTheLambWorld(World):
             #
             # This is also the set the client revokes on connect and the set it watches for
             # unlocks, so both sides agree on exactly which cards Archipelago owns.
-            "tarotCards": {card.display: card.internal for card in self.tarot_cards},
+            "tarotCards": {card.item_name: card.internal for card in self.tarot_cards},
             # Granted back immediately after the revoke, so the player starts with these.
             "startingTarotCards": [card.internal for card in self.starting_tarot_cards],
             # "Tarot Card - <name>" ids, so the client can turn an unlock into a check.
@@ -349,8 +397,8 @@ class CultOfTheLambWorld(World):
             # AP item name -> EquipmentType enum name, for every family this seed manages.
             # This is the set the client filters on: a podium may only offer a family whose
             # item has arrived, and any variant of it (a Bane Axe rides along with the Axe).
-            "weaponItems": {w.display: w.internal for w in self.weapons},
-            "curseItems": {c.display: c.internal for c in self.curses},
+            "weaponItems": {w.item_name: w.internal for w in self.weapons},
+            "curseItems": {c.item_name: c.internal for c in self.curses},
             # Granted from the start, so they have no item and no location.
             "startingWeapons": [w.internal for w in self.starting_weapons],
             "startingCurses": [c.internal for c in self.starting_curses],
@@ -375,11 +423,32 @@ class CultOfTheLambWorld(World):
             # "Divine Inspiration N" ids are contiguous from here, so the client turns a count
             # of tree unlocks straight into a check id - same shape as the sermon block.
             "divineInspirationLocationBaseId": location_name_to_id["Divine Inspiration 1"],
-            "divineInspirationLocationCount": DIVINE_INSPIRATION_COUNT,
-            # AP item name -> UpgradeSystem.Type, for checks_and_techs. Sent rather than
-            # hardcoded client-side for the same reason as sermonUpgrades: these are
-            # ScriptableObject data, and the two sides drifting would be silent.
-            "divineInspirationUpgrades": {u.display: u.internal for u in DIVINE_INSPIRATION},
+            "divineInspirationLocationCount": self.divine_inspiration_location_count,
+            # AP item name -> UpgradeSystem.Type, for checks_and_techs and for curated_checks'
+            # single-upgrade items. Sent rather than hardcoded client-side for the same reason as
+            # sermonUpgrades: these are ScriptableObject data, and the two sides drifting would
+            # be silent.
+            "divineInspirationUpgrades": (
+                {ap_item_name("DivineInspiration", d): DI_INTERNAL_BY_DISPLAY[d]
+                 for d in DI_CURATED_SINGLES}
+                if self.divine_inspiration_is_curated
+                else {u.item_name: u.internal for u in DIVINE_INSPIRATION}
+            ),
+            # curated_checks only, and empty otherwise. Bundles grant every upgrade at once;
+            # progressives grant the Nth on the Nth copy, so the client has to keep a count.
+            "divineInspirationBundles": (
+                {g.item_name: list(g.upgrades) for g in DI_CURATED_BUNDLES}
+                if self.divine_inspiration_is_curated else {}
+            ),
+            "divineInspirationProgressive": (
+                {g.item_name: list(g.upgrades) for g in DI_CURATED_PROGRESSIVE}
+                if self.divine_inspiration_is_curated else {}
+            ),
+            # Unlocked on connect, with neither a check nor an item. Without these a fresh save
+            # can't build a bed, a farm plot or the Temple.
+            "divineInspirationFreeUpgrades": (
+                list(DI_FREE_UPGRADES) if self.divine_inspiration_is_curated else []
+            ),
             # The item that carries one ability point in checks_and_points.
             "divineInspirationPointItem": DI_POINT,
             # Cumulative unlocks per tier, so a shuffle can rebuild the tree without the client
@@ -430,7 +499,7 @@ class CultOfTheLambWorld(World):
             # silently desync the two sides the way the hardcoded location ids in
             # CultOfTheLambIds.cs can.
             "sermonUpgrades": {
-                name: [
+                sermon_item_name(name): [
                     internal for internal, dlc in tiers
                     if self.options.include_woolhaven or not dlc
                 ]

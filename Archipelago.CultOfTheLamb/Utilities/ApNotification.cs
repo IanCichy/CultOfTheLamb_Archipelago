@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using I2.Loc;
 using UnityEngine;
 
 namespace Archipelago.CultOfTheLamb;
@@ -12,8 +11,8 @@ namespace Archipelago.CultOfTheLamb;
 /// display text**, and I2 returns null for an unregistered term with no fallback
 /// (LocalizationManager.cs:1019) - so passing raw English produces a *blank* popup.
 ///
-/// So the term is registered at runtime first, with SaveSource: false to avoid writing into the
-/// game's shipped asset, and translated into every language slot.
+/// So the term is registered at runtime first - see I2Terms, which does the same job for the
+/// objective guide's quest lines.
 /// </summary>
 internal static class ApNotification
 {
@@ -103,7 +102,7 @@ internal static class ApNotification
         // term straight back out of I2 after registering it. If this logs an empty or mangled
         // translation, the popup is being drawn blank and the fault is term registration, not
         // anything upstream. Diagnosing this by inference cost three separate attempts.
-        var readBack = SafeTranslation(key);
+        var readBack = I2Terms.Read(key);
         var matches = string.Equals(readBack, next.Text, StringComparison.Ordinal);
         Log.LogInfo($"[AP] Notification -> \"{Oneline(next.Text)}\" (key {key}, "
             + $"{pending.Count} still queued). I2 read-back "
@@ -134,18 +133,6 @@ internal static class ApNotification
             + "when the game is willing.");
     }
 
-    private static string SafeTranslation(string key)
-    {
-        try
-        {
-            return LocalizationManager.GetTranslation(key, true, 0, true, false, null, null, true);
-        }
-        catch (Exception e)
-        {
-            return $"<lookup threw: {e.Message}>";
-        }
-    }
-
     /// <summary>Messages are multi-line now, and a wrapped log line is hard to grep.</summary>
     private static string Oneline(string text) =>
         text == null ? "<null>" : text.Replace("\n", " | ");
@@ -172,27 +159,19 @@ internal static class ApNotification
 
     private static readonly Queue<PendingNotification> pending = new();
 
+    /// <summary>
+    /// The key for a message, registering it with I2 the first time it's seen. Null means
+    /// localization isn't up yet - a "not yet", not a failure.
+    ///
+    /// The key is derived from the text so the same message reuses one term, and lives under
+    /// TermPrefix so NotificationStylePatch can tell our popups from the game's.
+    /// </summary>
     private static string RegisterTerm(string text)
     {
         if (registeredTerms.TryGetValue(text, out var existingKey)) return existingKey;
 
-        if (LocalizationManager.Sources == null || LocalizationManager.Sources.Count == 0)
-        {
-            return null;
-        }
-
-        var source = LocalizationManager.Sources[0];
-        if (source == null) return null;
-
         var key = TermPrefix + text.GetHashCode().ToString("X8");
-
-        var termData = source.GetTermData(key) ?? source.AddTerm(key, eTermType.Text, SaveSource: false);
-        if (termData == null) return null;
-
-        for (var i = 0; i < termData.Languages.Length; i++)
-        {
-            termData.SetTranslation(i, text);
-        }
+        if (!I2Terms.Register(key, text)) return null;
 
         registeredTerms[text] = key;
         return key;

@@ -27,14 +27,30 @@ internal class DivineInspirationService : IService
     internal const int ModeChecksOnly = 1;
     internal const int ModeChecksAndPoints = 2;
     internal const int ModeChecksAndTechs = 3;
+    internal const int ModeCurated = 4;
 
     private readonly ArchipelagoSession session;
     private readonly int mode;
     private readonly long locationBaseId;
     private readonly int locationCount;
 
-    /// <summary>AP item name -> upgrade, for checks_and_techs.</summary>
-    private readonly Dictionary<string, UpgradeSystem.Type> itemNameToUpgrade;
+    /// <summary>
+    /// AP item name -> every upgrade it grants at once.
+    ///
+    /// One entry per item in checks_and_techs, where each list holds a single upgrade; in
+    /// curated_checks the same map carries both the single-upgrade items and the bundles, since
+    /// "grant all of these" covers both.
+    /// </summary>
+    private readonly Dictionary<string, List<UpgradeSystem.Type>> itemNameToUpgrades;
+
+    /// <summary>
+    /// curated_checks only: AP item name -> upgrades in tier order, where the Nth copy received
+    /// grants the Nth entry rather than all of them.
+    /// </summary>
+    private readonly Dictionary<string, List<UpgradeSystem.Type>> progressiveUpgrades;
+
+    /// <summary>Upgrades handed over on connect, with neither a check nor an item.</summary>
+    private readonly List<UpgradeSystem.Type> freeUpgrades;
 
     /// <summary>The item that carries one ability point in checks_and_points.</summary>
     private readonly string pointItemName;
@@ -54,19 +70,41 @@ internal class DivineInspirationService : IService
         int mode,
         long locationBaseId,
         int locationCount,
-        Dictionary<string, UpgradeSystem.Type> itemNameToUpgrade,
+        Dictionary<string, List<UpgradeSystem.Type>> itemNameToUpgrades,
         string pointItemName,
         int shuffleMode = 0,
-        int shuffleSeed = 0)
+        int shuffleSeed = 0,
+        Dictionary<string, List<UpgradeSystem.Type>> progressiveUpgrades = null,
+        List<UpgradeSystem.Type> freeUpgrades = null)
     {
         this.session = session;
         this.mode = mode;
         this.locationBaseId = locationBaseId;
         this.locationCount = locationCount;
-        this.itemNameToUpgrade = itemNameToUpgrade ?? new Dictionary<string, UpgradeSystem.Type>();
+        this.itemNameToUpgrades =
+            itemNameToUpgrades ?? new Dictionary<string, List<UpgradeSystem.Type>>();
         this.pointItemName = pointItemName;
         this.shuffleMode = shuffleMode;
         this.shuffleSeed = shuffleSeed;
+        this.progressiveUpgrades =
+            progressiveUpgrades ?? new Dictionary<string, List<UpgradeSystem.Type>>();
+        this.freeUpgrades = freeUpgrades ?? new List<UpgradeSystem.Type>();
+    }
+
+    /// <summary>Per-connection tier counter for the progressive families. See ProgressiveGrant.</summary>
+    private readonly ProgressiveGrant progressive = new();
+
+    /// <summary>Applies one copy of a progressive item: the Nth copy grants the Nth tier.</summary>
+    private void ApplyProgressive(string itemName, List<UpgradeSystem.Type> tiers)
+    {
+        if (!progressive.TryTake(itemName, tiers.Count, out var tierIndex)) return;
+
+        // Already-unlocked is the normal case on a replay: UnlockAbility is a set Add, so it
+        // no-ops and only the count matters.
+        var tier = tiers[tierIndex];
+        UpgradeSystem.UnlockAbility(tier);
+        Log.LogInfo($"[AP] Divine Inspiration '{itemName}' unlocked {tier} "
+            + $"(tier {tierIndex + 1} of {tiers.Count}).");
     }
 
     public void Register()
@@ -74,12 +112,16 @@ internal class DivineInspirationService : IService
         DivineInspirationPatch.PointEarned = OnPointEarned;
         DivineInspirationPatch.ResetWithholdLog();
 
-        // Both granting modes take the point away: in checks_and_points it comes back as an
-        // item, in checks_and_techs it never exists because Archipelago grants the upgrade.
+        // Every granting mode takes the point away: in checks_and_points it comes back as an
+        // item, in the two tech modes it never exists because Archipelago grants the upgrade.
         DivineInspirationPatch.WithholdPoints =
-            mode == ModeChecksAndPoints || mode == ModeChecksAndTechs;
+            mode == ModeChecksAndPoints || mode == ModeChecksAndTechs || mode == ModeCurated;
 
         DivineInspirationShuffle.Apply(shuffleMode, shuffleSeed);
+
+        DivineInspirationTierReveal.Apply(mode);
+
+        GrantFreeUpgrades();
 
         // Catch up meter fills from before this connect, or from while disconnected.
         SendChecksUpTo(EarnedCount());
@@ -100,6 +142,8 @@ internal class DivineInspirationService : IService
         // Queued because teardown arrives on the websocket thread and this touches Unity
         // objects, the same reason TarotService queues its restore.
         MainThreadQueue.Enqueue(DivineInspirationShuffle.Restore);
+
+        DivineInspirationTierReveal.Restore();
     }
 
     private string ModeName => mode switch
@@ -107,8 +151,39 @@ internal class DivineInspirationService : IService
         ModeChecksOnly => "checks_only",
         ModeChecksAndPoints => "checks_and_points",
         ModeChecksAndTechs => "checks_and_techs",
+        ModeCurated => "curated_checks",
         _ => "off",
     };
+
+    /// <summary>
+    /// Unlocks the upgrades this seed hands over for free, in curated_checks.
+    ///
+    /// Without them a fresh save can't unlock a bed, a farm plot or the Temple, so the cult can't
+    /// function at all - there is no first move. Idempotent, since UnlockAbility is a set Add, so
+    /// reconnecting simply re-asserts them.
+    /// </summary>
+    private void GrantFreeUpgrades()
+    {
+        if (freeUpgrades.Count == 0) return;
+
+        // Same guard as RegionUnlockService: at the main menu there is no save to write into.
+        // Warned rather than thrown, because the connection itself is still perfectly good.
+        if (DataManager.Instance == null)
+        {
+            Log.LogWarning($"[AP] No save loaded, so the {freeUpgrades.Count} free Divine "
+                + "Inspiration upgrade(s) can't be granted yet. Connect at a loaded save.");
+            return;
+        }
+
+        var granted = 0;
+        foreach (var upgrade in freeUpgrades)
+        {
+            if (UpgradeSystem.UnlockAbility(upgrade)) granted++;
+        }
+
+        Log.LogInfo($"[AP] Divine Inspiration: {granted} free upgrade(s) unlocked "
+            + $"({freeUpgrades.Count - granted} already held).");
+    }
 
     /// <summary>
     /// How many ability points the player has ever earned from the Devotion meter.
@@ -156,15 +231,31 @@ internal class DivineInspirationService : IService
     {
         if (itemName == null) return false;
 
-        if (mode == ModeChecksAndTechs && itemNameToUpgrade.TryGetValue(itemName, out var upgrade))
+        var grantsTechs = mode == ModeChecksAndTechs || mode == ModeCurated;
+
+        if (grantsTechs && itemNameToUpgrades.TryGetValue(itemName, out var upgrades))
         {
             // Prerequisites are not enforced by UnlockAbility (a bare Contains-then-Add), so
             // out-of-order grants are safe - which they have to be, since the multiworld hands
-            // these over in whatever order it likes.
-            if (UpgradeSystem.UnlockAbility(upgrade))
+            // these over in whatever order it likes. That is also what lets a bundle unlock a
+            // building and all of its tiers in one go.
+            var unlocked = new List<UpgradeSystem.Type>();
+            foreach (var upgrade in upgrades)
             {
-                Log.LogInfo($"[AP] Divine Inspiration '{itemName}' ({upgrade}) unlocked.");
+                if (UpgradeSystem.UnlockAbility(upgrade)) unlocked.Add(upgrade);
             }
+
+            if (unlocked.Count > 0)
+            {
+                Log.LogInfo($"[AP] Divine Inspiration '{itemName}' unlocked "
+                    + $"{string.Join(", ", unlocked)}.");
+            }
+            return true;
+        }
+
+        if (grantsTechs && progressiveUpgrades.TryGetValue(itemName, out var tiers))
+        {
+            ApplyProgressive(itemName, tiers);
             return true;
         }
 
@@ -183,38 +274,100 @@ internal class DivineInspirationService : IService
         return false;
     }
 
-    /// <summary>AP item name -> upgrade, from "divineInspirationUpgrades".</summary>
-    internal static Dictionary<string, UpgradeSystem.Type> ParseUpgrades(
+    /// <summary>
+    /// AP item name -> the upgrades it grants, from "divineInspirationUpgrades" (one each) merged
+    /// with "divineInspirationBundles" (several each).
+    ///
+    /// Merged into one map because both mean the same thing to the caller - "grant all of these" -
+    /// and a single-upgrade item is just a bundle of one.
+    /// </summary>
+    internal static Dictionary<string, List<UpgradeSystem.Type>> ParseUpgrades(
         IReadOnlyDictionary<string, object> slotData)
     {
-        var result = new Dictionary<string, UpgradeSystem.Type>();
+        var result = new Dictionary<string, List<UpgradeSystem.Type>>();
 
-        if (!slotData.TryGetValue("divineInspirationUpgrades", out var raw)
-            || raw is not JObject mapping)
+        if (slotData.TryGetValue("divineInspirationUpgrades", out var raw)
+            && raw is JObject singles)
         {
-            return result;
+            foreach (var entry in singles)
+            {
+                if (SlotData.TryParseEnum<UpgradeSystem.Type>(
+                        entry.Value?.ToString(), entry.Key, out var upgrade))
+                {
+                    result[entry.Key] = new List<UpgradeSystem.Type> { upgrade };
+                }
+            }
         }
 
-        foreach (var entry in mapping)
+        foreach (var entry in ParseUpgradeLists(slotData, "divineInspirationBundles"))
         {
-            var internalName = entry.Value?.ToString();
-            if (string.IsNullOrEmpty(internalName)) continue;
-
-            // Dropped with a warning rather than thrown: a name this build doesn't have means
-            // the mod and the game disagree, and losing one upgrade beats losing the session.
-            if (!Enum.IsDefined(typeof(UpgradeSystem.Type), internalName))
-            {
-                Log.LogWarning("[AP] Slot data names an upgrade this game doesn't have: "
-                    + $"'{internalName}' - skipping '{entry.Key}'.");
-                continue;
-            }
-
-            result[entry.Key] =
-                (UpgradeSystem.Type)Enum.Parse(typeof(UpgradeSystem.Type), internalName);
+            result[entry.Key] = entry.Value;
         }
 
         return result;
     }
+
+    /// <summary>
+    /// AP item name -> upgrades in tier order, from "divineInspirationProgressive". Empty outside
+    /// curated_checks.
+    /// </summary>
+    internal static Dictionary<string, List<UpgradeSystem.Type>> ParseProgressive(
+        IReadOnlyDictionary<string, object> slotData) =>
+        ParseUpgradeLists(slotData, "divineInspirationProgressive");
+
+    /// <summary>Upgrades granted on connect, from "divineInspirationFreeUpgrades".</summary>
+    internal static List<UpgradeSystem.Type> ParseFreeUpgrades(
+        IReadOnlyDictionary<string, object> slotData)
+    {
+        var result = new List<UpgradeSystem.Type>();
+
+        if (!slotData.TryGetValue("divineInspirationFreeUpgrades", out var raw)
+            || raw is not JArray names)
+        {
+            return result;
+        }
+
+        foreach (var name in names)
+        {
+            if (SlotData.TryParseEnum<UpgradeSystem.Type>(
+                    name?.ToString(), "free starting set", out var upgrade))
+            {
+                result.Add(upgrade);
+            }
+        }
+
+        return result;
+    }
+
+    private static Dictionary<string, List<UpgradeSystem.Type>> ParseUpgradeLists(
+        IReadOnlyDictionary<string, object> slotData, string key)
+    {
+        var result = new Dictionary<string, List<UpgradeSystem.Type>>();
+
+        foreach (var entry in SlotData.ParseNameLists(slotData, key))
+        {
+            var upgrades = new List<UpgradeSystem.Type>();
+            foreach (var name in entry.Value)
+            {
+                if (SlotData.TryParseEnum<UpgradeSystem.Type>(name, entry.Key, out var upgrade))
+                {
+                    upgrades.Add(upgrade);
+                }
+            }
+
+            if (upgrades.Count > 0) result[entry.Key] = upgrades;
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// One UpgradeSystem.Type from slot data, or null if this build of the game doesn't have it.
+    ///
+    /// Dropped with a warning rather than thrown: an unknown name means the mod and the game
+    /// disagree, and losing one upgrade beats losing the session.
+    /// </summary>
+
 
     /// <summary>What F9 prints for this tree.</summary>
     internal string DescribeState()

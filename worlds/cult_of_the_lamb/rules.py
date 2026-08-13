@@ -3,9 +3,16 @@ from typing import TYPE_CHECKING
 from BaseClasses import LocationProgressType
 from worlds.generic.Rules import set_rule
 
-from .items import PROGRESSIVE_REGION_ACCESS
+from .items import DI_GATE_ITEM, PROGRESSIVE_REGION_ACCESS
 from .locations import location_table
 from .regions import REGION_NAMES
+
+# The progressive item the curated Divine Inspiration block gates on, and how many copies exist.
+# Both come off the table rather than being restated: a rule naming an item that doesn't exist is
+# silently never satisfiable, and a retiered family would otherwise leave the count stale and
+# quietly under-gate the block.
+PROGRESSIVE_CULT = DI_GATE_ITEM.item_name
+_DI_CULT_TIERS = len(DI_GATE_ITEM.upgrades)
 
 if TYPE_CHECKING:
     from . import CultOfTheLambWorld
@@ -60,7 +67,7 @@ def set_rules(world: "CultOfTheLambWorld") -> None:
         #   Progressive Bishop's Domain copy, so an item placed at "Divine Inspiration 65" can't
         #   gate anything the player hasn't already reached - it would only be tedious, not
         #   unwinnable, and the band rule alone keeps it out of the early spheres.
-        if world.divine_inspiration_enabled:
+        if world.divine_inspiration_enabled and not world.divine_inspiration_is_curated:
             set_depth_rules(world, "DivineInspiration", exclude_tail=False)
 
         # Buildings are gated behind Divine Inspiration upgrades, but Archipelago can't express
@@ -73,6 +80,12 @@ def set_rules(world: "CultOfTheLambWorld") -> None:
 
         if world.options.broom_checks:
             set_depth_rules(world, "Broom")
+
+    # Outside the block above for the same reason as the equipment rules below: curated_checks
+    # gates on Progressive Cult, which exists in every curated seed regardless of how region
+    # access is set, so unlike a depth band it stays true in an all_unlocked seed.
+    if world.divine_inspiration_is_curated:
+        set_curated_di_rules(world)
 
     # Deliberately outside the `regions_are_gated` block above, and deliberately not using
     # set_depth_rules: these have real logic rather than an approximated band, so they hold up
@@ -122,8 +135,10 @@ def set_equipment_rules(world: "CultOfTheLambWorld", prefix, families, starting)
         if family.display in already:
             continue
         set_rule(
+            # The location keeps the game's own name; the rule names the AP item, which carries
+            # its category prefix. They are deliberately different strings.
             world.multiworld.get_location(f"{prefix} - {family.display}", player),
-            lambda state, name=family.display: state.has(name, player),
+            lambda state, name=family.item_name: state.has(name, player),
         )
 
 
@@ -198,3 +213,44 @@ def set_depth_rules(
 
         if required == _MAX_REGION_COPIES and exclude_tail:
             location.progress_type = LocationProgressType.EXCLUDED
+
+
+def set_curated_di_rules(world: "CultOfTheLambWorld") -> None:
+    """Gate the deeper Divine Inspiration checks on Progressive Cult, in curated_checks only.
+
+    A real item requirement in place of an approximated band, and the same trade
+    set_equipment_rules already makes: every check here is a filled Devotion meter, and each Cult
+    tier raises both the Shrine's capacity and how many Followers can pray, so the Cult tier held
+    is roughly the rate at which this block pays out. Without it, the item governing that rate can
+    legally be the last thing found.
+
+    Still soft logic - a patient player can grind the deep checks at Cult I - but aimed at
+    something real rather than at a guess about elapsed time.
+
+    No excluded tail: the block brings no filler of its own at these lengths, so excluding the
+    deepest quarter overdraws the seed and generation fails outright.
+    """
+    player = world.player
+    created = {location.name for location in world.multiworld.get_locations(player)}
+
+    locations = [
+        name
+        for n in range(1, world.divine_inspiration_location_count + 1)
+        if (name := f"Divine Inspiration {n}") in created
+    ]
+    if not locations:
+        return
+
+    # Quarters, so the requirement tracks the block's length rather than a fixed cutoff - the
+    # length is a YAML range and can be anything from 38 to 69.
+    band_size = max(1, len(locations) // 4)
+
+    for index, location_name in enumerate(locations):
+        required = min(index // band_size, _DI_CULT_TIERS)
+        if required == 0:
+            continue
+
+        set_rule(
+            world.multiworld.get_location(location_name, player),
+            lambda state, count=required: state.has(PROGRESSIVE_CULT, player, count),
+        )

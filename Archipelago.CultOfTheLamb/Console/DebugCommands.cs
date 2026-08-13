@@ -22,12 +22,22 @@ internal static class DebugCommands
 
     private static ConfigEntry<KeyboardShortcut> debugKey;
     private static ConfigEntry<KeyboardShortcut> connectKey;
+    private static ConfigEntry<KeyboardShortcut> questGuideKey;
 
     internal static void Init(ConfigFile config)
     {
         debugKey = Bind(config, "DumpStateKey", KeyCode.F9,
             "Dumps Archipelago client state, the game's boss-kill records, and every "
             + "MiniBossController in the current scene (internal name -> display name) to the log.");
+
+        // Ctrl+F9 rather than a spare function key: F1-F11 are taken and F12 is Steam's
+        // screenshot binding. BepInEx's KeyboardShortcut requires unlisted modifiers to be up,
+        // so this doesn't also fire the plain-F9 dump above.
+        questGuideKey = Bind(config, "DumpQuestGuideKey", KeyCode.F9,
+            "Dumps the Archipelago objective guide - each line's I2 term, intended text and "
+            + "read-back, plus every Archipelago objective sitting in the save - then sweeps "
+            + "and rebuilds it.",
+            KeyCode.LeftControl);
 
         // Kept on its original config name so existing setups don't lose their binding, even
         // though it now opens the panel rather than connecting outright. The panel is also
@@ -81,8 +91,8 @@ internal static class DebugCommands
     }
 
     private static ConfigEntry<KeyboardShortcut> Bind(
-        ConfigFile config, string name, KeyCode key, string description) =>
-        config.Bind("Debug", name, new KeyboardShortcut(key), description);
+        ConfigFile config, string name, KeyCode key, string description, params KeyCode[] modifiers) =>
+        config.Bind("Debug", name, new KeyboardShortcut(key, modifiers), description);
 
     private static void BindFeatureKey(
         ConfigFile config, string name, KeyCode key, string description, Action handler)
@@ -92,34 +102,45 @@ internal static class DebugCommands
 
     internal static void Update()
     {
-        if (debugKey != null && debugKey.Value.IsDown())
-        {
-            OnDebugKeyPressed?.Invoke();
-        }
-
-        if (connectKey != null && connectKey.Value.IsDown())
-        {
-            OnConnectKeyPressed?.Invoke();
-        }
+        // The event-based keys need the plugin's Archipelago reference, which isn't available
+        // when bindings is built, so they can't live in that list yet. They go through the same
+        // guard, because Ctrl+F9 rebuilds the objective guide and writes save lists.
+        Fire(debugKey, () => OnDebugKeyPressed?.Invoke());
+        Fire(connectKey, () => OnConnectKeyPressed?.Invoke());
+        Fire(questGuideKey, () => OnQuestGuideKeyPressed?.Invoke());
 
         foreach (var (key, handler) in bindings)
         {
-            if (!key.Value.IsDown()) continue;
+            Fire(key, handler);
+        }
+    }
 
-            // A debug keybind must never take the game down with it - these call into game
-            // APIs that may not be initialized depending on where the player is (main menu,
-            // mid-crusade, etc).
-            try
-            {
-                handler();
-            }
-            catch (Exception e)
-            {
-                Log.LogError($"[AP] Debug key '{key.Definition.Key}' threw: {e}");
-            }
+    /// <summary>
+    /// Runs a keybind's handler if it was pressed.
+    ///
+    /// A debug keybind must never take the game down with it - these call into game APIs that
+    /// may not be initialized depending on where the player is (main menu, mid-crusade, etc).
+    /// </summary>
+    private static void Fire(ConfigEntry<KeyboardShortcut> key, Action handler)
+    {
+        if (key == null || !key.Value.IsDown()) return;
+
+        try
+        {
+            handler();
+        }
+        catch (Exception e)
+        {
+            Log.LogError($"[AP] Debug key '{key.Definition.Key}' threw: {e}");
         }
     }
 
     internal static event Action OnDebugKeyPressed;
     internal static event Action OnConnectKeyPressed;
+
+    /// <summary>
+    /// Like OnDebugKeyPressed, an event rather than a BindFeatureKey handler because its body
+    /// needs the ArchipelagoClient, which lives on the plugin.
+    /// </summary>
+    internal static event Action OnQuestGuideKeyPressed;
 }

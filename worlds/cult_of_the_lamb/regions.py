@@ -2,7 +2,9 @@ from typing import TYPE_CHECKING
 
 from BaseClasses import Region
 
-from .locations import CultOfTheLambLocation, get_locations_for_region, location_name_to_id
+from .locations import (
+    DIVINE_INSPIRATION_COUNT, CultOfTheLambLocation, get_locations_for_region, location_name_to_id,
+)
 
 if TYPE_CHECKING:
     from . import CultOfTheLambWorld
@@ -37,6 +39,14 @@ def create_regions(world: "CultOfTheLambWorld") -> None:
     starting = {f"Tarot Card - {card.display}" for card in world.starting_tarot_cards}
     starting |= {f"Weapon - {w.display}" for w in world.starting_weapons}
     starting |= {f"Curse - {c.display}" for c in world.starting_curses}
+
+    # curated_checks shortens the Divine Inspiration block, so the tail of it isn't in this seed.
+    # Dropped by name through the same filter rather than by trimming location_table, because
+    # those ids are positional and append-only - removing a name would repoint every id after it.
+    starting |= {
+        f"Divine Inspiration {n}"
+        for n in range(world.divine_inspiration_location_count + 1, DIVINE_INSPIRATION_COUNT + 1)
+    }
 
     cult_categories = set()
     if world.options.randomize_sermon_upgrades:

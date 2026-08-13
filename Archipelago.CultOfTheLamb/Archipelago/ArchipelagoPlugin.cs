@@ -54,6 +54,7 @@ public class ArchipelagoPlugin : BaseUnityPlugin
         MenuButtonPatch.OnArchipelagoButtonPressed += () => connectPanel.Open();
         DebugCommands.OnConnectKeyPressed += () => connectPanel.Toggle();
         DebugCommands.OnDebugKeyPressed += () => DebugActions.DumpState(AP);
+        DebugCommands.OnQuestGuideKeyPressed += () => DebugActions.DumpQuestGuide(AP);
         AP.OnClientDisconnect += AP_OnClientDisconnect;
         ArchipelagoConsoleCommand.OnArchipelagoCommandCalled += ArchipelagoConsoleCommand_OnArchipelagoCommandCalled;
         ArchipelagoConsoleCommand.OnArchipelagoDisconnectCommandCalled += () => AP.Disconnect();
@@ -97,6 +98,11 @@ public class ArchipelagoPlugin : BaseUnityPlugin
             // empty - and re-revokes from scratch if a different save has been loaded.
             AP?.TarotService?.Tick();
 
+            // Adds the objective checklist once a save is loaded, then keeps its counters
+            // current. Cheap in a steady state: it re-registers a term only when the composed
+            // line actually changed.
+            AP?.QuestGuideService?.Tick();
+
             // While disconnected instead: hands back anything a session that ended in a crash
             // or an alt-F4 never got the chance to return. Nothing to find after a clean
             // disconnect, so this is quiet unless something actually went wrong.
@@ -107,6 +113,11 @@ public class ArchipelagoPlugin : BaseUnityPlugin
                     new TarotCollectionBacking(),
                     TarotCollectionBacking.Noun,
                     TarotCollectionBacking.LegacyKey);
+
+                // Same idea for the objective guide. Its objectives live in the save file, so a
+                // crash or alt-F4 mid-session would otherwise leave Archipelago lines in a
+                // vanilla quest log permanently. Once per loaded save, not once a second.
+                QuestGuideService.SweepLoadedSaveOnce();
             }
         }
     }

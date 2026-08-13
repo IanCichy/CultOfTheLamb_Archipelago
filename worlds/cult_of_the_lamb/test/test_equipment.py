@@ -49,12 +49,13 @@ class EquipmentTestBase(WorldTestBase):
             if family.display in held:
                 self.assertNotIn(location, names,
                                  f"{location} exists but {family.display} is a starting family")
-                self.assertNotIn(family.display, pool_items,
-                                 f"{family.display} is in the pool but is a starting family")
+                self.assertNotIn(family.item_name, pool_items,
+                                 f"{family.item_name} is in the pool but is a starting family")
                 continue
 
             self.assertIn(location, names, f"{location} was never created")
-            self.assertIn(family.display, pool_items, f"{family.display} was never pooled")
+            self.assertIn(family.item_name, pool_items,
+                          f"{family.item_name} was never pooled")
 
     def assert_gated_on_own_item(self, prefix, seed_families, starting):
         """Reaching a family's check requires holding that family's item.
@@ -70,12 +71,12 @@ class EquipmentTestBase(WorldTestBase):
                 continue
 
             state = self.multiworld.get_all_state()
-            state.remove(self.world.create_item(family.display))
+            state.remove(self.world.create_item(family.item_name))
 
             location = self.multiworld.get_location(f"{prefix} - {family.display}", 1)
             self.assertFalse(
                 location.can_reach(state),
-                f"{location.name} is reachable without {family.display} - its rule is missing",
+                f"{location.name} is reachable without {family.item_name} - its rule is missing",
             )
 
     def assert_all(self):

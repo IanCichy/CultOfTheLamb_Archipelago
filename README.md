@@ -36,6 +36,19 @@ Devout and friends - collapsed into progressive items.
 `include_woolhaven` adds the DLC's content to both the item pool and the location list.
 `trap_percentage` decides how much of the filler bites back.
 
+### Knowing what to aim for
+
+The game gives you no idea what the seed wants, so `archipelago_objective_guide` (on by
+default) adds an Archipelago checklist to the pause menu's Quests tab: the win condition,
+region access, and one live-progress line per active check block. It's guidance only - no
+locations, no items, and turning it off doesn't change the seed. `objective_guide_pinning`
+controls how much of it sits on the on-screen tracker, which only holds three quest groups.
+
+`vanilla_follower_quests` decides how much of the game's own ~87 follower quests stays in
+rotation. Most are busywork that pulls against what the multiworld wants, but turning one in
+is also the main source of follower loyalty XP - so the default (`thin_trickle`) keeps the
+rituals, the crusade collections and the follower story chains, and drops the rest.
+
 See [docs/architecture.md](docs/architecture.md) for how the C# client and the Python world
 fit together, [docs/check-economy.md](docs/check-economy.md) for the seed's shape — which
 systems send checks, which receive items, and what rerolls per seed versus per run — and

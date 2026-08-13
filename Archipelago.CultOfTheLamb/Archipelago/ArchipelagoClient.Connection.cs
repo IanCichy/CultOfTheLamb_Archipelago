@@ -227,9 +227,9 @@ public partial class ArchipelagoClient
         // Unconditional: the pacing caps are quality of life, not randomizer settings, so they
         // apply whether or not the matching block is being randomized this seed.
         EconomyService = new EconomyService(
-            (int)GetLong(successResult.SlotData, "divineInspirationDevotionCap"),
-            (int)GetLong(successResult.SlotData, "sermonXpCap"),
-            (int)GetLong(successResult.SlotData, "buildTimeCap"));
+            (int)SlotData.GetLong(successResult.SlotData, "divineInspirationDevotionCap"),
+            (int)SlotData.GetLong(successResult.SlotData, "sermonXpCap"),
+            (int)SlotData.GetLong(successResult.SlotData, "buildTimeCap"));
         EconomyService.Register();
 
         LocationCheckService = new LocationCheckService(session);
@@ -241,26 +241,26 @@ public partial class ArchipelagoClient
 
         // Sermon randomization is optional per seed; when it's off we leave the vanilla
         // pick-an-upgrade flow completely untouched rather than registering an inert service.
-        if (GetBool(successResult.SlotData, "randomizeSermonUpgrades"))
+        if (SlotData.GetBool(successResult.SlotData, "randomizeSermonUpgrades"))
         {
             SermonService = new SermonService(
                 session,
                 ParseSermonUpgrades(successResult.SlotData),
-                GetLong(successResult.SlotData, "sermonLocationBaseId"),
-                (int)GetLong(successResult.SlotData, "sermonLocationCount"));
+                SlotData.GetLong(successResult.SlotData, "sermonLocationBaseId"),
+                (int)SlotData.GetLong(successResult.SlotData, "sermonLocationCount"));
             SermonService.Register();
         }
 
-        if (GetBool(successResult.SlotData, "followerMilestoneChecks"))
+        if (SlotData.GetBool(successResult.SlotData, "followerMilestoneChecks"))
         {
             FollowerMilestoneService = new FollowerMilestoneService(
                 session,
-                GetLong(successResult.SlotData, "followerLocationBaseId"),
-                (int)GetLong(successResult.SlotData, "followerLocationCount"));
+                SlotData.GetLong(successResult.SlotData, "followerLocationBaseId"),
+                (int)SlotData.GetLong(successResult.SlotData, "followerLocationCount"));
             FollowerMilestoneService.Register();
         }
 
-        if (GetBool(successResult.SlotData, "tarotShopChecks"))
+        if (SlotData.GetBool(successResult.SlotData, "tarotShopChecks"))
         {
             var tarotShopLocations = ParseTarotShopLocations(successResult.SlotData);
 
@@ -273,18 +273,18 @@ public partial class ArchipelagoClient
             ShopIconService.Register();
         }
 
-        if (GetBool(successResult.SlotData, "snailShrineChecks"))
+        if (SlotData.GetBool(successResult.SlotData, "snailShrineChecks"))
         {
             SnailShrineService = new SnailShrineService(
                 session,
-                GetLong(successResult.SlotData, "snailLocationBaseId"),
-                (int)GetLong(successResult.SlotData, "snailLocationCount"));
+                SlotData.GetLong(successResult.SlotData, "snailLocationBaseId"),
+                (int)SlotData.GetLong(successResult.SlotData, "snailLocationCount"));
             SnailShrineService.Register();
         }
 
         // Before ItemLogic: registering empties the collection, and ItemLogic's backlog drain
         // immediately replays whatever the player has already been sent back into it.
-        if (GetBool(successResult.SlotData, "randomizeTarotCards"))
+        if (SlotData.GetBool(successResult.SlotData, "randomizeTarotCards"))
         {
             TarotService = new TarotService(
                 session,
@@ -298,8 +298,8 @@ public partial class ArchipelagoClient
         // granted set, and until it runs the player has been granted nothing.
         // The Legendary option works on its own, so the weapon service also registers when
         // weapons aren't being randomized at all - with nothing managed, it only rolls those.
-        var randomizeWeapons = GetBool(successResult.SlotData, "randomizeWeapons");
-        var legendaryChance = GetFloat(successResult.SlotData, "legendaryWeaponChance");
+        var randomizeWeapons = SlotData.GetBool(successResult.SlotData, "randomizeWeapons");
+        var legendaryChance = SlotData.GetFloat(successResult.SlotData, "legendaryWeaponChance");
 
         if (randomizeWeapons || legendaryChance > 0f)
         {
@@ -308,41 +308,65 @@ public partial class ArchipelagoClient
             WeaponPoolService.Register();
         }
 
-        if (GetBool(successResult.SlotData, "randomizeCurses"))
+        if (SlotData.GetBool(successResult.SlotData, "randomizeCurses"))
         {
             CursePoolService = BuildEquipmentService(successResult.SlotData, weapons: false);
             CursePoolService.Register();
         }
 
-        if (GetBool(successResult.SlotData, "buildingChecks"))
+        if (SlotData.GetBool(successResult.SlotData, "buildingChecks"))
         {
             BuildingService = new BuildingService(
                 session, BuildingService.ParseLocations(successResult.SlotData));
             BuildingService.Register();
         }
 
-        if (GetBool(successResult.SlotData, "broomChecks"))
+        if (SlotData.GetBool(successResult.SlotData, "broomChecks"))
         {
             BroomService = new BroomService(
                 session,
-                GetLong(successResult.SlotData, "broomLocationBaseId"),
-                (int)GetLong(successResult.SlotData, "broomLocationCount"));
+                SlotData.GetLong(successResult.SlotData, "broomLocationBaseId"),
+                (int)SlotData.GetLong(successResult.SlotData, "broomLocationCount"));
             BroomService.Register();
         }
 
-        var diMode = (int)GetLong(successResult.SlotData, "divineInspirationMode");
+        var diMode = (int)SlotData.GetLong(successResult.SlotData, "divineInspirationMode");
         if (diMode != DivineInspirationService.ModeOff)
         {
             DivineInspirationService = new DivineInspirationService(
                 session,
                 diMode,
-                GetLong(successResult.SlotData, "divineInspirationLocationBaseId"),
-                (int)GetLong(successResult.SlotData, "divineInspirationLocationCount"),
+                SlotData.GetLong(successResult.SlotData, "divineInspirationLocationBaseId"),
+                (int)SlotData.GetLong(successResult.SlotData, "divineInspirationLocationCount"),
                 DivineInspirationService.ParseUpgrades(successResult.SlotData),
-                GetString(successResult.SlotData, "divineInspirationPointItem"),
-                (int)GetLong(successResult.SlotData, "divineInspirationShuffle"),
-                (int)GetLong(successResult.SlotData, "divineInspirationShuffleSeed"));
+                SlotData.GetString(successResult.SlotData, "divineInspirationPointItem"),
+                (int)SlotData.GetLong(successResult.SlotData, "divineInspirationShuffle"),
+                (int)SlotData.GetLong(successResult.SlotData, "divineInspirationShuffleSeed"),
+                DivineInspirationService.ParseProgressive(successResult.SlotData),
+                DivineInspirationService.ParseFreeUpgrades(successResult.SlotData));
             DivineInspirationService.Register();
+        }
+
+        // Guidance only - creates no location and sends no check. It reads the same slot-data
+        // keys the services above were gated on, so it can never advertise a block that isn't
+        // actually running this seed.
+        if (SlotData.GetBool(successResult.SlotData, "objectiveGuide"))
+        {
+            QuestGuideService = new QuestGuideService(
+                session,
+                (GuideHudMode)(int)SlotData.GetLong(successResult.SlotData, "objectiveGuidePinning"),
+                goal,
+                requiredCount,
+                regionOrder,
+                successResult.SlotData);
+            QuestGuideService.Register();
+        }
+
+        var questTrimMode = (int)SlotData.GetLong(successResult.SlotData, "vanillaFollowerQuests");
+        if (questTrimMode != QuestTrimService.Unchanged)
+        {
+            QuestTrimService = new QuestTrimService(questTrimMode);
+            QuestTrimService.Register();
         }
 
         ItemLogic = new ArchipelagoItemLogicController(
@@ -383,21 +407,12 @@ public partial class ArchipelagoClient
     private static Dictionary<string, List<string>> ParseSermonUpgrades(
         IReadOnlyDictionary<string, object> slotData)
     {
-        var result = new Dictionary<string, List<string>>();
+        var result = SlotData.ParseNameLists(slotData, "sermonUpgrades");
 
-        if (!slotData.TryGetValue("sermonUpgrades", out var raw) || raw is not JObject mapping)
+        if (result.Count == 0)
         {
             Log.LogWarning("[AP] Sermon randomization is on but slot data has no sermonUpgrades "
                 + "mapping - sermon items won't grant anything.");
-            return result;
-        }
-
-        foreach (var entry in mapping)
-        {
-            if (entry.Value is JArray upgrades)
-            {
-                result[entry.Key] = upgrades.ToObject<List<string>>();
-            }
         }
 
         return result;
@@ -436,18 +451,6 @@ public partial class ArchipelagoClient
 
         return result;
     }
-
-    private static bool GetBool(IReadOnlyDictionary<string, object> slotData, string key) =>
-        slotData.TryGetValue(key, out var value) && Convert.ToBoolean(value);
-
-    private static long GetLong(IReadOnlyDictionary<string, object> slotData, string key) =>
-        slotData.TryGetValue(key, out var value) ? Convert.ToInt64(value) : 0L;
-
-    private static float GetFloat(IReadOnlyDictionary<string, object> slotData, string key) =>
-        slotData.TryGetValue(key, out var value) ? Convert.ToSingle(value) : 0f;
-
-    private static string GetString(IReadOnlyDictionary<string, object> slotData, string key) =>
-        slotData.TryGetValue(key, out var value) ? value?.ToString() : null;
 
     /// <summary>
     /// Unsubscribes session-level events and nulls the session.
@@ -490,6 +493,10 @@ public partial class ArchipelagoClient
         BuildingService = null;
         BroomService?.Unregister();
         BroomService = null;
+        QuestGuideService?.Unregister();
+        QuestGuideService = null;
+        QuestTrimService?.Unregister();
+        QuestTrimService = null;
         EconomyService?.Unregister();
         EconomyService = null;
         CheckNotifier.Scouts = null;

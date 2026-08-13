@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 
+from .locations import DIVINE_INSPIRATION_COUNT
 from Options import Choice, PerGameCommonOptions, Range, Toggle
 
 
@@ -21,6 +22,82 @@ class RequiredCount(Range):
     range_start = 1
     range_end = 4
     default = 4
+
+
+class ArchipelagoObjectiveGuide(Toggle):
+    """Add an Archipelago checklist to the in-game quest log.
+
+    Cult of the Lamb tells you nothing about the seed you're in. The quest log fills up with
+    follower errands and never mentions the win condition, how many followers the multiworld
+    wants from you, or which blocks of checks are even switched on - so a new player has no
+    way to tell what to aim for, and the game's own quests actively pull against it.
+
+    This adds a persistent Archipelago group to the pause menu's Quests tab: the win
+    condition, region access, and one line per active check block, each showing live
+    progress. Lines tick themselves off as you finish them.
+
+    Pure guidance. It creates no locations and no items, and finishing a line is a display
+    state rather than a check - turning this off changes nothing about the seed itself.
+
+    One caveat worth knowing: progress is counted from what the server has recorded for your
+    slot, so if you play two save files against one slot the checklist shows the slot's total
+    rather than that save's.
+    """
+    display_name = "Archipelago Objective Guide"
+    default = True
+
+
+class ObjectiveGuidePinning(Choice):
+    """How much of the Archipelago checklist is pinned to the on-screen tracker.
+
+    The tracker only shows three quest groups at a time and drops the oldest past that, so
+    pinning the whole checklist costs you sight of the quest you're actually doing. The full
+    list is always in the pause menu's Quests tab no matter what this is set to.
+
+    off: nothing on screen. Pause menu only.
+    goal_only: the win condition and region access - one or two lines.
+    everything: pin the checklist too. Spends two of your three tracker slots.
+
+    Ignored when Archipelago Objective Guide is off.
+    """
+    display_name = "Objective Guide Pinning"
+    option_off = 0
+    option_goal_only = 1
+    option_everything = 2
+    default = 1
+
+
+class VanillaFollowerQuests(Choice):
+    """How much of the game's own follower-quest table stays in rotation.
+
+    Followers periodically walk over and offer one of the game's ~87 built-in quests - cook
+    three great meals, dress someone in a fancy suit, murder a specific follower at night.
+    Most are busywork that pulls against whatever the multiworld wants from you, and a new
+    player can't tell the difference between the two.
+
+    They aren't pure noise, though. Turning a quest in is the game's main source of follower
+    loyalty XP, so removing all of them slows follower levelling down. That's why the default
+    trims rather than wipes.
+
+    unchanged: vanilla. Every quest stays in rotation.
+
+    thin_trickle: keep the ritual quests, the crusade collection quests, and every follower
+      story chain (Sozo, the lovers, the rivalries); drop the rest. Followers still level up,
+      and what they ask for is either something you were going to do anyway or an actual
+      story beat.
+
+    story_only: keep the story chains and nothing else. Followers still wander over
+      sometimes, and get an "oh, never mind" line when there's nothing to give.
+
+    none: no follower quests at all, story chains included. The quietest option, and the
+      harshest on follower levelling.
+    """
+    display_name = "Vanilla Follower Quests"
+    option_unchanged = 0
+    option_thin_trickle = 1
+    option_story_only = 2
+    option_none = 3
+    default = 1
 
 
 class RegionAccessOrder(Choice):
@@ -332,11 +409,24 @@ class DivineInspirationMode(Choice):
       matters for anything later that wants to gate on a specific building. The cost is that you
       never choose anything - the tree unlocks itself.
 
+    curated_checks: as checks_and_techs, but the 69 upgrades are regrouped into 38 items - a
+      building and all of its tiers arrive together, so "Missionary Network" is one item rather
+      than three. Five tier-1 upgrades (Temple, Farm Plot, Sleeping Bags, Body Pit, Farming
+      Bundle) are free from the start, because without them the cult cannot function at all. The
+      block is also shorter: see Divine Inspiration Checks.
+
+      Two exceptions stay tiered, because both multiply **Devotion** - the resource that fills the
+      meter every check in this block counts. Progressive Cult raises the Shrine from 50 to 175
+      Devotion and 4 to 10 simultaneous prayers; Progressive Shrine Flame adds up to +60% pray
+      speed. Bundling either would let a single item triple the throughput of the whole block.
+
     checks_and_points is the default because it keeps the part of the tree that's actually a
     decision: which upgrade you want next.
 
-    None of these add logical length - nothing Archipelago hands out makes the meter fill
-    faster - so the block spreads across spheres via the depth bands, like the sermon block.
+    Only curated_checks adds logical length: the deeper checks require Progressive Cult copies,
+    which is what stops the thing that governs your Devotion rate from turning up last. Every
+    other mode spreads across spheres via the depth bands, like the sermon block, because nothing
+    they hand out makes the meter fill faster.
 
     Independent of Divine Inspiration Shuffle - any combination is a legal seed."""
     display_name = "Divine Inspiration Mode"
@@ -344,6 +434,7 @@ class DivineInspirationMode(Choice):
     option_checks_only = 1
     option_checks_and_points = 2
     option_checks_and_techs = 3
+    option_curated_checks = 4
     default = 2
 
 
@@ -382,6 +473,30 @@ class DivineInspirationDevotionCap(Range):
     default = 70
 
 
+class DivineInspirationChecks(Range):
+    """How many Divine Inspiration checks the block has, in curated_checks mode.
+
+    **Read only when Divine Inspiration Mode is curated_checks.** Every other mode always uses all
+    69, unchanged.
+
+    69 is too many: a full evening of real play reached 22 of them at a Devotion cap of 100, and
+    the cap is 70 now - roughly 30% cheaper per point - so 30 is about one session.
+
+    The block may be shorter than its own item count. Those items simply go somewhere else in the
+    seed - this world has ~77 locations that carry no items of their own (buildings, followers,
+    broom, snail shrines, bosses) and normally just absorb filler. A short block trades that
+    filler for real unlocks, so the tree pays out for playing the game rather than for grinding
+    the Devotion meter.
+
+    The only real limit is global: a world can't hold more items than it has locations. Turning
+    most other check blocks off *and* setting this very low can overfill the pool and fail
+    generation - the same arithmetic every AP world is subject to."""
+    display_name = "Divine Inspiration Checks"
+    range_start = 5
+    range_end = DIVINE_INSPIRATION_COUNT
+    default = 30
+
+
 class DivineInspirationShuffle(Choice):
     """Rearranges which tier each Divine Inspiration upgrade sits in.
 
@@ -412,6 +527,9 @@ class DivineInspirationShuffle(Choice):
 class CultOfTheLambOptions(PerGameCommonOptions):
     goal: Goal
     required_count: RequiredCount
+    archipelago_objective_guide: ArchipelagoObjectiveGuide
+    objective_guide_pinning: ObjectiveGuidePinning
+    vanilla_follower_quests: VanillaFollowerQuests
     region_access_order: RegionAccessOrder
     include_woolhaven: IncludeWoolhaven
     randomize_sermon_upgrades: RandomizeSermonUpgrades
@@ -427,6 +545,7 @@ class CultOfTheLambOptions(PerGameCommonOptions):
     randomize_curses: RandomizeCurses
     starting_curses: StartingCurses
     divine_inspiration_mode: DivineInspirationMode
+    divine_inspiration_checks: DivineInspirationChecks
     divine_inspiration_shuffle: DivineInspirationShuffle
     divine_inspiration_devotion_cap: DivineInspirationDevotionCap
     sermon_xp_cap: SermonXpCap

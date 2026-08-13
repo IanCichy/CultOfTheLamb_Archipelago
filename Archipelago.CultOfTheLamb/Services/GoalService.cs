@@ -8,12 +8,11 @@ namespace Archipelago.CultOfTheLamb.Services;
 /// <summary>
 /// Watches for the seed's win condition and reports it to the server.
 ///
-/// Progress is counted from the game's own save state rather than a session-local tally -
-/// BossesCompleted for Bishops, KilledBosses for Witnesses. Both are already updated by the
-/// time our handlers run (Interaction_MonsterHeart adds to BossesCompleted before raising
-/// OnHeartTaken; our AddKilledBoss patch is a postfix), so reading them means the count is
-/// also right after a reconnect, or if the player beat bosses before ever connecting.
-/// See AI_INDEX.md §3 and §3a.
+/// Counting lives in GoalProgress, shared with the objective guide's win-condition line. Both
+/// tracks are read from the game's own save state rather than a session-local tally, and both
+/// are already written by the time our handlers run (Interaction_MonsterHeart adds to
+/// BossesCompleted before raising OnHeartTaken; our AddKilledBoss patch is a postfix) - so the
+/// count is right after a reconnect, or if the player beat bosses before ever connecting.
 /// </summary>
 internal class GoalService : IService
 {
@@ -58,7 +57,7 @@ internal class GoalService : IService
         if (goalSent) return;
 
         var isWitnessGoal = goal == GoalWitnesses;
-        var defeated = isWitnessGoal ? CountDefeatedWitnesses() : CountDefeatedBishops();
+        var defeated = GoalProgress.CountForGoal(goal);
         var noun = isWitnessGoal ? "Witnesses" : "Bishops";
 
         Log.LogInfo($"[AP] Goal progress: {defeated}/{requiredCount} {noun} defeated.");
@@ -67,38 +66,6 @@ internal class GoalService : IService
         {
             SendGoalCompleted();
         }
-    }
-
-    private int CountDefeatedBishops()
-    {
-        var dataManager = DataManager.Instance;
-        if (dataManager == null || dataManager.BossesCompleted == null) return 0;
-
-        var count = 0;
-        foreach (var bishopLocation in RegionMapping.BishopLocationToCheckId.Keys)
-        {
-            if (dataManager.BossesCompleted.Contains(bishopLocation)) count++;
-        }
-        return count;
-    }
-
-    /// <summary>
-    /// Counts the base-game Witnesses only, deliberately ignoring the "_P2" post-game
-    /// re-fights - a Purged-run kill shouldn't count toward a goal the player hasn't met in
-    /// the base run. Reads KilledBosses directly rather than DataManager's
-    /// BeatenWitnessDungeon1..4 booleans, which are only refreshed at specific points.
-    /// </summary>
-    private int CountDefeatedWitnesses()
-    {
-        var dataManager = DataManager.Instance;
-        if (dataManager == null || dataManager.KilledBosses == null) return 0;
-
-        var count = 0;
-        foreach (var witnessKey in BossKeyMapping.WitnessKeys)
-        {
-            if (dataManager.KilledBosses.Contains(witnessKey)) count++;
-        }
-        return count;
     }
 
     private void SendGoalCompleted()

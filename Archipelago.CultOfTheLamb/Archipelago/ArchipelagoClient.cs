@@ -46,6 +46,12 @@ public partial class ArchipelagoClient : IDisposable
     internal BuildingService BuildingService { get; private set; }
     internal BroomService BroomService { get; private set; }
 
+    /// <summary>The in-game Archipelago checklist. Guidance only - sends no checks.</summary>
+    internal QuestGuideService QuestGuideService { get; private set; }
+
+    /// <summary>Takes most of the game's own follower quests out of rotation.</summary>
+    internal QuestTrimService QuestTrimService { get; private set; }
+
     public ArchipelagoItemLogicController ItemLogic;
 
     private ArchipelagoSession session;

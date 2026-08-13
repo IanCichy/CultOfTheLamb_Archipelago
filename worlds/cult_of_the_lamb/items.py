@@ -7,6 +7,34 @@ from BaseClasses import Item, ItemClassification
 offset = 3_050_000
 
 
+# Archipelago item names carry their category, so that a player in another game who receives
+# "Strength from Within" or "Kitchen" can tell what they've just found. Locations have always read
+# this way - "Tarot Card - The Stray", "Build - Kitchen" - and the separator matches them.
+#
+# Filler, traps and the region-access item are left bare: their names already say what they are.
+CATEGORY_PREFIXES: Dict[str, str] = {
+    "Tarot": "Tarot Card",
+    "Weapon": "Weapon",
+    "Curse": "Curse",
+    "Sermon": "Sermon",
+    "Relic": "Relic",
+    # The game calls this system Divine Inspiration; "Tech" is short enough for a popup.
+    "DivineInspiration": "Tech",
+}
+
+
+def ap_item_name(category: str, display: str) -> str:
+    """The Archipelago item name for an in-game thing.
+
+    `display` stays the game's own name everywhere else - locations, slot data values, the client's
+    lookups - so this is the single place a prefix is added. Item names are dict keys in slot data
+    and the client matches received items against them, so a prefix applied at only some of the
+    call sites would make those items silently stop applying.
+    """
+    prefix = CATEGORY_PREFIXES.get(category)
+    return f"{prefix} - {display}" if prefix else display
+
+
 class ItemData(NamedTuple):
     code: Optional[int]
     classification: ItemClassification
@@ -134,6 +162,11 @@ def build_sermon_items() -> Dict[str, List[Tuple[str, bool]]]:
 SERMON_ITEM_UPGRADES = build_sermon_items()
 
 
+def sermon_item_name(raw_name: str) -> str:
+    """The AP item name for a sermon item. Keys of SERMON_ITEM_UPGRADES are the bare names."""
+    return ap_item_name("Sermon", raw_name)
+
+
 def sermon_item_counts(include_dlc: bool) -> Dict[str, int]:
     """How many copies of each sermon item this seed's pool needs. Zero means excluded."""
     return {
@@ -160,6 +193,12 @@ class EquipmentData(NamedTuple):
     code: int
     # Woolhaven DLC content - only pooled when Include Woolhaven DLC is on.
     dlc: bool = False
+    # "Weapon" or "Curse" - the two share this type but not their item prefix.
+    category: str = "Weapon"
+
+    @property
+    def item_name(self) -> str:
+        return ap_item_name(self.category, self.display)
 
 
 WEAPONS = [
@@ -173,11 +212,11 @@ WEAPONS = [
 ]
 
 CURSES = [
-    EquipmentData("Flaming Shot", "Fireball", offset + 120),
-    EquipmentData("Touch of Turua", "Tentacles", offset + 121),
-    EquipmentData("Divine Blast", "EnemyBlast", offset + 122),
-    EquipmentData("Ichor Thrown", "ProjectileAOE", offset + 123),
-    EquipmentData("Death's Sweep", "MegaSlash", offset + 124),
+    EquipmentData("Flaming Shot", "Fireball", offset + 120, category="Curse"),
+    EquipmentData("Touch of Turua", "Tentacles", offset + 121, category="Curse"),
+    EquipmentData("Divine Blast", "EnemyBlast", offset + 122, category="Curse"),
+    EquipmentData("Ichor Thrown", "ProjectileAOE", offset + 123, category="Curse"),
+    EquipmentData("Death's Sweep", "MegaSlash", offset + 124, category="Curse"),
 ]
 
 # Sword_Ratau is left out on purpose: it's a one-off story unlock from Ratau's death that
@@ -209,6 +248,10 @@ class DivineInspirationData(NamedTuple):
     display: str
     internal: str
     tier: int  # 1-5
+
+    @property
+    def item_name(self) -> str:
+        return ap_item_name("DivineInspiration", self.display)
 
 
 DIVINE_INSPIRATION = [
@@ -294,6 +337,155 @@ DIVINE_INSPIRATION = [
 DI_POINT = "Divine Inspiration Point"
 
 
+# ---------------------------------------------------------------------------
+# Curated Divine Inspiration - divine_inspiration_mode: curated_checks
+# ---------------------------------------------------------------------------
+#
+# The same 69 upgrades regrouped into 38 items, because one upgrade per item made the block both
+# too long and too granular: a real 4-player seed spent two minutes clicking twenty ability points
+# into the tree, and a full evening reached only 22 of the 69 checks.
+#
+# A building and all of its tiers are one item, so "Missionary Network" is one check's worth
+# instead of three. The two exceptions are below - they're multipliers on Devotion, which is what
+# fills the meter this whole block counts, so bundling either would let one item triple the
+# throughput of everything else.
+#
+# Everything here is additive: the DIVINE_INSPIRATION table above and its ids are untouched, and
+# the other four modes behave exactly as before.
+
+DI_FREE_UPGRADES: Tuple[str, ...] = (
+    "Building_Temple",
+    "Building_FollowerFarming",
+    "Building_Farms",
+    "Building_Beds",
+    "Building_BodyPit",
+)
+"""Granted on connect - no item, no check.
+
+Tier 1 minus the Tailor, which is cosmetic and so becomes an ordinary item. Without these a fresh
+save can't unlock a bed, a farm plot or the Temple, and the cult simply cannot function. They also
+carry the player past the tier-2 threshold of 4 unlocks, which is intended.
+"""
+
+
+class DivineInspirationGroup(NamedTuple):
+    display: str
+    upgrades: Tuple[str, ...]
+    # Progression only when a rule in rules.py names the item; useful otherwise. Kept here rather
+    # than as an `if display == ...` at the item_table, so retiering a family can't leave the
+    # classification behind.
+    classification: ItemClassification = ItemClassification.useful
+    # Forced into sphere 1 by create_items. See the local_early_items call there for why.
+    early: bool = False
+
+    @property
+    def item_name(self) -> str:
+        return ap_item_name("DivineInspiration", self.display)
+
+
+DI_CURATED_PROGRESSIVE: Tuple[DivineInspirationGroup, ...] = (
+    # Shrine buffer 50 -> 70 -> 90 -> 175 Devotion, and 4 -> 6 -> 8 -> 10 followers praying at
+    # once. Named by the depth rules in rules.py, so its item must stay `progression` - the fill's
+    # state sweep ignores items that aren't.
+    DivineInspirationGroup(
+        "Progressive Cult", ("Building_Temple2", "Temple_III", "Temple_IV"),
+        classification=ItemClassification.progression),
+    # Pray speed +20% -> +40% -> +60%: the other multiplier on the same meter.
+    DivineInspirationGroup(
+        "Progressive Shrine Flame", ("Shrine_Flame", "Shrine_FlameII", "Shrine_FlameIII")),
+)
+"""Families where the Nth copy grants the Nth tier, rather than one item granting the lot."""
+
+
+DI_CURATED_BUNDLES: Tuple[DivineInspirationGroup, ...] = (
+    DivineInspirationGroup("Missionary Network", (
+        "Building_Missionary", "Building_MissionaryII", "Building_MissionaryIII")),
+    DivineInspirationGroup("Demonic Summoning", (
+        "Building_DemonSummoner", "Building_DemonSummoner_2", "Building_DemonSummoner_3")),
+    DivineInspirationGroup("Tabernacle Shrines", (
+        "Shrine_PassiveShrines", "Shrine_PassiveShrinesII", "Shrine_PassiveShrinesIII")),
+    DivineInspirationGroup("Follower Housing", ("Building_BetterBeds", "Building_Beds3")),
+    DivineInspirationGroup("Infirmary", ("Building_HealingBay", "Building_HealingBay2")),
+    DivineInspirationGroup("Brewery", ("Building_Pub", "Building_Pub_2")),
+    DivineInspirationGroup("Refining", ("Economy_Refinery", "Economy_Refinery_2"), early=True),
+    DivineInspirationGroup("Resource Production", (
+        "Economy_Lumberyard", "Economy_Mine", "Economy_LumberyardII", "Economy_MineII"),
+        early=True),
+    DivineInspirationGroup("Sanitation", (
+        "Building_Outhouse", "Building_JanitorStation",
+        "Building_Outhouse2", "Building_JanitorStation_2")),
+    DivineInspirationGroup("Mortuary", (
+        "Building_Crypt_1", "Building_Crypt_2", "Building_Crypt_3",
+        "Building_Morgue_1", "Building_Morgue_2")),
+    DivineInspirationGroup("Storage", ("Building_PoopBucket", "Building_SeedBucket")),
+    DivineInspirationGroup("Decorations", ("Building_Decorations1", "Building_Decorations2")),
+    DivineInspirationGroup("Ritual Efficiency", (
+        "Temple_CheaperRituals", "Temple_FasterCoolDowns")),
+    DivineInspirationGroup("Shrine of Disciples", (
+        "Building_Shrine_Disciple_Boost", "Building_Shrine_Disciple_Collection")),
+    DivineInspirationGroup("Totems", ("Building_HarvestTotem", "Building_HarvestTotem2")),
+    DivineInspirationGroup("Crop Defence", ("Building_AdvancedFarming", "Building_Scarecrow2")),
+)
+"""One item, every upgrade in it at once.
+
+The names are new rather than reused because nine of them - Missionary, Shelter, Refinery,
+Tabernacle, Healing Bay, Drinkhouse, Demonic Summoning Circle, Harvest Totem, Scarecrow - already
+name a single upgrade in DIVINE_INSPIRATION and would collide in item_table.
+"""
+
+
+DI_CURATED_SINGLES: Tuple[str, ...] = (
+    "Tailor",
+    "Prison",
+    "Offering Statue",
+    "Fertiliser Silo",
+    "Confession Booth",
+    "Propaganda Speakers",
+    "Compost",
+    "Farmer Station II",
+    "Shared Shelter",
+    "Mating Tent",
+    "Drum Circle",
+    "Kitchen",
+    "Hatchery II",
+    "Re-Indoctrination Stone",
+    "Leader Tent",
+    "Nursery",
+)
+"""Upgrades with no tiers and no natural partner.
+
+Display names from DIVINE_INSPIRATION, deliberately: these reuse that table's existing item ids
+rather than minting new ones, so only the grouped items above need id space.
+"""
+
+DI_INTERNAL_BY_DISPLAY: Dict[str, str] = {u.display: u.internal for u in DIVINE_INSPIRATION}
+
+# Only the grouped names need ids of their own; DI_CURATED_SINGLES reuses DI_ITEM_OFFSET entries.
+DI_CURATED_ITEM_OFFSET = 800
+DI_CURATED_GROUPS: Tuple[DivineInspirationGroup, ...] = (
+    DI_CURATED_PROGRESSIVE + DI_CURATED_BUNDLES)
+
+# One item per copy: a progressive family contributes one per tier, everything else one each.
+# AP item names, so this can be dropped straight into the pool.
+DI_CURATED_ITEM_NAMES: Tuple[str, ...] = tuple(
+    [g.item_name for g in DI_CURATED_PROGRESSIVE for _ in g.upgrades]
+    + [g.item_name for g in DI_CURATED_BUNDLES]
+    + [ap_item_name("DivineInspiration", display) for display in DI_CURATED_SINGLES]
+)
+
+# The whole point of the regrouping is that it is still the same 69 upgrades. A typo in an internal
+# name above would otherwise surface as an upgrade that silently never unlocks, in game, hours in.
+_DI_CURATED_COVERAGE: List[str] = (
+    list(DI_FREE_UPGRADES)
+    + [name for g in DI_CURATED_GROUPS for name in g.upgrades]
+    + [DI_INTERNAL_BY_DISPLAY[display] for display in DI_CURATED_SINGLES]
+)
+assert len(_DI_CURATED_COVERAGE) == len(set(_DI_CURATED_COVERAGE)), (
+    "an upgrade is claimed twice by the curated Divine Inspiration tables")
+assert set(_DI_CURATED_COVERAGE) == {u.internal for u in DIVINE_INSPIRATION}, (
+    "the curated Divine Inspiration tables do not cover exactly the 69 upgrades")
+
+
 # A curated set of buildings whose *first* construction sends a check. Not every buildable -
 # StructuresData.AllStructures has 332 entries, ~85 of them real base-game buildings, which would
 # nearly double a seed.
@@ -323,7 +515,9 @@ class BuildingData(NamedTuple):
 BUILDINGS = [
     # Tier 1 - buildable from the start.
     BuildingData("Temple", "TEMPLE", 1),
-    BuildingData("Sleeping Bags", "BED", 1),
+    # "Sleeping Bag", singular - the structure. The Divine Inspiration *upgrade* that unlocks it
+    # is "Sleeping Bags", plural, and both are right; they're different things.
+    BuildingData("Sleeping Bag", "BED", 1),
     BuildingData("Body Pit", "BODY_PIT", 1),
     BuildingData("Farm Plot", "FARM_PLOT", 1),
     BuildingData("Farmer Station", "FARM_STATION", 1),
@@ -345,7 +539,8 @@ BUILDINGS = [
     BuildingData("Fertiliser Silo", "SILO_FERTILISER", 3),
     BuildingData("Harvest Totem", "HARVEST_TOTEM", 3),
     # Tier 4
-    BuildingData("Compost", "COMPOST_BIN", 4),
+    # The structure is the "Compost Bin"; "Compost" is the upgrade that unlocks it.
+    BuildingData("Compost Bin", "COMPOST_BIN", 4),
     BuildingData("Shared Shelter", "SHARED_HOUSE", 4),
     BuildingData("Morgue", "MORGUE_1", 4),
     # Tier 5
@@ -386,6 +581,11 @@ class TarotCardData(NamedTuple):
     # Earned through content locked to one crusade region, so its check belongs in that
     # region rather than in Cult. See REGION_TAROT_CARDS.
     region: Optional[str] = None
+
+    @property
+    def item_name(self) -> str:
+        return ap_item_name("Tarot", self.display)
+
 
 TAROT_CARDS = [
     TarotCardData("The Hearts I", "Hearts1", default=True),
@@ -552,8 +752,10 @@ item_table: Dict[str, ItemData] = {
     "Structure Unlock": ItemData(offset + 101, ItemClassification.useful, "Structure"),
 
     # Relics (single-carry combat items from the free Relics of the Old Faith update).
-    "Beads of the Anchorite": ItemData(offset + 130, ItemClassification.useful, "Relic"),
-    "Clauneck's Mirror": ItemData(offset + 131, ItemClassification.useful, "Relic"),
+    ap_item_name("Relic", "Beads of the Anchorite"):
+        ItemData(offset + 130, ItemClassification.useful, "Relic"),
+    ap_item_name("Relic", "Clauneck's Mirror"):
+        ItemData(offset + 131, ItemClassification.useful, "Relic"),
 
     # Filler. Ids 200/201 kept for the two original placeholder names so older seeds don't
     # repoint; everything from 202 is new.
@@ -576,7 +778,7 @@ item_table: Dict[str, ItemData] = {
 # Ids follow SERMON_ITEM_UPGRADES' insertion order, which follows SERMON_UPGRADES' tier
 # order, so this stays stable as long as that list is only appended to.
 item_table.update({
-    name: ItemData(
+    sermon_item_name(name): ItemData(
         offset + SERMON_ITEM_OFFSET + i,
         ItemClassification.useful,
         "Sermon",
@@ -591,7 +793,7 @@ item_table.update({
 # 'useful' rather than 'progression': nothing in rules.py requires a tarot card, and an item
 # should only be progression if some rule actually references it.
 item_table.update({
-    card.display: ItemData(
+    card.item_name: ItemData(
         offset + TAROT_ITEM_OFFSET + i,
         ItemClassification.useful,
         "Tarot",
@@ -626,11 +828,11 @@ def poolable_tarot_cards(
 # won't let a podium offer one. An item only earns this classification when a rule names it,
 # and these are the first in this world that do.
 item_table.update({
-    e.display: ItemData(e.code, ItemClassification.progression, "Weapon", e.dlc)
+    e.item_name: ItemData(e.code, ItemClassification.progression, "Weapon", e.dlc)
     for e in WEAPONS
 })
 item_table.update({
-    e.display: ItemData(e.code, ItemClassification.progression, "Curse", e.dlc)
+    e.item_name: ItemData(e.code, ItemClassification.progression, "Curse", e.dlc)
     for e in CURSES
 })
 
@@ -643,8 +845,8 @@ item_table.update({
 # The point item is the checks_and_points equivalent - one name, many copies - and gets an id of
 # its own so the two modes never share an item.
 item_table.update({
-    u.display: ItemData(offset + DI_ITEM_OFFSET + i, ItemClassification.useful,
-                        "DivineInspiration")
+    u.item_name: ItemData(offset + DI_ITEM_OFFSET + i, ItemClassification.useful,
+                          "DivineInspiration")
     for i, u in enumerate(DIVINE_INSPIRATION)
 })
 item_table[DI_POINT] = ItemData(
@@ -652,6 +854,26 @@ item_table[DI_POINT] = ItemData(
     ItemClassification.useful,
     "DivineInspirationPoint",
 )
+
+# The curated block's grouped items. Its singles reuse the ids just assigned above, so only these
+# need new ones - at their own offset, since the block above is append-only and must not shift.
+#
+# Progressive Cult is the one progression item in the whole tree: rules.py gates the deeper checks
+# on it, and an item named by a rule has to be progression or the fill's state sweep won't collect
+# it, which would quietly turn those rules into "never reachable".
+item_table.update({
+    g.item_name: ItemData(
+        offset + DI_CURATED_ITEM_OFFSET + i, g.classification, "DivineInspiration")
+    for i, g in enumerate(DI_CURATED_GROUPS)
+})
+
+# The items forced into sphere 1, and the family the deeper checks gate on. Both are derived from
+# the table so a retiered or renamed family can't leave a consumer pointing at nothing.
+DI_EARLY_ITEM_NAMES: Tuple[str, ...] = tuple(
+    g.item_name for g in DI_CURATED_GROUPS if g.early)
+DI_GATE_ITEM = next(
+    g for g in DI_CURATED_PROGRESSIVE
+    if g.classification == ItemClassification.progression)
 
 # A duplicate display name would silently overwrite an earlier entry in this dict and shrink the
 # id space without failing, so it's asserted rather than trusted.

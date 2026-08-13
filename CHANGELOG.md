@@ -1,6 +1,16 @@
 # Changelog
 
 ## Unreleased
+- **Archipelago objective guide** (`archipelago_objective_guide`, on by default): an
+  Archipelago checklist in the game's own quest log — win condition, region access, and one
+  live-progress line per active check block. Guidance only; it creates no locations and no
+  items. `objective_guide_pinning` controls how much of it sits on the on-screen tracker.
+- **Vanilla follower quests trimmed** (`vanilla_follower_quests`, default `thin_trickle`):
+  most of the game's ~87 built-in follower quests are taken out of rotation, keeping the
+  ritual quests, the crusade collection quests and the follower story chains. A trim rather
+  than a wipe because turning a quest in is the game's main follower-loyalty-XP source.
+- Ctrl+F9 dumps the objective guide (per-line I2 read-back, every Archipelago objective in
+  the save) and then sweeps and rebuilds it.
 - First real Harmony patch and working gameplay hooks: `RegionUnlockService` force-opens
   regions via `DataManager.Instance.UnlockedDungeonDoor`; `LocationCheckService` sends real
   checks for the 4 base Bishop kills via a patch on `Interaction_MonsterHeart`.

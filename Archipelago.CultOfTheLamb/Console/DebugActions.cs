@@ -310,6 +310,30 @@ internal static class DebugActions
             sb.AppendLine($"{d}\t{Safe(() => DoctrineUpgradeSystem.GetLocalizedName(d))}");
         }
 
+        // The weapon and curse families this world pools. Added late, and their absence is why two
+        // of them shipped with invented names: the display names in items.py were taken from
+        // TarotCards/{X}/Name, a term family that only happens to carry some weapon names, and
+        // silently returns the key itself for the rest. The real term is UpgradeSystem/{X}/Name
+        // (EquipmentData.cs:15), which is what GetLocalisedTitle reads.
+        sb.AppendLine();
+        sb.AppendLine("## EquipmentType (weapon + curse families)");
+        foreach (EquipmentType e in System.Enum.GetValues(typeof(EquipmentType)))
+        {
+            // The game's own accessor rather than the raw term, so a player's custom Legendary
+            // names come out too.
+            sb.AppendLine($"{e} ({(int)e})\t"
+                + $"{Safe(() => EquipmentManager.GetEquipmentData(e)?.GetLocalisedTitle())}");
+        }
+
+        // Backs the 25 curated building locations, which have never been checked against the game
+        // either.
+        sb.AppendLine();
+        sb.AppendLine("## StructureBrain.TYPES (buildings)");
+        foreach (StructureBrain.TYPES s in System.Enum.GetValues(typeof(StructureBrain.TYPES)))
+        {
+            sb.AppendLine($"{s} ({(int)s})\t{Safe(() => StructuresData.GetLocalizedNameStatic(s))}");
+        }
+
         DumpUpgradeTrees(sb);
 
         var path = Path.Combine(Paths.BepInExRootPath, "ap_unlockable_names.txt");
@@ -541,6 +565,47 @@ internal static class DebugActions
     }
 
     /// <summary>
+    /// Everything about the objective guide, then a sweep-and-rebuild.
+    ///
+    /// The per-line I2 read-back is the reason this exists as its own key. A term that never
+    /// registered and a broken UI look identical in game - a blank quest line - and nothing
+    /// else distinguishes them. The same read-back is what diagnosed the blank-notification
+    /// bug three attempts in.
+    ///
+    /// The save-list counts are the leak detector: after a disconnect every one must be zero,
+    /// or a player is left with Archipelago lines in a vanilla quest log. The rebuild at the
+    /// end lets one session exercise add -> sweep -> re-add without reconnecting.
+    /// </summary>
+    internal static void DumpQuestGuide(ArchipelagoClient ap)
+    {
+        Log.LogInfo("[AP] ---- objective guide ----");
+
+        var guide = ap?.QuestGuideService;
+
+        if (guide == null)
+        {
+            Log.LogInfo("[AP] No objective guide this session (not connected, or the "
+                + "Archipelago Objective Guide option is off).");
+        }
+        else
+        {
+            Log.LogInfo($"[AP] {guide.DescribeState()}");
+        }
+
+        if (ap?.QuestTrimService != null)
+        {
+            Log.LogInfo($"[AP] {ap.QuestTrimService.DescribeState()}");
+        }
+
+        // ForceRebuild sweeps first, so this is one path either way. The bare sweep matters
+        // too: it is how you check that a disconnected or never-connected save is clean.
+        if (guide != null) guide.ForceRebuild();
+        else Services.QuestGuideService.SweepAll();
+
+        Log.LogInfo("[AP] ---- end objective guide ----");
+    }
+
+    /// <summary>
     /// What the weapon and curse pools look like from both sides. The game's own pool is
     /// printed in full because the claim being verified is that it's *never written to* -
     /// compare the line before and after a session.
@@ -591,6 +656,8 @@ internal static class DebugActions
         }
         if (ap?.BuildingService != null) Log.LogInfo($"[AP] {ap.BuildingService.DescribeState()}");
         if (ap?.BroomService != null) Log.LogInfo($"[AP] {ap.BroomService.DescribeState()}");
+        if (ap?.QuestGuideService != null) Log.LogInfo($"[AP] {ap.QuestGuideService.DescribeState()}");
+        if (ap?.QuestTrimService != null) Log.LogInfo($"[AP] {ap.QuestTrimService.DescribeState()}");
         DumpMiniBossesInScene();
         DumpSnailShrines();
         Log.LogInfo("[AP] ---- end dump ----");

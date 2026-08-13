@@ -20,6 +20,34 @@ Cult of the Lamb:
   required_count: 4
 
   # ---------------------------------------------------------------------------
+  # Knowing what to aim for
+  # ---------------------------------------------------------------------------
+
+  # Adds an Archipelago checklist to the pause menu's Quests tab: the win condition, region
+  # access, and one live-progress line per active check block. Pure guidance - it creates no
+  # locations and no items, so turning it off changes nothing about the seed.
+  archipelago_objective_guide: true
+
+  # How much of that checklist is pinned to the on-screen tracker. The tracker only holds
+  # three quest groups at once, so pinning everything costs you sight of whatever else you're
+  # tracking. The full list is always in the pause menu regardless.
+  #
+  # off:        pause menu only
+  # goal_only:  the win condition and region access (one or two lines)
+  # everything: pin the checklist too, spending two of your three tracker slots
+  objective_guide_pinning: goal_only
+
+  # How much of the game's own ~87 follower quests stays in rotation. Most are busywork that
+  # pulls against what the multiworld wants - but turning one in is also the main source of
+  # follower loyalty XP, so the default trims rather than wipes.
+  #
+  # unchanged:    vanilla, every quest offered
+  # thin_trickle: keep rituals, crusade collections and the follower story chains; drop the rest
+  # story_only:   story chains and nothing else
+  # none:         no follower quests at all (harshest on follower levelling)
+  vanilla_follower_quests: thin_trickle
+
+  # ---------------------------------------------------------------------------
   # Region access
   # ---------------------------------------------------------------------------
 
@@ -100,7 +128,31 @@ Cult of the Lamb:
   #                     69 back - same totals as vanilla, just on the multiworld's schedule.
   # checks_and_techs  : the point is taken and never returns; Archipelago grants the upgrades
   #                     directly. The only mode where the multiworld knows what you hold.
+  # curated_checks    : as checks_and_techs, but the 69 upgrades are regrouped into 38 items - a
+  #                     building and all its tiers arrive together, so "Missionary Network" is one
+  #                     item rather than three. Five tier-1 upgrades (Temple, Farm Plot, Sleeping
+  #                     Bags, Body Pit, Farming Bundle) are free from the start, since without
+  #                     them the cult can't function at all. Shorter, too - see the next option.
+  #
+  #                     Two things stay tiered rather than bundled, because both multiply
+  #                     DEVOTION, which is what fills the meter every check here counts:
+  #                     Progressive Cult (Shrine 50 -> 175 Devotion, 4 -> 10 followers praying)
+  #                     and Progressive Shrine Flame (up to +60% pray speed). The deeper checks
+  #                     require Progressive Cult copies, so the thing governing this block's pace
+  #                     can't turn up last. Resource Production and Refining are always early.
   divine_inspiration_mode: checks_and_points
+
+  # How many Divine Inspiration checks the block has (5-69). READ ONLY IN curated_checks - every
+  # other mode always uses all 69.
+  #
+  # 69 was too many: a full evening reached 22 of them at a Devotion cap of 100, and the cap is 70
+  # now, so 30 is about one session.
+  #
+  # The block can be shorter than its own 38 items - those just turn up elsewhere in the seed.
+  # This world has ~77 checks that carry no items of their own (buildings, followers, broom, snail
+  # shrines, bosses) and would otherwise pay out filler, so a short block trades Bundles of Lumber
+  # for real unlocks. Set it low if you'd rather earn the tree by playing than by praying.
+  divine_inspiration_checks: 30
 
   # Most Devotion a single ability point may cost. 0 = leave the game's economy alone.
   #

@@ -55,25 +55,30 @@ class TarotTestBase(WorldTestBase):
         starting = {card.internal for card in self.world.starting_tarot_cards}
         shop_locations = shop_location_by_internal()
 
-        for display, internal in slot_data["tarotCards"].items():
+        # Keys are AP *item* names ("Tarot Card - The Stray"); the matching location happens to
+        # read the same way, but it is built from the card's in-game name, so derive it from
+        # that rather than from the key.
+        location_by_internal = {c.internal: f"Tarot Card - {c.display}" for c in TAROT_CARDS}
+
+        for item_name, internal in slot_data["tarotCards"].items():
             if internal in starting:
                 # Deliberately locationless: granted at connect, so there is nothing to earn.
                 self.assertNotIn(
-                    internal, slot_data["tarotCardLocations"], f"{display} starts owned"
+                    internal, slot_data["tarotCardLocations"], f"{item_name} starts owned"
                 )
                 continue
 
-            has_card_location = f"Tarot Card - {display}" in names
+            has_card_location = location_by_internal[internal] in names
             has_shop_location = shop_locations.get(internal) in names
 
             self.assertTrue(
                 has_card_location or has_shop_location,
-                f"{display} ({internal}) is managed but has no location - the client will "
+                f"{item_name} ({internal}) is managed but has no location - the client will "
                 f"withhold it and send nothing",
             )
             self.assertFalse(
                 has_card_location and has_shop_location,
-                f"{display} ({internal}) has both a card and a shop location",
+                f"{item_name} ({internal}) has both a card and a shop location",
             )
 
     def assert_slot_data_ids_exist(self):
