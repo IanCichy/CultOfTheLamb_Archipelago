@@ -196,6 +196,15 @@ public partial class ArchipelagoClient
 
         cachedSlotData = new Dictionary<string, object>(successResult.SlotData);
 
+        // Both halves in one line, because the pair is what matters and a tester's log is how we
+        // find out they're mismatched. Not enforced - during alpha we may ship a mismatched pair
+        // knowingly, and refusing the connection would be worse than saying so.
+        var worldVersion = SlotData.GetString(successResult.SlotData, "worldVersion") ?? "unknown";
+        Log.LogInfo($"[AP] Versions: client {ArchipelagoPlugin.PluginVersion}, apworld "
+            + $"{worldVersion}." + (worldVersion != ArchipelagoPlugin.PluginVersion
+                ? "  <-- MISMATCH: these should match; update whichever is older."
+                : string.Empty));
+
         // "regionOrder": which region is free at start, followed by the unlock order of
         // the other 3 - set in worlds/cult_of_the_lamb/__init__.py's generate_early() and
         // sent via fill_slot_data(). Comes through as a JArray (Newtonsoft.Json, the

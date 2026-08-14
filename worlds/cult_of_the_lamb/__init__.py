@@ -28,6 +28,11 @@ from .options import (
 from .regions import REGION_NAMES, SACRIFICE_GATED_REGION, create_regions
 from .rules import set_rules
 
+# Sent in slot data and logged by the client next to its own version, so a tester's log says which
+# apworld built the seed. Not enforced - a mismatch is something to notice while reading a log, not
+# a reason to refuse a connection. Keep in step with ArchipelagoPlugin.PluginVersion.
+MOD_VERSION = "0.7.0"
+
 
 class CultOfTheLambWeb(WebWorld):
     tutorials = [Tutorial(
@@ -331,6 +336,8 @@ class CultOfTheLambWorld(World):
 
     def fill_slot_data(self) -> Dict[str, Any]:
         return {
+            "worldVersion": MOD_VERSION,
+
             "goal": self.options.goal.value,
             "requiredCount": self.options.required_count.value,
 

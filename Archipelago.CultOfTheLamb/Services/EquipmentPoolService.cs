@@ -35,7 +35,10 @@ internal class EquipmentPoolService : IService
         EquipmentType.EnemyBlast,     // 600
         EquipmentType.Tentacles,      // 500
         EquipmentType.Chain,          // 470
-        // Shield (460) is omitted - Conviction's Guard was cut before release.
+        // Conviction's Guard was cut before release, so nothing should ever be a Shield. Listed
+        // anyway: without it a Shield value falls through to Blunderbuss and would send that
+        // family's check, where resolving to an unmanaged family sends nothing.
+        EquipmentType.Shield,         // 460
         EquipmentType.Blunderbuss,    // 450
         EquipmentType.Gauntlet,       // 400
         EquipmentType.Dagger,         // 300
@@ -58,6 +61,12 @@ internal class EquipmentPoolService : IService
         { EquipmentType.Blunderbuss, EquipmentType.Blunderbuss_Legendary },
         { EquipmentType.Chain, EquipmentType.Chain_Legendary },
     };
+
+    /// <summary>
+    /// Our own stream, so rolling a Legendary or a substitute doesn't advance the sequence the
+    /// game draws from - which would shift its own rolls depending on how many offers we saw.
+    /// </summary>
+    private static readonly System.Random Rng = new();
 
     private readonly ArchipelagoSession session;
 
@@ -195,7 +204,7 @@ internal class EquipmentPoolService : IService
         if (legendaryChance > 0f
             && (!randomizing || granted.Contains(family))
             && Legendaries.TryGetValue(family, out var legendary)
-            && UnityEngine.Random.value < legendaryChance)
+            && Rng.NextDouble() < legendaryChance)
         {
             return legendary;
         }
@@ -219,7 +228,7 @@ internal class EquipmentPoolService : IService
         // because they are not in the pool to be drawn from - see GrantedNotInPool.
         var candidates = GrantedInPool();
         candidates.AddRange(GrantedNotInPool());
-        if (candidates.Count > 0) return candidates[UnityEngine.Random.Range(0, candidates.Count)];
+        if (candidates.Count > 0) return candidates[Rng.Next(candidates.Count)];
 
         return fallback;
     }
@@ -383,18 +392,7 @@ internal class EquipmentPoolService : IService
 
     private static bool TryParse(string internalName, string context, out EquipmentType family)
     {
-        family = default;
-        if (string.IsNullOrEmpty(internalName)) return false;
-
-        if (!Enum.IsDefined(typeof(EquipmentType), internalName))
-        {
-            Log.LogWarning("[AP] Slot data names an equipment type this game doesn't have: "
-                + $"'{internalName}' - skipping '{context}'.");
-            return false;
-        }
-
-        family = (EquipmentType)Enum.Parse(typeof(EquipmentType), internalName);
-        return true;
+        return SlotData.TryParseEnum(internalName, context, out family);
     }
 
     /// <summary>What F9 prints for this pool. See DebugActions.</summary>

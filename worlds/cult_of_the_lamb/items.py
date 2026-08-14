@@ -383,13 +383,15 @@ class DivineInspirationGroup(NamedTuple):
         return ap_item_name("DivineInspiration", self.display)
 
 
+# Shrine buffer 50 -> 70 -> 90 -> 175 Devotion, and 4 -> 6 -> 8 -> 10 followers praying at once.
+# Named by the depth rules in rules.py, so its item must stay `progression` - the fill's state
+# sweep ignores items that aren't.
+DI_PROGRESSIVE_CULT = DivineInspirationGroup(
+    "Progressive Cult", ("Building_Temple2", "Temple_III", "Temple_IV"),
+    classification=ItemClassification.progression)
+
 DI_CURATED_PROGRESSIVE: Tuple[DivineInspirationGroup, ...] = (
-    # Shrine buffer 50 -> 70 -> 90 -> 175 Devotion, and 4 -> 6 -> 8 -> 10 followers praying at
-    # once. Named by the depth rules in rules.py, so its item must stay `progression` - the fill's
-    # state sweep ignores items that aren't.
-    DivineInspirationGroup(
-        "Progressive Cult", ("Building_Temple2", "Temple_III", "Temple_IV"),
-        classification=ItemClassification.progression),
+    DI_PROGRESSIVE_CULT,
     # Pray speed +20% -> +40% -> +60%: the other multiplier on the same meter.
     DivineInspirationGroup(
         "Progressive Shrine Flame", ("Shrine_Flame", "Shrine_FlameII", "Shrine_FlameIII")),
@@ -871,9 +873,9 @@ item_table.update({
 # the table so a retiered or renamed family can't leave a consumer pointing at nothing.
 DI_EARLY_ITEM_NAMES: Tuple[str, ...] = tuple(
     g.item_name for g in DI_CURATED_GROUPS if g.early)
-DI_GATE_ITEM = next(
-    g for g in DI_CURATED_PROGRESSIVE
-    if g.classification == ItemClassification.progression)
+# Bound to the group directly rather than searched for by classification: marking a second family
+# `progression` for any unrelated reason would otherwise silently repoint the gate in rules.py.
+DI_GATE_ITEM = DI_PROGRESSIVE_CULT
 
 # A duplicate display name would silently overwrite an earlier entry in this dict and shrink the
 # id space without failing, so it's asserted rather than trusted.

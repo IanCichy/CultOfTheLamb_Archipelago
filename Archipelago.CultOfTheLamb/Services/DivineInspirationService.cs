@@ -361,14 +361,6 @@ internal class DivineInspirationService : IService
         return result;
     }
 
-    /// <summary>
-    /// One UpgradeSystem.Type from slot data, or null if this build of the game doesn't have it.
-    ///
-    /// Dropped with a warning rather than thrown: an unknown name means the mod and the game
-    /// disagree, and losing one upgrade beats losing the session.
-    /// </summary>
-
-
     /// <summary>What F9 prints for this tree.</summary>
     internal string DescribeState()
     {

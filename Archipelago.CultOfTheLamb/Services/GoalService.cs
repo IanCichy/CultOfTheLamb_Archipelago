@@ -45,7 +45,6 @@ internal class GoalService : IService
     {
         InteractionMonsterHeartPatch.OnBossDefeated -= HandleBossDefeated;
         DataManagerKilledBossPatch.OnBossKillRecorded -= HandleBossKillRecorded;
-        goalSent = false;
     }
 
     private void HandleBossDefeated(FollowerLocation location) => CheckGoal();

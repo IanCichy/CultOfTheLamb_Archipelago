@@ -101,17 +101,15 @@ internal class BuildingService : IService
 
         foreach (var entry in mapping)
         {
-            if (!Enum.IsDefined(typeof(StructureBrain.TYPES), entry.Key))
+            if (!SlotData.TryParseEnum<StructureBrain.TYPES>(
+                    entry.Key, "buildingLocations", out var structure))
             {
-                Log.LogWarning("[AP] Slot data names a structure this game doesn't have: "
-                    + $"'{entry.Key}' - skipping it.");
                 continue;
             }
 
             try
             {
-                result[(StructureBrain.TYPES)Enum.Parse(typeof(StructureBrain.TYPES), entry.Key)] =
-                    entry.Value.ToObject<long>();
+                result[structure] = entry.Value.ToObject<long>();
             }
             catch (Exception e)
             {

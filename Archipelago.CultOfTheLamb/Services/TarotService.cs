@@ -214,18 +214,7 @@ internal class TarotService : IService
 
     private static bool TryParseCard(string internalName, string context, out TarotCards.Card card)
     {
-        card = default;
-        if (string.IsNullOrEmpty(internalName)) return false;
-
-        if (!Enum.IsDefined(typeof(TarotCards.Card), internalName))
-        {
-            Log.LogWarning("[AP] Slot data names a tarot card this game doesn't have: "
-                + $"'{internalName}' - skipping '{context}'.");
-            return false;
-        }
-
-        card = (TarotCards.Card)Enum.Parse(typeof(TarotCards.Card), internalName);
-        return true;
+        return SlotData.TryParseEnum(internalName, context, out card);
     }
 
     /// <summary>
