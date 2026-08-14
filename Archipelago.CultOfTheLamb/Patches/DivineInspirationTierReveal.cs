@@ -64,10 +64,16 @@ internal static class DivineInspirationTierReveal
     [HarmonyPatch(typeof(TierLockIcon), nameof(TierLockIcon.Configure))]
     internal static class HideDivider
     {
-        // ___config is the icon's own serialized tree reference, injected by Harmony.
-        private static void Postfix(TierLockIcon __instance, UpgradeTreeConfiguration ___config)
+        // The icon's own serialized tree reference, which is what says the icon belongs to. Read
+        // through FieldRef rather than a `____config` parameter: Harmony strips three underscores
+        // as its prefix, so a field named _config needs four, and getting that wrong throws at
+        // patch time and takes the rest of PatchAll with it.
+        private static readonly AccessTools.FieldRef<TierLockIcon, UpgradeTreeConfiguration> Config =
+            AccessTools.FieldRefAccess<TierLockIcon, UpgradeTreeConfiguration>("_config");
+
+        private static void Postfix(TierLockIcon __instance)
         {
-            if (!active || !ReferenceEquals(___config, DivineInspirationPatch.Tree)) return;
+            if (!active || !ReferenceEquals(Config(__instance), DivineInspirationPatch.Tree)) return;
 
             __instance.gameObject.SetActive(false);
         }

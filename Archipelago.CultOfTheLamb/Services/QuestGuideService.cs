@@ -215,7 +215,10 @@ internal class QuestGuideService : IService
         }
 
         if (!added) EnsureObjectivesAdded(dataManager);
-        if (textChanged) RefreshTrackedText(dataManager);
+
+        // Nothing of ours is tracked when pinning is off, so there is no HUD line to repaint.
+        // The pause-menu log rebuilds from DataManager on open either way.
+        if (textChanged && hudMode != GuideHudMode.Off) RefreshTrackedText(dataManager);
 
         if (satisfied != null) CompleteSatisfiedEntries(satisfied);
     }
@@ -350,26 +353,32 @@ internal class QuestGuideService : IService
     /// </summary>
     private void RefreshTrackedText(DataManager dataManager)
     {
-        var handler = ObjectiveUpdatedEvent?.GetValue(null) as ObjectiveManager.ObjectiveUpdated;
-        if (handler != null)
+        // Only when the field itself is missing, i.e. a game update renamed it. LocalizeAll is
+        // language-change-sized work, so it must not be the answer to an ordinary tick.
+        if (ObjectiveUpdatedEvent == null)
         {
-            foreach (var objective in AllOurObjectives(dataManager))
+            if (!refreshFallbackLogged)
             {
-                handler(objective);
+                refreshFallbackLogged = true;
+                Log.LogWarning("[AP] Could not reach ObjectiveManager.OnObjectiveUpdated - "
+                    + "falling back to a full re-localize for objective guide refreshes.");
             }
+
+            LocalizationManager.LocalizeAll(true);
             return;
         }
 
-        // Fallback: re-localize the scene. Heavier, but every UIObjective subscribes to
-        // OnLocalizeEvent too, so the lines still refresh.
-        if (!refreshFallbackLogged)
-        {
-            refreshFallbackLogged = true;
-            Log.LogWarning("[AP] Could not reach ObjectiveManager.OnObjectiveUpdated - falling "
-                + "back to a full re-localize for objective guide refreshes.");
-        }
+        // A null handler means no UIObjective is enabled, so there is nothing on screen to
+        // repaint - it subscribes in OnEnable and drops out in OnDisable. The I2 term is already
+        // current by now, and Objectives_Custom.Text reads it live, so the next one to show is
+        // right without help.
+        var handler = ObjectiveUpdatedEvent.GetValue(null) as ObjectiveManager.ObjectiveUpdated;
+        if (handler == null) return;
 
-        LocalizationManager.LocalizeAll(true);
+        foreach (var objective in AllOurObjectives(dataManager))
+        {
+            handler(objective);
+        }
     }
 
     // ------------------------------------------------------------------ completing
