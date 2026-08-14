@@ -31,7 +31,7 @@ from .rules import set_rules
 # Sent in slot data and logged by the client next to its own version, so a tester's log says which
 # apworld built the seed. Not enforced - a mismatch is something to notice while reading a log, not
 # a reason to refuse a connection. Keep in step with ArchipelagoPlugin.PluginVersion.
-MOD_VERSION = "0.7.0"
+MOD_VERSION = "0.8.0"
 
 
 class CultOfTheLambWeb(WebWorld):
@@ -237,10 +237,14 @@ class CultOfTheLambWorld(World):
     def goal_reaches_postgame(self) -> bool:
         """Whether finishing this seed takes the player past the vanilla final boss.
 
-        Nothing does yet: both goals are Bishops or Witnesses, which end before The One Who
-        Waits. Written as a goal check rather than a constant so that adding a Narinder or
-        Woolhaven goal (roadmap Sprints 1 and 11) switches the post-game tarot cards on by
-        itself, instead of leaving a second thing to remember.
+        Still nothing, Narinder included - an earlier version of this docstring expected that
+        goal to flip it. It doesn't: the Mystic Cellar and the corrupted set open *after*
+        Narinder dies, so they sit past that win condition just as they sit past the Bishops
+        one. Switching them on would strand other players' items behind content the winner has
+        no reason to play.
+
+        A goal that genuinely requires post-game content - Woolhaven, roadmap Sprint 11 - is
+        what this is waiting for.
         """
         return False
 

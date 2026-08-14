@@ -100,6 +100,16 @@ def set_rules(world: "CultOfTheLambWorld") -> None:
     # Reaching a Bishop/Witness location implies being equipped to beat them (the standard
     # AP assumption that "can reach" == "can complete"), so victory is defined by reachable
     # count rather than a separate synthetic "defeated" item.
+    if world.options.goal == "narinder":
+        # Narinder has no location of his own - a check that only fires at the win condition
+        # pays nothing. The Gateway opens only after all four Bishops are dead, so requiring
+        # every Bishop location is the same statement, and it already implies every region.
+        multiworld.completion_condition[player] = lambda state: all(
+            state.can_reach_location(location_name, player)
+            for location_name in BISHOP_LOCATIONS.values()
+        )
+        return
+
     track = BISHOP_LOCATIONS if world.options.goal == "bishops" else WITNESS_LOCATIONS
     required = world.options.required_count.value
     multiworld.completion_condition[player] = lambda state: sum(

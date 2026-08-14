@@ -32,7 +32,10 @@ Devout and friends - collapsed into progressive items.
 **Checks** for every Bishop, miniboss and Witness, plus optional
 `follower_milestone_checks` and `snail_shrine_checks`.
 
-**Goal** is `bishops` or `witnesses`, with `required_count` deciding how many.
+**Goal** is `bishops`, `witnesses` or `narinder`. The first two use `required_count` to decide
+how many of their four encounters you need. `narinder` is "beat the game" - the Gateway only
+opens once all four Bishops are dead, so it always needs every region and `required_count`
+doesn't apply to it.
 `include_woolhaven` adds the DLC's content to both the item pool and the location list.
 `trap_percentage` decides how much of the filler bites back.
 

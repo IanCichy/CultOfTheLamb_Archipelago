@@ -499,11 +499,24 @@ internal class QuestGuideService : IService
     {
         var result = new List<QuestGuideEntry>();
 
-        var goalNoun = goal == GoalService.GoalWitnesses ? "Witnesses" : "Bishops";
-        result.Add(new QuestGuideEntry(
-            IdGoal, GoalGroupId, "goal",
-            () => (GoalProgress.CountForGoal(goal), requiredCount),
-            (current, target) => $"Defeat {target} of the four {goalNoun} - {current} of {target} down"));
+        if (goal == GoalService.GoalNarinder)
+        {
+            // One encounter, so Required Count doesn't apply and "1 of 1 down" reads badly.
+            result.Add(new QuestGuideEntry(
+                IdGoal, GoalGroupId, "goal",
+                () => (GoalProgress.CountForGoal(goal), 1),
+                (current, _) => current > 0
+                    ? "Defeat Narinder, The One Who Waits - done"
+                    : "Defeat Narinder, The One Who Waits - all four Bishops open the Gateway"));
+        }
+        else
+        {
+            var goalNoun = goal == GoalService.GoalWitnesses ? "Witnesses" : "Bishops";
+            result.Add(new QuestGuideEntry(
+                IdGoal, GoalGroupId, "goal",
+                () => (GoalProgress.CountForGoal(goal), requiredCount),
+                (current, target) => $"Defeat {target} of the four {goalNoun} - {current} of {target} down"));
+        }
 
         if (SlotData.GetBool(slotData, "randomizeRegionAccess"))
         {

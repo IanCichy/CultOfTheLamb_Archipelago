@@ -231,7 +231,10 @@ public partial class ArchipelagoClient
         {
             requiredCount = Convert.ToInt32(requiredCountObj);
         }
-        Log.LogInfo($"[AP] Goal: {(goal == GoalService.GoalWitnesses ? "witnesses" : "bishops")}, required: {requiredCount}");
+        Log.LogInfo(goal == GoalService.GoalNarinder
+            ? "[AP] Goal: narinder (required count does not apply)."
+            : $"[AP] Goal: {(goal == GoalService.GoalWitnesses ? "witnesses" : "bishops")}, "
+                + $"required: {requiredCount}");
 
         ConnectedPlayerName = session.Players.GetPlayerName(session.ConnectionInfo.Slot);
 

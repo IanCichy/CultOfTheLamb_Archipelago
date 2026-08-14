@@ -576,6 +576,46 @@ internal static class DebugActions
     /// or a player is left with Archipelago lines in a vanilla quest log. The rebuild at the
     /// end lets one session exercise add -> sweep -> re-add without reconnecting.
     /// </summary>
+    /// <summary>
+    /// Ctrl+F2 - records all four Bishops as beaten and breaks every chain on the Gateway door,
+    /// so the Narinder goal can be tested without a full playthrough.
+    ///
+    /// Save writes only. DoorRoomChainDoor.Start reads BossesCompleted and DoorRoomChainProgress
+    /// and sets DoorActive at >= 5 chains (there are five breaks for four Bishops - the fourth
+    /// triggers the fifth), so the door is open the next time the Door Room loads.
+    ///
+    /// Does **not** send the four Bishop location checks: those fire from Interaction_MonsterHeart
+    /// when a heart is actually taken, and faking that is a different job. The goal re-check below
+    /// is what this key is for.
+    /// </summary>
+    internal static void CompleteBishopsAndOpenGateway(ArchipelagoClient ap)
+    {
+        var dataManager = DataManager.Instance;
+        if (dataManager?.BossesCompleted == null)
+        {
+            Log.LogWarning("[AP] No save loaded - load a save before using this key.");
+            return;
+        }
+
+        var added = 0;
+        foreach (var bishop in RegionMapping.BishopLocationToCheckId.Keys)
+        {
+            if (dataManager.BossesCompleted.Contains(bishop)) continue;
+            dataManager.BossesCompleted.Add(bishop);
+            added++;
+        }
+
+        dataManager.DoorRoomChainProgress = 5;
+
+        Log.LogInfo($"[AP] Debug: {added} Bishop(s) recorded as beaten "
+            + $"({dataManager.BossesCompleted.Count} total), Gateway chains all broken. "
+            + "Return to the Door Room and the final door will be open.");
+
+        // The real kills raise events the services listen to; a direct write doesn't, so nudge
+        // the goal by hand.
+        ap?.GoalService?.Recheck();
+    }
+
     internal static void DumpQuestGuide(ArchipelagoClient ap)
     {
         Log.LogInfo("[AP] ---- objective guide ----");

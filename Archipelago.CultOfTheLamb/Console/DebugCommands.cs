@@ -23,6 +23,7 @@ internal static class DebugCommands
     private static ConfigEntry<KeyboardShortcut> debugKey;
     private static ConfigEntry<KeyboardShortcut> connectKey;
     private static ConfigEntry<KeyboardShortcut> questGuideKey;
+    private static ConfigEntry<KeyboardShortcut> completeBishopsKey;
 
     internal static void Init(ConfigFile config)
     {
@@ -45,6 +46,14 @@ internal static class DebugCommands
         // way in.
         connectKey = Bind(config, "ConnectKey", KeyCode.F5,
             "Opens (or closes) the Archipelago connection panel.");
+
+        // Ctrl+F2: every plain function key is already taken, and this needs the Archipelago
+        // client to re-check the goal, so it goes through an event like the two above.
+        completeBishopsKey = Bind(config, "CompleteBishopsKey", KeyCode.F2,
+            "Records all four Bishops as beaten and breaks every chain on the Gateway door, so "
+            + "the Narinder goal can be tested without a full playthrough. Does not send the "
+            + "Bishop location checks.",
+            KeyCode.LeftControl);
 
         BindFeatureKey(config, "ListSermonUpgradesKey", KeyCode.F2,
             "Lists the sermon upgrades you own to the log. Does NOT open the game's upgrade "
@@ -95,9 +104,10 @@ internal static class DebugCommands
         config.Bind("Debug", name, new KeyboardShortcut(key, modifiers), description);
 
     private static void BindFeatureKey(
-        ConfigFile config, string name, KeyCode key, string description, Action handler)
+        ConfigFile config, string name, KeyCode key, string description, Action handler,
+        params KeyCode[] modifiers)
     {
-        bindings.Add((Bind(config, name, key, description), handler));
+        bindings.Add((Bind(config, name, key, description, modifiers), handler));
     }
 
     internal static void Update()
@@ -108,6 +118,7 @@ internal static class DebugCommands
         Fire(debugKey, () => OnDebugKeyPressed?.Invoke());
         Fire(connectKey, () => OnConnectKeyPressed?.Invoke());
         Fire(questGuideKey, () => OnQuestGuideKeyPressed?.Invoke());
+        Fire(completeBishopsKey, () => OnCompleteBishopsKeyPressed?.Invoke());
 
         foreach (var (key, handler) in bindings)
         {
@@ -143,4 +154,7 @@ internal static class DebugCommands
     /// needs the ArchipelagoClient, which lives on the plugin.
     /// </summary>
     internal static event Action OnQuestGuideKeyPressed;
+
+    /// <summary>Ctrl+F2. Needs the ArchipelagoClient to re-check the goal after writing.</summary>
+    internal static event Action OnCompleteBishopsKeyPressed;
 }

@@ -16,9 +16,10 @@ namespace Archipelago.CultOfTheLamb.Services;
 /// </summary>
 internal class GoalService : IService
 {
-    // Matches worlds/cult_of_the_lamb/options.py Goal: option_bishops = 0, option_witnesses = 1.
+    // Matches worlds/cult_of_the_lamb/options.py Goal.
     internal const int GoalBishops = 0;
     internal const int GoalWitnesses = 1;
+    internal const int GoalNarinder = 2;
 
     private readonly ArchipelagoSession session;
     private readonly int goal;
@@ -36,6 +37,7 @@ internal class GoalService : IService
     {
         InteractionMonsterHeartPatch.OnBossDefeated += HandleBossDefeated;
         DataManagerKilledBossPatch.OnBossKillRecorded += HandleBossKillRecorded;
+        EnemyDeathCatBossPatch.OnNarinderDefeated += HandleNarinderDefeated;
         // Re-check immediately: the player may already satisfy the goal from a previous
         // session before this connect.
         CheckGoal();
@@ -45,23 +47,36 @@ internal class GoalService : IService
     {
         InteractionMonsterHeartPatch.OnBossDefeated -= HandleBossDefeated;
         DataManagerKilledBossPatch.OnBossKillRecorded -= HandleBossKillRecorded;
+        EnemyDeathCatBossPatch.OnNarinderDefeated -= HandleNarinderDefeated;
     }
 
     private void HandleBossDefeated(FollowerLocation location) => CheckGoal();
 
     private void HandleBossKillRecorded(string bossKey) => CheckGoal();
 
+    private void HandleNarinderDefeated() => CheckGoal();
+
+    /// <summary>Re-runs the goal check. For debug keys that write save state directly, which
+    /// raises none of the events above.</summary>
+    internal void Recheck() => CheckGoal();
+
     private void CheckGoal()
     {
         if (goalSent) return;
 
-        var isWitnessGoal = goal == GoalWitnesses;
         var defeated = GoalProgress.CountForGoal(goal);
-        var noun = isWitnessGoal ? "Witnesses" : "Bishops";
 
-        Log.LogInfo($"[AP] Goal progress: {defeated}/{requiredCount} {noun} defeated.");
+        // Narinder is a single encounter, so he has his own target and the seed's Required
+        // Count doesn't apply.
+        var fixedTarget = GoalProgress.FixedTargetForGoal(goal);
+        var target = fixedTarget > 0 ? fixedTarget : requiredCount;
 
-        if (defeated >= requiredCount)
+        Log.LogInfo(goal == GoalNarinder
+            ? $"[AP] Goal progress: Narinder {(defeated > 0 ? "defeated" : "not yet defeated")}."
+            : $"[AP] Goal progress: {defeated}/{target} "
+                + $"{(goal == GoalWitnesses ? "Witnesses" : "Bishops")} defeated.");
+
+        if (defeated >= target)
         {
             SendGoalCompleted();
         }

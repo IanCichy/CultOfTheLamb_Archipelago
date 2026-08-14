@@ -47,7 +47,25 @@ internal static class GoalProgress
         return count;
     }
 
-    /// <summary>Progress toward whichever track this seed's Goal option picked.</summary>
-    internal static int CountForGoal(int goal) =>
-        goal == Services.GoalService.GoalWitnesses ? CountDefeatedWitnesses() : CountDefeatedBishops();
+    /// <summary>
+    /// Whether Narinder has been beaten on this save.
+    ///
+    /// DeathCatBeaten is per-save and written only by EnemyDeathCatBoss.OnDie - except on New
+    /// Game+ entry, which force-sets it without a fight (MMBiomeGeneration/BiomeGenerator.cs:234).
+    /// Accepted rather than worked around: starting NG+ on an Archipelago save is already outside
+    /// the save policy, and this is the only save-backed signal there is.
+    /// </summary>
+    internal static bool NarinderDefeated() => DataManager.Instance?.DeathCatBeaten ?? false;
+
+    /// <summary>How many of this goal's encounters are done. Narinder is 0 or 1 of 1.</summary>
+    internal static int CountForGoal(int goal) => goal switch
+    {
+        Services.GoalService.GoalWitnesses => CountDefeatedWitnesses(),
+        Services.GoalService.GoalNarinder => NarinderDefeated() ? 1 : 0,
+        _ => CountDefeatedBishops(),
+    };
+
+    /// <summary>How many this goal needs, or 0 to use the seed's Required Count.</summary>
+    internal static int FixedTargetForGoal(int goal) =>
+        goal == Services.GoalService.GoalNarinder ? 1 : 0;
 }

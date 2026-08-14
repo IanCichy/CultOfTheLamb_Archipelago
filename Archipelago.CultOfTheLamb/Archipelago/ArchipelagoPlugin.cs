@@ -17,7 +17,7 @@ public class ArchipelagoPlugin : BaseUnityPlugin
     public const string PluginName = "Archipelago.CultOfTheLamb";
     // Keep in step with manifest.json, the csproj VersionPrefix, and MOD_VERSION in the apworld's
     // worlds/cult_of_the_lamb/__init__.py - the last of those is what a tester's log compares against.
-    public const string PluginVersion = "0.7.0";
+    public const string PluginVersion = "0.8.0";
 
     internal static ArchipelagoPlugin Instance { get; private set; }
 
@@ -57,6 +57,7 @@ public class ArchipelagoPlugin : BaseUnityPlugin
         DebugCommands.OnConnectKeyPressed += () => connectPanel.Toggle();
         DebugCommands.OnDebugKeyPressed += () => DebugActions.DumpState(AP);
         DebugCommands.OnQuestGuideKeyPressed += () => DebugActions.DumpQuestGuide(AP);
+        DebugCommands.OnCompleteBishopsKeyPressed += () => DebugActions.CompleteBishopsAndOpenGateway(AP);
         AP.OnClientDisconnect += AP_OnClientDisconnect;
         ArchipelagoConsoleCommand.OnArchipelagoCommandCalled += ArchipelagoConsoleCommand_OnArchipelagoCommandCalled;
         ArchipelagoConsoleCommand.OnArchipelagoDisconnectCommandCalled += () => AP.Disconnect();

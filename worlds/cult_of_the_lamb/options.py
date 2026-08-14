@@ -9,15 +9,21 @@ class Goal(Choice):
     Bishops: Defeat Required Count of the four Bishops (Leshy, Heket, Kallamar, Shamura).
     Witnesses: Defeat Required Count of the four Witnesses (Agares, Bathin, Astaroth,
     Allocer) - each Witness only becomes fightable after its region's Bishop is defeated.
+    Narinder: Beat the game. The Gateway only opens once all four Bishops are dead, so this
+    is the longest goal and always needs every region - Required Count does not apply to it.
     """
     display_name = "Goal"
     option_bishops = 0
     option_witnesses = 1
+    option_narinder = 2
     default = 0
 
 
 class RequiredCount(Range):
-    """How many of the Goal's four encounters must be defeated to win."""
+    """How many of the Goal's four encounters must be defeated to win.
+
+    Ignored when the Goal is Narinder: there is only one of him.
+    """
     display_name = "Required Count"
     range_start = 1
     range_end = 4
