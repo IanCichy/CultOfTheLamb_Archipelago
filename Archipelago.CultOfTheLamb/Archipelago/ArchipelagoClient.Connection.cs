@@ -44,6 +44,14 @@ public partial class ArchipelagoClient
     /// </summary>
     public IEnumerator ConnectRoutine(string url, string slotName, string password = null)
     {
+        // A second attempt spawns its own thread and tears down the session the first is still
+        // building. Bail before the last* fields are written - AttemptReconnection replays those.
+        if (Connecting)
+        {
+            Log.LogWarning("[AP] A connection attempt is already in flight - ignoring this one.");
+            yield break;
+        }
+
         lastServerUrl = url;
         lastSlotName = slotName;
         lastPassword = password;
@@ -57,6 +65,10 @@ public partial class ArchipelagoClient
         Log.LogInfo($"[AP] Attempting to connect to Archipelago at {url}.");
         Connecting = true;
         LastError = null;
+
+        // Here rather than in ConnectToServer, which runs on the connect thread below: teardown
+        // reaches into save data and Unity objects, so it has to stay on the main thread.
+        TeardownSession();
 
         LoginResult result = null;
         Exception thrown = null;
@@ -127,8 +139,6 @@ public partial class ArchipelagoClient
     /// </summary>
     private LoginResult ConnectToServer(string url, string slotName, string password)
     {
-        TeardownSession();
-
         try
         {
             session = ArchipelagoSessionFactory.CreateSession(url);
@@ -166,7 +176,11 @@ public partial class ArchipelagoClient
             {
                 Log.LogError($"[AP] {err}");
             }
-            session = null;
+
+            // Not `session = null`: a refused login leaves a *connected* socket, so that would
+            // orphan it and its polling loop. Safe this early - the handlers attach on the
+            // success path below, and no service has registered yet.
+            TeardownSession(disconnect: true);
 
             // The server's own wording is the useful part - "Slot not found", a password
             // mismatch, an incompatible version - so pass it through rather than flattening
@@ -537,15 +551,34 @@ public partial class ArchipelagoClient
         Session_SocketClosed(message);
     }
 
+    /// <summary>
+    /// The socket dropped, on the MultiClient websocket thread. The whole body is deferred, not
+    /// just the teardown: TeardownSession writes to save-data lists that Update() is iterating,
+    /// and OnClientDisconnect reaches StartCoroutine, which Unity refuses off the main thread.
+    /// </summary>
     private void Session_SocketClosed(string reason)
     {
-        TeardownSession();
+        // Deferring opens a race: a fast reconnect can replace the session before this runs, and
+        // tearing that one down would drop a live connection. So only fire while the session this
+        // was raised for is still current.
+        var closed = session;
 
-        // Dropped rather than asked to stop, so this is genuinely the last error. No need to
-        // suppress it while reconnecting: "an attempt is in flight" outranks it wherever the
-        // two are displayed together.
-        LastError = reason;
-        OnClientDisconnect?.Invoke(reason);
+        MainThreadQueue.Enqueue(() =>
+        {
+            if (!ReferenceEquals(session, closed))
+            {
+                Log.LogDebug($"[AP] Ignoring a socket close superseded by a newer attempt: {reason}");
+                return;
+            }
+
+            TeardownSession();
+
+            // Dropped rather than asked to stop, so this is genuinely the last error. No need to
+            // suppress it while reconnecting: "an attempt is in flight" outranks it wherever the
+            // two are displayed together.
+            LastError = reason;
+            OnClientDisconnect?.Invoke(reason);
+        });
     }
 
     public IEnumerator AttemptReconnection()
