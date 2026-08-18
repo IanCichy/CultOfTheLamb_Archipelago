@@ -4,11 +4,8 @@ from BaseClasses import Location
 
 from .items import (
     BROOM_LEVEL_COUNT, BUILDINGS, CURSES, DIVINE_INSPIRATION, SERMON_UPGRADES, TAROT_CARDS,
-    WEAPONS, tarot_tier,
+    WEAPONS, location_offset, tarot_tier,
 )
-
-# Must not overlap worlds/cult_of_the_lamb/items.py's offset range.
-location_offset = 3_051_000
 
 
 class CultOfTheLambLocation(Location):
@@ -56,6 +53,55 @@ location_table: Dict[str, LocationData] = {
     "Silk Cradle - Shamura": LocationData("Silk Cradle", "Bishop"),
     "Silk Cradle - Witness Allocer": LocationData("Silk Cradle", "Witness"),
 }
+
+# The game's own identifier for each boss encounter, sent through slot data so the client doesn't
+# have to hardcode these location ids.
+#
+# It used to: Utilities/CultOfTheLambIds.cs wrote all twenty out as `3_051_000 + N`, where N is the
+# row's position in the dict above. That made *reordering this table* silently repoint every boss
+# check - and these are the goal-critical ones. Every other block already sends its ids, so these
+# were the exception.
+#
+# Minibosses and Witnesses are keyed by MiniBossController.name, which is what
+# DataManager.KilledBosses stores. Confirmed in-game by dumping a live boss room; see
+# DecompiledGamesViaDnSpy/Cotl/AI_INDEX.md section 3a.
+MINIBOSS_AND_WITNESS_KEYS: Dict[str, str] = {
+    "Darkwood - Amdusias": "Boss Mama Worm",
+    "Darkwood - Valefar": "Boss Mama Maggot",
+    "Darkwood - Barbatos": "Boss Burrow Worm",
+    "Darkwood - Witness Agares": "Boss Beholder 1",
+
+    "Anura - Gusion": "Boss Flying Burp Frog",
+    "Anura - Eligos": "Boss Egg Hopper",
+    "Anura - Zepar": "Boss Mortar Hopper",
+    "Anura - Witness Bathin": "Boss Beholder 2",
+
+    "Anchordeep - Saleos": "Boss Spiker",
+    "Anchordeep - Haborym": "Boss Charger",
+    "Anchordeep - Baalzebub": "Boss Scuttle Turret",
+    "Anchordeep - Witness Astaroth": "Boss Beholder 3",
+
+    "Silk Cradle - Focalor": "Boss Spider Jump",
+    "Silk Cradle - Vephar": "Boss Millipede Poisoner",
+    "Silk Cradle - Hauras": "Boss Scorpion",
+    "Silk Cradle - Witness Allocer": "Boss Beholder 4",
+}
+
+# Bishops are recorded differently: they go into DataManager.BossesCompleted as a FollowerLocation
+# rather than into KilledBosses as a string, so they're keyed by that enum's member name.
+BISHOP_DUNGEON_LOCATIONS: Dict[str, str] = {
+    "Darkwood - Leshy": "Dungeon1_1",
+    "Anura - Heket": "Dungeon1_2",
+    "Anchordeep - Kallamar": "Dungeon1_3",
+    "Silk Cradle - Shamura": "Dungeon1_4",
+}
+
+# Every boss row above must exist in location_table, or its check can never be sent. A typo would
+# otherwise surface in game, hours in, as a boss that pays nothing.
+assert set(MINIBOSS_AND_WITNESS_KEYS) | set(BISHOP_DUNGEON_LOCATIONS) == {
+    name for name, data in location_table.items()
+    if data.category in ("Miniboss", "Bishop", "Witness")
+}, "the boss key tables and location_table's boss rows have drifted apart"
 
 # Sermon upgrade checks. These are deliberately *sequential* rather than named after specific
 # upgrades: filling the sermon bar is one repeatable event, and which upgrade you'd have

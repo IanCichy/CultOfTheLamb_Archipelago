@@ -6,30 +6,54 @@ using UnityEngine;
 namespace Archipelago.CultOfTheLamb.Console;
 
 /// <summary>
-/// Keybind-driven debug helpers. RoR2 has a native dev console (RoR2.Console) that the
-/// RiskOfRain2 mod hooks with [ConCommand]; Cult of the Lamb doesn't expose an equivalent
-/// out of the box (TODO: confirm - COTL_API may add one), so this uses BepInEx keybinds
-/// instead. The bodies live in DebugActions; ArchipelagoPlugin does the wiring.
+/// Keybind-driven debug helpers. Cult of the Lamb has no dev console, so these are BepInEx
+/// keybinds; the bodies live in DebugActions and ArchipelagoPlugin does the wiring.
 ///
-/// The feature keys (F6-F11) exist to prove out candidate AP features in one debug build
-/// rather than one build/test cycle per feature - see docs/sprints/sprint-2-feature-slice.md.
-/// They're developer tooling, not player-facing, and should be removed or gated once the
-/// features they test are real.
+/// **A normal build has exactly one key: F9, which dumps state to the log.** Every other binding
+/// is behind the AP_DEBUG_KEYS compile constant, set only in the gitignored
+/// Directory.Build.props.user, so a clean checkout, a tester's build and any release build can't
+/// press them. The DebugActions bodies still compile in - it's the bindings that are gated, so
+/// the accurate claim is "unreachable", not "absent".
+///
+/// One key on purpose: the entire instruction a tester needs is "press F9 and send the log", and
+/// every extra binding is something to press by accident and report as a bug. Connecting doesn't
+/// need a key at all - the panel is on the main menu and the pause menu.
+///
+/// That matters because six of the gated keys write real state and three reach the server: Ctrl+F2
+/// could report a false victory on a Bishops seed, F3 pays out a sermon check, and F8 unlocks a
+/// tarot card that TarotService then sends. In a shared multiworld those corrupt other people's
+/// games, and testers press keys without reading what they do.
 /// </summary>
 internal static class DebugCommands
 {
     private static readonly List<(ConfigEntry<KeyboardShortcut> Key, Action Handler)> bindings = new();
 
     private static ConfigEntry<KeyboardShortcut> debugKey;
+
+#if AP_DEBUG_KEYS
     private static ConfigEntry<KeyboardShortcut> connectKey;
     private static ConfigEntry<KeyboardShortcut> questGuideKey;
     private static ConfigEntry<KeyboardShortcut> completeBishopsKey;
+#endif
 
     internal static void Init(ConfigFile config)
     {
+        // ---- the only key in a normal build ----
+
+        // The whole bug-reporting flow is "press F9, send LogOutput.log", so this has to survive
+        // in every build or an alpha loses its main diagnostic.
         debugKey = Bind(config, "DumpStateKey", KeyCode.F9,
             "Dumps Archipelago client state, the game's boss-kill records, and every "
             + "MiniBossController in the current scene (internal name -> display name) to the log.");
+
+#if AP_DEBUG_KEYS
+        // ---- developer only, compiled out of every other build ----
+
+        // A shortcut, not the only way in - the panel is on the main menu and the pause menu, so
+        // players never need this. Kept on its original config name so existing setups don't lose
+        // their binding.
+        connectKey = Bind(config, "ConnectKey", KeyCode.F5,
+            "Opens (or closes) the Archipelago connection panel.");
 
         // Ctrl+F9 rather than a spare function key: F1-F11 are taken and F12 is Steam's
         // screenshot binding. BepInEx's KeyboardShortcut requires unlisted modifiers to be up,
@@ -40,19 +64,10 @@ internal static class DebugCommands
             + "and rebuilds it.",
             KeyCode.LeftControl);
 
-        // Kept on its original config name so existing setups don't lose their binding, even
-        // though it now opens the panel rather than connecting outright. The panel is also
-        // reachable from the pause and main menus, so this is a shortcut rather than the only
-        // way in.
-        connectKey = Bind(config, "ConnectKey", KeyCode.F5,
-            "Opens (or closes) the Archipelago connection panel.");
-
-        // Ctrl+F2: every plain function key is already taken, and this needs the Archipelago
-        // client to re-check the goal, so it goes through an event like the two above.
         completeBishopsKey = Bind(config, "CompleteBishopsKey", KeyCode.F2,
             "Records all four Bishops as beaten and breaks every chain on the Gateway door, so "
-            + "the Narinder goal can be tested without a full playthrough. Does not send the "
-            + "Bishop location checks.",
+            + "the Narinder goal can be tested without a full playthrough. Refuses on any other "
+            + "goal, where it would just be a way to win instantly.",
             KeyCode.LeftControl);
 
         BindFeatureKey(config, "ListSermonUpgradesKey", KeyCode.F2,
@@ -97,28 +112,36 @@ internal static class DebugCommands
             "Dumps every shop in the current scene and the renderer behind each of its slots "
             + "(checks which one ShopIconService should be replacing with the AP logo).",
             DebugActions.DumpShopSlots);
+
+        Log.LogWarning("[AP] Developer debug keys are compiled into this build. Do not hand it "
+            + "to anyone - several of these write save state and send real checks.");
+#endif
     }
 
     private static ConfigEntry<KeyboardShortcut> Bind(
         ConfigFile config, string name, KeyCode key, string description, params KeyCode[] modifiers) =>
         config.Bind("Debug", name, new KeyboardShortcut(key, modifiers), description);
 
+#if AP_DEBUG_KEYS
     private static void BindFeatureKey(
         ConfigFile config, string name, KeyCode key, string description, Action handler,
         params KeyCode[] modifiers)
     {
         bindings.Add((Bind(config, name, key, description, modifiers), handler));
     }
+#endif
 
     internal static void Update()
     {
         // The event-based keys need the plugin's Archipelago reference, which isn't available
-        // when bindings is built, so they can't live in that list yet. They go through the same
-        // guard, because Ctrl+F9 rebuilds the objective guide and writes save lists.
+        // when bindings is built, so they can't live in that list.
         Fire(debugKey, () => OnDebugKeyPressed?.Invoke());
+
+#if AP_DEBUG_KEYS
         Fire(connectKey, () => OnConnectKeyPressed?.Invoke());
         Fire(questGuideKey, () => OnQuestGuideKeyPressed?.Invoke());
         Fire(completeBishopsKey, () => OnCompleteBishopsKeyPressed?.Invoke());
+#endif
 
         foreach (var (key, handler) in bindings)
         {
@@ -151,7 +174,7 @@ internal static class DebugCommands
 
     /// <summary>
     /// Like OnDebugKeyPressed, an event rather than a BindFeatureKey handler because its body
-    /// needs the ArchipelagoClient, which lives on the plugin.
+    /// needs the ArchipelagoClient, which lives on the plugin. Never raised without AP_DEBUG_KEYS.
     /// </summary>
     internal static event Action OnQuestGuideKeyPressed;
 

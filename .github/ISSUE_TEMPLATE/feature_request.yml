@@ -1,0 +1,56 @@
+name: Idea or feature request
+description: Suggest something the mod should do.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Worth knowing what this mod is trying to be**, because it shapes what fits.
+
+        Cult of the Lamb is not a good randomizer, and this mod stopped trying to be one. Shuffling
+        the game aggressively makes it worse - the skill tree stops being a progression you shape
+        and becomes a slot machine. So the aim is a good **crusade → base → crusade loop**, with
+        randomization available but never the default.
+
+        Ideas that improve that loop land much better than ideas that add more shuffling.
+
+  - type: textarea
+    id: idea
+    attributes:
+      label: The idea
+      description: What should the mod do?
+    validations:
+      required: true
+
+  - type: textarea
+    id: why
+    attributes:
+      label: Why it would make a seed better
+      description: >-
+        The interesting part. What's tedious, confusing or flat right now that this would fix?
+    validations:
+      required: true
+
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What kind of change is it?
+      options:
+        - A new check (something you do that sends an item)
+        - A new item (something you receive)
+        - A quality-of-life change to the base game
+        - A new goal or win condition
+        - An option for something that already exists
+        - Something else
+    validations:
+      required: false
+
+  - type: textarea
+    id: conflicts
+    attributes:
+      label: Anything it would conflict with
+      description: >-
+        Optional. If it touches something the mod already manages - tarot, weapons, the Divine
+        Inspiration tree, the objective guide - say so here.
+    validations:
+      required: false

@@ -60,6 +60,9 @@ internal class GoalService : IService
     /// raises none of the events above.</summary>
     internal void Recheck() => CheckGoal();
 
+    /// <summary>This seed's goal, so a debug key can refuse to run on the wrong one.</summary>
+    internal int Goal => goal;
+
     private void CheckGoal()
     {
         if (goalSent) return;

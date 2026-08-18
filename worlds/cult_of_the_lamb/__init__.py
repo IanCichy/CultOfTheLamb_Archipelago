@@ -1,6 +1,7 @@
 from typing import Any, Dict, List, Optional, Tuple
 
 from BaseClasses import Tutorial
+from Options import OptionError
 from worlds.AutoWorld import WebWorld, World
 
 from .items import (
@@ -16,7 +17,8 @@ from .items import (
     weighted_filler_names,
 )
 from .locations import (
-    DIVINE_INSPIRATION_COUNT, FOLLOWER_MILESTONE_COUNT, SNAIL_SHRINE_COUNT, TAROT_SHOP_CARDS,
+    BISHOP_DUNGEON_LOCATIONS, DIVINE_INSPIRATION_COUNT, FOLLOWER_MILESTONE_COUNT,
+    MINIBOSS_AND_WITNESS_KEYS, SNAIL_SHRINE_COUNT, TAROT_SHOP_CARDS,
     TAROT_SHOP_HUBS,
     location_name_to_id,
     location_table,
@@ -319,6 +321,25 @@ class CultOfTheLambWorld(World):
         # disable whole blocks (sermons, cards, DLC content), and padding to the table size
         # would overfill the pool and fail generation.
         remaining = len(self.multiworld.get_unfilled_locations(self.player)) - len(item_pool)
+
+        # A negative `remaining` means more items than places to put them, and `range()` of a
+        # negative number is simply empty - so without this the over-full pool ships and AP fails
+        # much later with "Unplaced Items remaining in itempool", naming nothing the player set.
+        #
+        # curated_checks is how you get here: it always contributes all 38 of its items while
+        # divine_inspiration_checks decides how many locations the block has, so a low count plus
+        # other blocks switched off runs out of room.
+        if remaining < 0:
+            raise OptionError(
+                f"This Cult of the Lamb seed has {-remaining} more item(s) than locations to put "
+                f"them in, so it can't be generated. The usual cause is "
+                f"divine_inspiration_checks ({self.options.divine_inspiration_checks.value}) "
+                f"being low while other check blocks are switched off - the curated Divine "
+                f"Inspiration block always contributes "
+                f"{len(DI_CURATED_ITEM_NAMES)} items regardless of how many checks it has. "
+                f"Raise divine_inspiration_checks, or turn another check block back on."
+            )
+
         for _ in range(remaining):
             item_pool.append(self.create_item(self.get_filler_item_name()))
 
@@ -355,6 +376,18 @@ class CultOfTheLambWorld(World):
             # Vanilla quests are the main follower-loyalty-XP source, so the default trims
             # rather than wipes - see options.py.
             "vanillaFollowerQuests": self.options.vanilla_follower_quests.value,
+
+            # Boss check ids, so the client stops hardcoding them. Keyed by the game's own
+            # identifier: MiniBossController.name for minibosses and Witnesses, the FollowerLocation
+            # member name for Bishops - which is what the client reads off each kill.
+            "bossKeyLocations": {
+                key: location_name_to_id[name]
+                for name, key in MINIBOSS_AND_WITNESS_KEYS.items()
+            },
+            "bishopLocations": {
+                dungeon: location_name_to_id[name]
+                for name, dungeon in BISHOP_DUNGEON_LOCATIONS.items()
+            },
 
             "randomizeRegionAccess": self.regions_are_gated,
             # Tells the C# client which region to force-open at start, and the order the

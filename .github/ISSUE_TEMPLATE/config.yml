@@ -1,0 +1,11 @@
+# Forces every issue through a template. Without this, GitHub keeps an "open a blank issue" link
+# underneath the template cards, and most people take it.
+blank_issues_enabled: false
+
+contact_links:
+  # TODO: fill this in before making the repo public. Most inbound on a game mod is "how do I
+  # install this" rather than a bug report, and this diverts it before it becomes an issue to
+  # triage. A GitHub Discussions tab works here too if you'd rather not run a Discord.
+  - name: Questions, setup help, or "is this a bug?"
+    url: https://github.com/IanCichy/CultOfTheLamb_Archipelago
+    about: Not sure it's a bug? Ask here first rather than opening an issue.

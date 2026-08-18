@@ -71,6 +71,37 @@ internal static class SlotData
     }
 
     /// <summary>
+    /// A name -> location-id mapping, keeping the names. ParseIdValues throws the keys away;
+    /// several blocks need them to decide *which* thing a given id belongs to.
+    /// </summary>
+    internal static Dictionary<string, long> ParseIdMap(
+        IReadOnlyDictionary<string, object> slotData, string key)
+    {
+        var result = new Dictionary<string, long>();
+
+        if (!slotData.TryGetValue(key, out var raw) || raw is not JObject mapping)
+        {
+            Log.LogWarning($"[AP] Slot data has no '{key}' mapping.");
+            return result;
+        }
+
+        foreach (var entry in mapping)
+        {
+            try
+            {
+                result[entry.Key] = entry.Value.ToObject<long>();
+            }
+            catch (Exception e)
+            {
+                Log.LogWarning($"[AP] '{key}' has a non-numeric id for '{entry.Key}': "
+                    + $"{e.Message} - skipping it.");
+            }
+        }
+
+        return result;
+    }
+
+    /// <summary>
     /// Resolves an enum member the server named, or warns and returns false.
     ///
     /// A name this build of the game doesn't have means the mod and the game disagree - most

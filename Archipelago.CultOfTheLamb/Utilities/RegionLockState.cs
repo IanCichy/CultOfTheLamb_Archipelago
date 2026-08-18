@@ -30,9 +30,14 @@ internal static class RegionLockState
 
     internal static void MarkUnlocked(FollowerLocation location) => unlocked.Add(location);
 
-    /// <summary>True for the 4 base-game Bishop regions - the only ones AP gates.</summary>
+    /// <summary>
+    /// True for the 4 base-game Bishop regions - the only ones AP gates.
+    ///
+    /// Asks the region table, not the check-id map: which dungeons exist is game knowledge and is
+    /// true before a connection, where the id map is seed data and empty until one.
+    /// </summary>
     internal static bool IsManaged(FollowerLocation location) =>
-        RegionMapping.BishopLocationToCheckId.ContainsKey(location);
+        RegionMapping.RegionToDungeonLocation.ContainsValue(location);
 
     internal static bool IsUnlocked(FollowerLocation location) => unlocked.Contains(location);
 

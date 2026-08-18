@@ -1,0 +1,101 @@
+name: Bug report
+description: Something in the mod behaved wrongly - a crash, a missing check, an item that did nothing.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report this.
+
+        **Before you start: press F9 in game.** That dumps the mod's state into the log, and a log
+        with an F9 in it usually answers everything we'd otherwise have to ask you.
+
+        The log lives at:
+        `<r2modman profile>/BepInEx/LogOutput.log`
+
+        **It is wiped every time the game launches**, so grab it before restarting.
+
+  - type: input
+    id: mod-version
+    attributes:
+      label: Mod version
+      description: Shown in the log as `Archipelago.CultOfTheLamb vX.Y.Z`, and in r2modman's mod list.
+      placeholder: "0.8.0"
+    validations:
+      required: true
+
+  - type: input
+    id: apworld-version
+    attributes:
+      label: apworld version
+      description: >-
+        The log prints both halves on connect: `[AP] Versions: client X, apworld Y`. If they don't
+        match, that mismatch is very likely your bug.
+      placeholder: "0.8.0"
+    validations:
+      required: false
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you did, and what the mod did instead of what you expected.
+      placeholder: |
+        Beat Heket, but no check was sent for "Anura - Heket". The other three Bishops worked.
+    validations:
+      required: true
+
+  - type: textarea
+    id: log
+    attributes:
+      label: LogOutput.log
+      description: >-
+        Press F9 in game first, then attach or paste the log. Drag the file into this box to
+        attach it - that's easier to read than a paste, and there's no size limit worth worrying
+        about. If you can only paste part of it, include everything from the line `[AP] Connected!`
+        onwards.
+      render: text
+    validations:
+      required: true
+
+  - type: textarea
+    id: yaml
+    attributes:
+      label: Your YAML
+      description: The player options file the seed was generated from. Paste it or attach it.
+      render: yaml
+    validations:
+      required: false
+
+  - type: dropdown
+    id: save-state
+    attributes:
+      label: What save were you on?
+      description: >-
+        The mod expects a dedicated new save. Playing an Archipelago save as vanilla afterwards
+        isn't supported, and an existing save can carry progress the seed didn't account for.
+      options:
+        - A new save made for this seed
+        - An existing save
+        - Not sure
+    validations:
+      required: false
+
+  - type: dropdown
+    id: multiworld
+    attributes:
+      label: Solo or multiworld?
+      options:
+        - Solo - only my slot
+        - Multiworld with other people
+        - Not sure
+    validations:
+      required: false
+
+  - type: textarea
+    id: anything-else
+    attributes:
+      label: Anything else
+      description: Screenshots, how often it happens, whether reconnecting changed anything.
+    validations:
+      required: false

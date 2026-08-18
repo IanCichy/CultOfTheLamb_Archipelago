@@ -590,6 +590,20 @@ internal static class DebugActions
     /// </summary>
     internal static void CompleteBishopsAndOpenGateway(ArchipelagoClient ap)
     {
+        // Refuses on any other goal even though the key is compiled out of normal builds: on a
+        // Bishops or Witnesses seed this would just be a way to win instantly, since Recheck()
+        // counts straight from BossesCompleted and would report victory to the server.
+        // Requires a *confirmed* narinder goal rather than merely failing to see another one.
+        // Written the other way round, a disconnected session (GoalService null) slipped through
+        // and wrote BossesCompleted anyway - then connecting afterwards on a Bishops seed made
+        // GoalService.Register()'s catch-up check report instant victory. Same failure, deferred.
+        if (ap?.GoalService == null || ap.GoalService.Goal != Services.GoalService.GoalNarinder)
+        {
+            Log.LogWarning("[AP] This key only works while connected to a narinder seed - on any "
+                + "other goal it would report a false victory. Ignoring.");
+            return;
+        }
+
         var dataManager = DataManager.Instance;
         if (dataManager?.BossesCompleted == null)
         {
@@ -598,7 +612,7 @@ internal static class DebugActions
         }
 
         var added = 0;
-        foreach (var bishop in RegionMapping.BishopLocationToCheckId.Keys)
+        foreach (var bishop in RegionMapping.RegionToDungeonLocation.Values)
         {
             if (dataManager.BossesCompleted.Contains(bishop)) continue;
             dataManager.BossesCompleted.Add(bishop);

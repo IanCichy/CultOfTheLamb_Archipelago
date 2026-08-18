@@ -20,8 +20,10 @@ internal static class GoalProgress
         var dataManager = DataManager.Instance;
         if (dataManager == null || dataManager.BossesCompleted == null) return 0;
 
+        // The region table rather than the check-id map: counting kills doesn't depend on any id,
+        // and this stays correct even before a connection has filled the seed's mappings in.
         var count = 0;
-        foreach (var bishopLocation in RegionMapping.BishopLocationToCheckId.Keys)
+        foreach (var bishopLocation in RegionMapping.RegionToDungeonLocation.Values)
         {
             if (dataManager.BossesCompleted.Contains(bishopLocation)) count++;
         }

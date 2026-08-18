@@ -65,9 +65,17 @@ internal static class ShopSlotDisplayPatch
     [HarmonyPostfix]
     private static void InitTarotShop_Postfix(shopKeeperManager __instance)
     {
-        initialisingTarotShop = false;
         OnShopInitialised?.Invoke(__instance);
     }
+
+    /// <summary>
+    /// Clears the flag even when InitTarotShop throws, which a postfix wouldn't. Without this a
+    /// single exception leaves TrinketUnlocked overridden for the rest of the session, answering
+    /// location state to every caller that asks - the tarot menu, the collection screen, the lot.
+    /// </summary>
+    [HarmonyPatch(typeof(shopKeeperManager), "InitTarotShop")]
+    [HarmonyFinalizer]
+    private static void InitTarotShop_Finalizer() => initialisingTarotShop = false;
 
     /// <summary>
     /// Decides which tarot slots a shop puts out, by answering the one question it asks.

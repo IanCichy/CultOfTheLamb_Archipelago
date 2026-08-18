@@ -188,13 +188,21 @@ public partial class ArchipelagoClient
             LastError = failureResult.Errors.Length > 0
                 ? string.Join(" ", failureResult.Errors)
                 : "The server refused the connection.";
+
+            // Same as Fail(). The panel happens to work without it because it derives from
+            // Connecting and LastError, but a refusal that doesn't raise this is a trap for the
+            // next thing that subscribes.
+            OnClientDisconnect?.Invoke(LastError);
             return;
         }
 
         var successResult = (LoginSuccessful)result;
         Log.LogInfo("[AP] Connected!");
 
-        cachedSlotData = new Dictionary<string, object>(successResult.SlotData);
+        // Before any service is constructed: both mappings are empty until this runs, and the
+        // services below read them as soon as they register.
+        BossKeyMapping.Populate(successResult.SlotData);
+        RegionMapping.Populate(successResult.SlotData);
 
         // Both halves in one line, because the pair is what matters and a tester's log is how we
         // find out they're mismatched. Not enforced - during alpha we may ship a mismatched pair
@@ -530,6 +538,10 @@ public partial class ArchipelagoClient
         ItemLogic?.Unregister();
         ItemLogic = null;
 
+        // Seed-specific, so they must not survive into the next connection.
+        BossKeyMapping.Clear();
+        RegionMapping.Clear();
+
         if (disconnect && session.Socket.Connected)
         {
             session.Socket.DisconnectAsync();
@@ -574,6 +586,13 @@ public partial class ArchipelagoClient
         // tearing that one down would drop a live connection. So only fire while the session this
         // was raised for is still current.
         var closed = session;
+
+        // Every drop that reaches this handler is unplanned, so every one of them should retry.
+        // Previously only Socket_ErrorReceived set this, which meant a *clean* close - a host
+        // restarting their server, the usual case - dropped the session with no reconnect at all.
+        // A user-initiated disconnect can't get here: TeardownSession unsubscribes this handler
+        // before it calls DisconnectAsync.
+        reconnecting = true;
 
         MainThreadQueue.Enqueue(() =>
         {

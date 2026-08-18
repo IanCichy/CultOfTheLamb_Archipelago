@@ -23,7 +23,14 @@
     <Copy SourceFiles="../README.md;../manifest.json;../CHANGELOG.md;../icon.png" DestinationFolder="bin/Build/" />
     <Copy Condition="'$(ModFolder)' != ''" SourceFiles="$(TargetPath);$(TargetDir)/$(TargetName).pdb" DestinationFolder="$(ModFolder)" />
     <Copy Condition="'$(ModFolder)' != ''" SourceFiles="$(OutputPath)/Archipelago.MultiClient.Net.dll;$(OutputPath)/Newtonsoft.Json.dll;" DestinationFolder="$(ModFolder)" />
-    <ZipDirectory SourceDirectory="bin/Build" DestinationFile="bin/zip/Archipelago_CultOfTheLamb-$(VersionPrefix).zip" Overwrite="true" />
+    <!-- A developer build has the debug keys compiled in (AP_DEBUG_KEYS, set in the gitignored
+         Directory.Build.props.user). Several of them write save state and send real checks, so
+         handing that zip to anyone would undo the gating entirely - and until this suffix existed
+         the file was named identically to a real release. Name it so the two can't be confused. -->
+    <PropertyGroup>
+      <PackageSuffix Condition="$(DefineConstants.Contains('AP_DEBUG_KEYS'))">-DEVBUILD-DO-NOT-SHARE</PackageSuffix>
+    </PropertyGroup>
+    <ZipDirectory SourceDirectory="bin/Build" DestinationFile="bin/zip/Archipelago_CultOfTheLamb-$(VersionPrefix)$(PackageSuffix).zip" Overwrite="true" />
   </Target>
 
   <ItemGroup>

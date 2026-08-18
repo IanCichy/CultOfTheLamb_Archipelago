@@ -58,9 +58,6 @@ public partial class ArchipelagoClient : IDisposable
     public bool reconnecting { get; set; } = false;
     public static string ConnectedPlayerName;
 
-    // Cached slot data (survives reconnection so we don't need to re-derive it)
-    private Dictionary<string, object> cachedSlotData;
-
     public ArchipelagoClient()
     {
     }

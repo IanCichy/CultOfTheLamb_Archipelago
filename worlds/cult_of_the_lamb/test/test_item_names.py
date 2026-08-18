@@ -43,10 +43,23 @@ class TestItemNamePrefixes(unittest.TestCase):
             )
 
     def test_unprefixed_items_stay_unprefixed(self):
-        """Filler, traps and the region item say what they are already."""
-        for name in (DI_POINT, PROGRESSIVE_REGION_ACCESS, "Bundle of Lumber", "Dissent Trap"):
+        """Filler, traps and the region item say what they are already.
+
+        Derived from the table rather than naming samples, so renaming a filler item can't
+        quietly stop this from checking anything - which is exactly what a hardcoded
+        "Bundle of Lumber" did when the bundles replaced it.
+        """
+        for name in (DI_POINT, PROGRESSIVE_REGION_ACCESS):
             self.assertIn(name, item_table)
             self.assertNotIn(" - ", name)
+
+        unprefixed = [
+            name for name, data in item_table.items() if data.category in ("Filler", "Trap")
+        ]
+        self.assertTrue(unprefixed, "no filler or trap items found - the table moved")
+
+        for name in unprefixed:
+            self.assertNotIn(" - ", name, f"{name!r} is filler/trap and should carry no prefix")
 
     def test_no_double_prefix(self):
         """A name built by applying the helper twice, e.g. "Tarot Card - Tarot Card - X"."""

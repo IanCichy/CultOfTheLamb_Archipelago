@@ -1,10 +1,23 @@
+from collections import Counter
 from typing import Dict, List, NamedTuple, Optional, Tuple
 
 from BaseClasses import Item, ItemClassification
 
-# Placeholder id range - not yet checked against the AP world registry for collisions.
-# Pick a real range before publishing (see docs/architecture.md).
+# Base ids for this world.
+#
+# **These do not need to be globally unique.** Archipelago namespaces the datapackage by game:
+# "different games may reuse these names or IDs" (docs/network protocol.md), and "locations can
+# share IDs with other games' locations" (docs/world api.md). An earlier comment here treated the
+# range as a placeholder pending a registry check - there is no registry, and nothing to collide
+# with. Moving these would invalidate every existing seed for no gain.
+#
+# The two real constraints, both asserted below the table: ids must be unique *within* this world,
+# and must fit in 1..2^53-1 (Archipelago recommends staying under 2^31-1, which these do).
 offset = 3_050_000
+
+# Locations start here, so item ids must stay below it. Declared alongside the item offset rather
+# than in locations.py so the two can't drift apart; locations.py imports it.
+location_offset = 3_051_000
 
 
 # Archipelago item names carry their category, so that a player in another game who receives
@@ -759,15 +772,20 @@ item_table: Dict[str, ItemData] = {
     ap_item_name("Relic", "Clauneck's Mirror"):
         ItemData(offset + 131, ItemClassification.useful, "Relic"),
 
-    # Filler. Ids 200/201 kept for the two original placeholder names so older seeds don't
-    # repoint; everything from 202 is new.
-    "Gold Tithe": ItemData(offset + 200, ItemClassification.filler, "Filler"),
-    "Fervour": ItemData(offset + 201, ItemClassification.filler, "Filler"),
-    "Bundle of Lumber": ItemData(offset + 202, ItemClassification.filler, "Filler"),
-    "Pile of Stone": ItemData(offset + 203, ItemClassification.filler, "Filler"),
-    "Basket of Berries": ItemData(offset + 204, ItemClassification.filler, "Filler"),
-    "Bag of Bones": ItemData(offset + 205, ItemClassification.filler, "Filler"),
+    # Filler. Roughly half of a seed's items, so these are the ones a player sees most - which
+    # is why they're themed bundles of several resources rather than one small pile each. The
+    # single-resource versions read as "here is more of a thing you already have" by hour two.
+    #
+    # Ids 200-205 are retired rather than reused: they belonged to the six single-resource items
+    # these replace (Gold Tithe, Fervour, Bundle of Lumber, Pile of Stone, Basket of Berries,
+    # Bag of Bones). Two of those names also lied - Gold Tithe granted raw ore and Fervour
+    # granted coins - which the bundles fix by grouping each resource with what it's used for.
     "Follower Level Up": ItemData(offset + 206, ItemClassification.filler, "Filler"),
+    "Construction Bundle": ItemData(offset + 207, ItemClassification.filler, "Filler"),
+    "Larder Bundle": ItemData(offset + 208, ItemClassification.filler, "Filler"),
+    "Ritual Bundle": ItemData(offset + 209, ItemClassification.filler, "Filler"),
+    "Artisan Bundle": ItemData(offset + 210, ItemClassification.filler, "Filler"),
+    "Treasury Bundle": ItemData(offset + 211, ItemClassification.filler, "Filler"),
 
     # Trap.
     "Dissent Trap": ItemData(offset + 300, ItemClassification.trap, "Trap"),
@@ -877,9 +895,49 @@ DI_EARLY_ITEM_NAMES: Tuple[str, ...] = tuple(
 # `progression` for any unrelated reason would otherwise silently repoint the gate in rules.py.
 DI_GATE_ITEM = DI_PROGRESSIVE_CULT
 
-# A duplicate display name would silently overwrite an earlier entry in this dict and shrink the
-# id space without failing, so it's asserted rather than trusted.
-assert len(item_table) == len(set(item_table)), "duplicate item name in item_table"
+# The previous check here was `len(item_table) == len(set(item_table))`, which compares a dict's
+# length to its own key set and is therefore True for every possible dict. It could never fail.
+#
+# These three can. A duplicate *name* silently overwrites an earlier entry, losing an item and
+# leaving its id unused; a duplicate *code* gives two names the same id, so the client applies the
+# wrong item; and an id that runs past the location range collides with a location.
+_codes = [data.code for data in item_table.values() if data.code is not None]
+_duplicate_codes = {code for code, count in Counter(_codes).items() if count > 1}
+assert not _duplicate_codes, (
+    f"two item names share an id: {sorted(_duplicate_codes)} - the client keys off the id, so "
+    f"one of them would apply as the other")
+
+assert max(_codes) < location_offset, (
+    f"item ids reach {max(_codes)}, which is past the location range starting at "
+    f"{location_offset} - the two would collide")
+
+
+# Catches the duplicate *name* case, which the id checks above can't see: each block is built by a
+# dict comprehension over a source list, so two rows with the same display name collapse into one
+# entry before anything downstream could notice. Comparing what landed against what the source
+# lists hold is the cheapest thing that still fails when that happens.
+_expected_counts = {
+    "Tarot": len(TAROT_CARDS),
+    "Weapon": len(WEAPONS),
+    "Curse": len(CURSES),
+    "DivineInspiration": len(DIVINE_INSPIRATION) + len(DI_CURATED_GROUPS),
+}
+for _category, _expected in _expected_counts.items():
+    _actual = sum(1 for data in item_table.values() if data.category == _category)
+    assert _actual == _expected, (
+        f"{_category} has {_actual} items but its source list holds {_expected} - two rows share "
+        f"a display name, so one silently overwrote the other")
+
+# Sermons can't use the count check above: SERMON_ITEM_UPGRADES is itself keyed by item name, so a
+# duplicate has already collapsed by the time its length is read - comparing it to the table would
+# compare a collapsed number against itself, which is the exact bug this block replaced.
+#
+# Checking the raw source rows instead. Their display names are distinct even within a progressive
+# chain ("Might of the Devout I", "II"), because _chain_for maps them onto a shared item name
+# afterwards - so a genuine duplicate here really is a mistake.
+_sermon_displays = [display for display, _, _ in SERMON_UPGRADES]
+assert len(_sermon_displays) == len(set(_sermon_displays)), (
+    "two sermon rows share a display name, so one silently overwrote the other")
 
 
 filler_table = [name for name, data in item_table.items() if data.category == "Filler"]
@@ -893,12 +951,11 @@ trap_table = [name for name, data in item_table.items() if data.category == "Tra
 # Any Filler-category item missing from this dict falls back to weight 1 rather than being
 # dropped, so adding an item and forgetting to weight it can't silently remove it from seeds.
 item_pool_weights: Dict[str, int] = {
-    "Bundle of Lumber": 10,
-    "Pile of Stone": 10,
-    "Basket of Berries": 8,
-    "Bag of Bones": 8,
-    "Gold Tithe": 8,
-    "Fervour": 6,
+    "Construction Bundle": 10,
+    "Larder Bundle": 8,
+    "Ritual Bundle": 8,
+    "Artisan Bundle": 6,
+    "Treasury Bundle": 6,
     "Follower Level Up": 4,
 }
 
