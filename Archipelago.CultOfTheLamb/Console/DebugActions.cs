@@ -25,6 +25,207 @@ internal static class DebugActions
     private const TarotCards.Card SampleTarotCard = TarotCards.Card.Sun;
     private const PlayerFleeceManager.FleeceType SampleFleece = PlayerFleeceManager.FleeceType.Gold;
 
+    /// <summary>
+    /// Lists what's actually reachable through Resources, written alongside the name table.
+    ///
+    /// The decompile has ~80 Resources.Load paths, but a path appearing in code doesn't mean the
+    /// asset shipped there - "Prefabs/Structures/Statue - Sword" is referenced by DungeonDecorator
+    /// and resolves to null at runtime. Enumerating is the only way to know what a pedestal can
+    /// actually be built from.
+    /// </summary>
+    private static void DumpResourcePrefabs(StringBuilder sb)
+    {
+        sb.AppendLine();
+        sb.AppendLine("## Resources prefabs actually present");
+
+        foreach (var folder in new[] { "", "Prefabs", "Prefabs/Structures", "Prefabs/Resources" })
+        {
+            GameObject[] found;
+            try
+            {
+                found = Resources.LoadAll<GameObject>(folder);
+            }
+            catch (System.Exception e)
+            {
+                sb.AppendLine($"### '{folder}' - threw {e.GetType().Name}");
+                continue;
+            }
+
+            sb.AppendLine();
+            sb.AppendLine($"### '{folder}': {found?.Length ?? 0} GameObject(s)");
+            if (found == null) continue;
+
+            foreach (var prefab in found)
+            {
+                if (prefab != null) sb.AppendLine($"\t{prefab.name}");
+            }
+        }
+
+        DumpAddressableKeys(sb);
+
+        // The specific candidates a pedestal might be built from, probed by exact path.
+        sb.AppendLine();
+        sb.AppendLine("### Direct path probes");
+        foreach (var path in new[]
+        {
+            "Prefabs/Structures/Statue - Sword",
+            "Prefabs/Resources/WeaponPickUp",
+            "Prefabs/Structures/Buildings/Altar",
+            "Prefabs/Resources/ResourceCustomTarget",
+        })
+        {
+            var hit = Safe2(() => Resources.Load<GameObject>(path));
+            sb.AppendLine($"\t{(hit != null ? "OK  " : "NULL")}  {path}");
+        }
+    }
+
+    /// <summary>
+    /// Every Addressables key the game has registered, filtered to things a weapon display could
+    /// be built from.
+    ///
+    /// The crusade podiums are real scene objects (Interaction_WeaponSelectionPodium, with
+    /// podiumOn/podiumOff/Lighting child art) authored into dungeon rooms, so the art exists - the
+    /// only question is whether it can be addressed from the base. Nothing in Resources answers
+    /// that; this does.
+    /// </summary>
+    private static void DumpAddressableKeys(StringBuilder sb)
+    {
+        sb.AppendLine();
+        sb.AppendLine("### Addressables keys (filtered)");
+
+        var matched = 0;
+        var total = 0;
+
+        try
+        {
+            foreach (var locator in UnityEngine.AddressableAssets.Addressables.ResourceLocators)
+            {
+                if (locator?.Keys == null) continue;
+
+                foreach (var key in locator.Keys)
+                {
+                    var name = key?.ToString();
+                    if (string.IsNullOrEmpty(name)) continue;
+
+                    total++;
+                    if (name.IndexOf("podium", System.StringComparison.OrdinalIgnoreCase) < 0
+                        && name.IndexOf("plinth", System.StringComparison.OrdinalIgnoreCase) < 0
+                        && name.IndexOf("weapon", System.StringComparison.OrdinalIgnoreCase) < 0
+                        && name.IndexOf("statue", System.StringComparison.OrdinalIgnoreCase) < 0
+                        && name.IndexOf("entrance", System.StringComparison.OrdinalIgnoreCase) < 0)
+                    {
+                        continue;
+                    }
+
+                    matched++;
+                    sb.AppendLine($"\t{name}");
+                }
+            }
+
+            sb.AppendLine($"# {matched} matched of {total} key(s) total.");
+        }
+        catch (System.Exception e)
+        {
+            sb.AppendLine($"(Addressables enumeration failed: {e.GetType().Name} - {e.Message})");
+        }
+    }
+
+    /// <summary>
+    /// Ctrl+F7 - dumps every weapon podium in the loaded scene: hierarchy, renderers, scale and
+    /// which of podiumOn/podiumOff/Lighting is active.
+    ///
+    /// Press it standing next to a real one mid-crusade and the output is the ground truth our
+    /// base clone has to match - the prefab's authored structure isn't in the decompile.
+    /// </summary>
+    internal static void DumpPodiumsInScene()
+    {
+        var found = 0;
+
+        // Both kinds: the entrance room's rune sigils and the weapon shop's basins are different
+        // classes with different art, and either could be the right look for a base display.
+        foreach (var podium in UnityEngine.Object.FindObjectsOfType<Interaction_WeaponSelectionPodium>(true))
+        {
+            if (podium == null) continue;
+            found++;
+
+            DescribeSceneObject(podium.gameObject, "WeaponSelectionPodium");
+            Log.LogInfo($"[AP]     podiumOn={State(podium.podiumOn)} "
+                + $"podiumOff={State(podium.podiumOff)} Lighting={State(podium.Lighting)}");
+        }
+
+        foreach (var item in UnityEngine.Object.FindObjectsOfType<Interaction_WeaponItem>(true))
+        {
+            if (item == null) continue;
+            found++;
+
+            DescribeSceneObject(item.gameObject, "WeaponItem (shop slot)");
+        }
+
+        Log.LogInfo($"[AP] Podium-like objects in scene: {found}");
+        ApNotification.Show($"Archipelago: dumped {found} podium(s)", NotificationBase.Flair.Positive);
+    }
+
+    private static void DescribeSceneObject(GameObject go, string kind)
+    {
+        Log.LogInfo($"[AP] --- {kind} '{go.name}' at {go.transform.position}, "
+            + $"scale {go.transform.lossyScale}, active {go.activeInHierarchy}");
+
+        foreach (var renderer in go.GetComponentsInChildren<SpriteRenderer>(true))
+        {
+            Log.LogInfo($"[AP]     {HierarchyPath(renderer.transform, go.transform)}: "
+                + $"active {renderer.gameObject.activeInHierarchy}, bounds {renderer.bounds.size}, "
+                + $"layer '{SortingLayer.IDToName(renderer.sortingLayerID)}', "
+                + $"order {renderer.sortingOrder}, sprite '{renderer.sprite?.name}'");
+        }
+    }
+
+    private static string State(GameObject go) =>
+        go == null ? "(null)" : go.activeInHierarchy ? "ON" : "off";
+
+    /// <summary>
+    /// Ctrl+F6 - drops a row of weapon pedestals in front of the player, alternating received and
+    /// not-received so both tints can be compared side by side.
+    ///
+    /// A scratch harness for the placement pass, not the real feature: the statue is authored for
+    /// dungeon decoration, so its size and sorting at base scale can only be found by looking at
+    /// it. Press again to clear and respawn.
+    /// </summary>
+    internal static void SpawnEquipmentPedestals()
+    {
+        var player = PlayerFarming.Instance;
+        if (player == null)
+        {
+            Log.LogWarning("[AP] Debug: no player, so nowhere to measure from.");
+            return;
+        }
+
+        // A row starting where the player stands, so walking to a spot and pressing this shows
+        // exactly what those config values would look like.
+        var origin = player.transform.position;
+
+        UI.EquipmentPedestal.Clear();
+
+        var families = new[]
+        {
+            EquipmentType.Sword,
+            EquipmentType.Axe,
+            EquipmentType.Hammer,
+            EquipmentType.Fireball,
+        };
+
+        var spacing = ArchipelagoPlugin.PedestalSpacing?.Value ?? 2f;
+        for (var i = 0; i < families.Length; i++)
+        {
+            UI.EquipmentPedestal.Spawn(
+                families[i], origin + new Vector3(i * spacing, 0f, 0f), received: i % 2 == 0);
+        }
+
+        Log.LogInfo($"[AP] Debug: preview row at X={origin.x:F2} Y={origin.y:F2} - "
+            + "paste these into PedestalOriginX / PedestalOriginY to keep it.");
+        ApNotification.Show($"Archipelago: X={origin.x:F2} Y={origin.y:F2} - see the log",
+            NotificationBase.Flair.Positive);
+    }
+
     /// <summary>F6 - resource filler items. Lowest-risk feature; API already used by two other mods.</summary>
     internal static void GiveResources()
     {
@@ -53,7 +254,9 @@ internal static class DebugActions
     /// dismissed (empty OnCancelButtonInput) and its only exit is DoUnlock(), so opening it to
     /// "just look" hands out a free upgrade the randomizer never granted.
     ///
-    /// TODO: a real in-game viewer needs to be our own UI. Until then this is log-only.
+    /// The player-facing viewer is now SermonTreeViewer ("Archipelago" on the Temple Altar menu),
+    /// which opens the game's own tree read-only. This stays as the log-only diagnostic: it's the
+    /// independent second opinion, since both read UpgradePlayerConfiguration.
     /// </summary>
     internal static void ListOwnedSermonUpgrades()
     {
@@ -371,7 +574,135 @@ internal static class DebugActions
         DumpTree(sb, "DLCUpgradeTreeConfiguration (Woolhaven)",
             gameManager.DLCUpgradeTreeConfiguration);
 
+        DumpTreePrefabs(sb);
+        DumpResourcePrefabs(sb);
         DumpStructureCoupling(sb);
+    }
+
+    /// <summary>
+    /// The tree *shape* - node positions and prerequisite edges - which the ScriptableObjects above
+    /// do not carry. UpgradeTreeConfiguration has AllUpgrades and tiers but no layout, and its
+    /// AllUpgradesRequiringUpgrade is nearly empty (DivineInspirationShuffle.cs:36-38). The authored
+    /// graph lives on the menu prefabs instead, so this reads them to size up an in-game viewer.
+    ///
+    /// Read-only, and deliberately never instantiates: Configure() writes node state and would
+    /// damage the shared prefab, taking the game's own tree menu down with it.
+    /// </summary>
+    private static void DumpTreePrefabs(StringBuilder sb)
+    {
+        sb.AppendLine();
+        sb.AppendLine("## Tree menu prefabs (node graph + layout)");
+
+        var ui = MonoSingleton<UIManager>.Instance;
+        if (ui == null)
+        {
+            sb.AppendLine("(UIManager unavailable - load a save first)");
+            return;
+        }
+
+        DumpTreePrefab(sb, "UpgradeTreeMenuTemplate (Divine Inspiration)", ui.UpgradeTreeMenuTemplate);
+        DumpTreePrefab(sb, "UpgradePlayerTreeMenuTemplate (SERMON)", ui.UpgradePlayerTreeMenuTemplate);
+        DumpTreePrefab(sb, "DLCUpgradeTreeMenuTemplate (Woolhaven)", ui.DLCUpgradeTreeMenuTemplate);
+    }
+
+    private static void DumpTreePrefab(StringBuilder sb, string label, Component template)
+    {
+        sb.AppendLine();
+        sb.AppendLine($"### {label}");
+        if (template == null)
+        {
+            sb.AppendLine("(null - not loaded)");
+            return;
+        }
+
+        var nodes = template.GetComponentsInChildren<UpgradeTreeNode>(true);
+        sb.AppendLine($"# Nodes: {nodes?.Length ?? 0}");
+        if (nodes == null || nodes.Length == 0) return;
+
+        var root = template.transform.root;
+        float minX = float.MaxValue, maxX = float.MinValue;
+        float minY = float.MaxValue, maxY = float.MinValue;
+        var prereqEdges = 0;
+        var connectionEdges = 0;
+
+        sb.AppendLine("# upgrade\ttier\tconfig\tanchoredPos\tlocalPos\trequiresUpgrade"
+            + "\trequiresStructure\tstate\tprerequisites\tconnections\tpath");
+
+        foreach (var node in nodes)
+        {
+            if (node == null) continue;
+
+            var rect = Safe2(() => node.RectTransform);
+
+            // anchoredPosition is the only usable coordinate here. A prefab asset isn't in a scene,
+            // so transform.position reads as zero for every node - measured, see the localPos
+            // column. Every node is a direct child of one NodesContainer, so these are already in
+            // a single comparable space.
+            var anchored = rect == null ? Vector2.zero : rect.anchoredPosition;
+
+            var local = rect == null
+                ? Vector3.zero
+                : root.InverseTransformPoint(rect.position);
+
+            if (anchored.x < minX) minX = anchored.x;
+            if (anchored.x > maxX) maxX = anchored.x;
+            if (anchored.y < minY) minY = anchored.y;
+            if (anchored.y > maxY) maxY = anchored.y;
+
+            var prereqs = node.PrerequisiteNodes;
+            var conns = node.NodeConnections;
+            prereqEdges += prereqs?.Length ?? 0;
+            connectionEdges += conns?.Count ?? 0;
+
+            sb.AppendLine($"{Safe(() => node.Upgrade.ToString())}"
+                + $"\t{Safe(() => node.NodeTier.ToString())}"
+                + $"\t{Safe2(() => node.TreeConfig?.name) ?? "(null)"}"
+                + $"\t{anchored.x:F1},{anchored.y:F1}"
+                + $"\t{local.x:F1},{local.y:F1}"
+                + $"\t{Safe(() => node.RequiresUpgrade.ToString())}"
+                + $"\t{Safe(() => node.RequiresBuiltStructure.ToString())}"
+                + $"\t{Safe(() => node.State.ToString())}"
+                + $"\t{NodeNames(prereqs)}"
+                + $"\t{NodeNames(conns)}"
+                + $"\t{HierarchyPath(node.transform, root)}");
+        }
+
+        sb.AppendLine($"# Bounds (anchored): x {minX:F1}..{maxX:F1}  y {minY:F1}..{maxY:F1}"
+            + $"  size {maxX - minX:F1} x {maxY - minY:F1}");
+        sb.AppendLine($"# Edge candidates: PrerequisiteNodes={prereqEdges}, NodeConnections={connectionEdges}");
+
+        // The third possible edge source: the menu's own line renderers. Read as components rather
+        // than through UIUpgradeTreeMenuBase<T>.NodeConnections, which would need the concrete
+        // generic argument per template. A line may span more than two nodes, which is why the
+        // count alone isn't enough to reconstruct the graph.
+        var lines = template.GetComponentsInChildren<NodeConnectionLine>(true);
+        sb.AppendLine($"# NodeConnectionLines: {lines?.Length ?? 0}");
+        if (lines == null) return;
+        foreach (var line in lines)
+        {
+            if (line == null) continue;
+            sb.AppendLine($"\t{NodeNames(Safe2(() => line.Nodes))}");
+        }
+    }
+
+    private static string NodeNames(IEnumerable<UpgradeTreeNode> nodes)
+    {
+        if (nodes == null) return "";
+        var names = new List<string>();
+        foreach (var node in nodes)
+        {
+            if (node != null) names.Add(Safe(() => node.Upgrade.ToString()));
+        }
+        return string.Join(", ", names.ToArray());
+    }
+
+    /// <summary>Where the node sits under the prefab, to show whether tier containers group them.</summary>
+    private static string HierarchyPath(Transform node, Transform root)
+    {
+        var parts = new List<string>();
+        for (var t = node; t != null && t != root; t = t.parent) parts.Add(t.name);
+        parts.Reverse();
+        return string.Join("/", parts.ToArray());
     }
 
     private static void DumpTree(StringBuilder sb, string label, UpgradeTreeConfiguration tree)
@@ -390,7 +721,10 @@ internal static class DebugActions
         {
             foreach (var upgrade in all)
             {
-                sb.AppendLine($"{upgrade}\t{Safe(() => UpgradeSystem.GetLocalizedName(upgrade))}");
+                // Description too: the sermon viewer folds it under each node's name, and whether
+                // I2 actually has a term for these is the only way to tell why one comes out blank.
+                sb.AppendLine($"{upgrade}\t{Safe(() => UpgradeSystem.GetLocalizedName(upgrade))}"
+                    + $"\tDESC: {Safe(() => UpgradeSystem.GetLocalizedDescription(upgrade))}");
             }
         }
 

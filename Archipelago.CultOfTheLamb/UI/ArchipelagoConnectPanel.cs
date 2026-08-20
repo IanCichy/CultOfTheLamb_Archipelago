@@ -2,7 +2,6 @@ using System;
 using Archipelago.CultOfTheLamb.Console;
 using BepInEx.Configuration;
 using UnityEngine;
-using UnityEngine.EventSystems;
 
 namespace Archipelago.CultOfTheLamb.UI;
 
@@ -14,7 +13,7 @@ namespace Archipelago.CultOfTheLamb.UI;
 /// that badly takes the game's UI down with it. The pause- and main-menu entry points *are*
 /// native, so the form behind them can be upgraded later without moving where players look.
 /// </summary>
-internal class ArchipelagoConnectPanel
+internal class ArchipelagoConnectPanel : ApPanelBase
 {
     private readonly ArchipelagoClient client;
 
@@ -26,31 +25,19 @@ internal class ArchipelagoConnectPanel
     private readonly ConfigEntry<string> slotEntry;
     private readonly ConfigEntry<string> passwordEntry;
 
-    internal bool IsOpen { get; private set; }
-
     private string server;
     private string port;
     private string slot;
     private string password;
 
-    // Whether *we* froze the player, so closing can't un-freeze something else - a cutscene, a
-    // shop purchase - that happened to start while the panel was open.
-    private bool frozePlayer;
+    // Anything stable and unlikely to collide will do; GetHashCode varies per run and per
+    // instance for no benefit.
+    protected override int WindowId => 0x0AA7E1;
 
-    // Set while the panel is open, so the game's UI can be handed back exactly what it had.
-    private EventSystem suspendedEventSystem;
+    protected override string Title => "Archipelago";
 
-    // IMGUI identifies windows by an int the caller picks. Anything stable and unlikely to
-    // collide will do; GetHashCode varies per run and per instance for no benefit.
-    private const int WindowId = 0x0AA7E1;
-
-    private Rect window = new(60f, 60f, 460f, 0f);
     private GUIStyle labelStyle;
     private GUIStyle statusStyle;
-
-    // IMGUI's default font is unreadably small on anything modern. Everything is authored at
-    // this nominal size and scaled to the actual screen, so layout maths stays in one space.
-    private const float DesignHeight = 1080f;
 
     internal ArchipelagoConnectPanel(
         ArchipelagoClient client,
@@ -71,61 +58,7 @@ internal class ArchipelagoConnectPanel
         password = passwordEntry.Value;
     }
 
-    internal void Toggle()
-    {
-        if (IsOpen) Close();
-        else Open();
-    }
-
-    internal void Open()
-    {
-        if (IsOpen) return;
-        IsOpen = true;
-        if (host != null) host.enabled = true;
-        FreezePlayer();
-        SuspendGameUi();
-    }
-
-    internal void Close()
-    {
-        if (!IsOpen) return;
-        IsOpen = false;
-        if (host != null) host.enabled = false;
-        UnfreezePlayer();
-        RestoreGameUi();
-    }
-
-    /// <summary>
-    /// The component whose OnGUI draws this. Disabled whenever the panel is closed, so Unity's
-    /// IMGUI dispatch costs nothing for the ~99% of a session the panel isn't up.
-    /// </summary>
-    internal void AttachTo(ArchipelagoConnectPanelHost host)
-    {
-        this.host = host;
-        host.Panel = this;
-        host.enabled = IsOpen;
-    }
-
-    private ArchipelagoConnectPanelHost host;
-
-    /// <summary>Called from the host's OnGUI.</summary>
-    internal void Draw()
-    {
-        if (!IsOpen) return;
-
-        var scale = Screen.height / DesignHeight;
-        var previousMatrix = GUI.matrix;
-
-        // Scaling the whole matrix rather than each font size keeps hit-testing correct: mouse
-        // positions run through the same transform the drawing does.
-        GUI.matrix = Matrix4x4.TRS(Vector3.zero, Quaternion.identity, new Vector3(scale, scale, 1f));
-
-        window = GUILayout.Window(WindowId, window, DrawContents, "Archipelago");
-
-        GUI.matrix = previousMatrix;
-    }
-
-    private void DrawContents(int id)
+    protected override void DrawContents(int id)
     {
         EnsureStyles();
 
@@ -142,7 +75,7 @@ internal class ArchipelagoConnectPanel
 
         // Read once: the button's enabled state and the line explaining it must agree, and IMGUI
         // needs the Layout and Repaint passes to agree with each other too.
-        var canConnectHere = CanConnectHere();
+        var canConnectHere = HasLoadedSave();
         var connecting = IsBusy();
         var canConnect = !connecting && canConnectHere && slot.Trim().Length > 0;
 
@@ -213,14 +146,6 @@ internal class ArchipelagoConnectPanel
     }
 
     /// <summary>
-    /// Connecting replays the whole item history into save state and unlocks regions through
-    /// DataManager, so there has to be a loaded save underneath. At the main menu there isn't -
-    /// the form still works, it just can't finish the job.
-    /// </summary>
-    private static bool CanConnectHere() =>
-        DataManager.Instance != null && PlayerFarming.Instance != null;
-
-    /// <summary>
     /// Remembers what was typed, so a returning player doesn't retype it - and so a typo worth
     /// correcting is still there when the panel is reopened. Saved on the attempt rather than on
     /// success for exactly that reason.
@@ -235,68 +160,6 @@ internal class ArchipelagoConnectPanel
 
     /// <summary>Falls back to the last saved port rather than a literal, so the default lives once.</summary>
     private int ParsePort() => int.TryParse(port, out var parsed) ? parsed : portEntry.Value;
-
-    /// <summary>
-    /// Stops the lamb reacting to typing. Without it, entering a slot name walks the player
-    /// across the room and can trigger interactions.
-    /// </summary>
-    private void FreezePlayer()
-    {
-        if (PlayerFarming.Instance == null) return;
-
-        try
-        {
-            PlayerFarming.SetStateForAllPlayers(StateMachine.State.InActive, false, null);
-            frozePlayer = true;
-        }
-        catch (Exception e)
-        {
-            Log.LogWarning($"[AP] Could not freeze the player for the connect panel: {e.Message}");
-        }
-    }
-
-    private void UnfreezePlayer()
-    {
-        if (!frozePlayer) return;
-        frozePlayer = false;
-
-        if (PlayerFarming.Instance == null) return;
-
-        try
-        {
-            PlayerFarming.SetStateForAllPlayers(StateMachine.State.Idle, false, null);
-        }
-        catch (Exception e)
-        {
-            Log.LogWarning($"[AP] Could not restore the player after the connect panel: {e.Message}");
-        }
-    }
-
-    /// <summary>
-    /// Switches off Unity's EventSystem while the panel is up.
-    ///
-    /// IMGUI and the game's UI take input through completely separate paths, so a click inside
-    /// this window *also* lands on whatever menu button sits behind it - the panel is usually
-    /// opened from the pause menu, which is exactly where that would happen. Turning the
-    /// EventSystem off makes the menu behind inert until the panel closes, and stops arrow keys
-    /// walking its selection while you type.
-    /// </summary>
-    private void SuspendGameUi()
-    {
-        var eventSystem = EventSystem.current;
-        if (eventSystem == null || !eventSystem.enabled) return;
-
-        eventSystem.enabled = false;
-        suspendedEventSystem = eventSystem;
-    }
-
-    private void RestoreGameUi()
-    {
-        if (suspendedEventSystem == null) return;
-
-        suspendedEventSystem.enabled = true;
-        suspendedEventSystem = null;
-    }
 
     private void EnsureStyles()
     {

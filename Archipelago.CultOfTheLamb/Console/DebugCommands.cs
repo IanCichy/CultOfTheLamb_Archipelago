@@ -81,14 +81,35 @@ internal static class DebugCommands
             + "(tests sermon checks without grinding real sermons).",
             DebugActions.FillSermonBar);
 
+        // A shortcut, not the only way in - the viewer is on the Temple Altar menu. Useful because
+        // this reaches it from anywhere, including away from the Temple.
+        BindFeatureKey(config, "SermonTreeViewerKey", KeyCode.F3,
+            "Opens the game's own sermon upgrade tree as a read-only viewer.",
+            () => UI.SermonTreeViewer.Open(null),
+            KeyCode.LeftControl);
+
         BindFeatureKey(config, "DumpNamesKey", KeyCode.F4,
             "Writes the internal-name -> display-name table for upgrades, tarot, fleeces, "
             + "crown abilities and doctrines to BepInEx/ap_unlockable_names.txt.",
             DebugActions.DumpUnlockableNames);
 
+        // Scratch harness for the in-world pedestal placement pass. Ctrl+F6 so it doesn't also
+        // fire the plain-F6 resource grant.
+        BindFeatureKey(config, "SpawnPedestalsKey", KeyCode.F6,
+            "Spawns a test row of weapon pedestals in front of the player; press again to clear.",
+            DebugActions.SpawnEquipmentPedestals,
+            KeyCode.LeftControl);
+
         BindFeatureKey(config, "GiveResourcesKey", KeyCode.F6,
             "Grants a few resource items (tests filler-item grants).",
             DebugActions.GiveResources);
+
+        // Ctrl+F7 so it doesn't also fire the plain-F7 sermon unlock. Meant to be pressed next to
+        // a real podium mid-crusade.
+        BindFeatureKey(config, "DumpPodiumsKey", KeyCode.F7,
+            "Dumps every weapon podium in the loaded scene - hierarchy, renderers and lit state.",
+            DebugActions.DumpPodiumsInScene,
+            KeyCode.LeftControl);
 
         BindFeatureKey(config, "UnlockSermonKey", KeyCode.F7,
             "Unlocks one sermon/ability upgrade (tests sermon-upgrade item grants).",

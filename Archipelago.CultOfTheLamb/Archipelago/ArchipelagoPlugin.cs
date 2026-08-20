@@ -49,7 +49,7 @@ public class ArchipelagoPlugin : BaseUnityPlugin
         // config on every connect.
         connectPanel = new ArchipelagoConnectPanel(
             AP, ServerNameEntry, PortEntry, SlotNameEntry, PasswordEntry);
-        connectPanel.AttachTo(gameObject.AddComponent<ArchipelagoConnectPanelHost>());
+        connectPanel.AttachTo(gameObject.AddComponent<ApPanelHost>());
 
         ArchipelagoHudIndicator.IsConnected = () => AP.IsConnected;
 
@@ -95,6 +95,10 @@ public class ArchipelagoPlugin : BaseUnityPlugin
             AP?.FollowerMilestoneService?.Tick();
             AP?.SnailShrineService?.Tick();
             AP?.BroomService?.Tick();
+
+            // Re-places the base podiums after a scene load and lights one whose family has just
+            // arrived. Same once-a-second budget: a few dictionary reads in the steady state.
+            AP?.EquipmentDisplayService?.Tick();
 
             // Takes back any managed card the game has put into the collection since the last
             // tick - GameManager.Awake re-seeds fifteen of them whenever it finds the list
@@ -161,5 +165,25 @@ public class ArchipelagoPlugin : BaseUnityPlugin
         ServerNameEntry = Config.Bind("Archipelago", "ServerName", "archipelago.gg", "Change the default server name");
         PortEntry = Config.Bind("Archipelago", "Port", 38281, "Change the default port");
         PasswordEntry = Config.Bind("Archipelago", "Password", "", "Change the default password");
+
+        // Weapons and curses are the only randomized system the game can't show natively, so the
+        // mod puts a row of crusade podiums in the base for them. Position is configurable because
+        // where they look right is a judgement call - Ctrl+F6 prints your current coordinates.
+        PedestalsEnabled = Config.Bind("Displays", "EquipmentPedestals", true,
+            "Show weapon and curse podiums in the base.");
+        PedestalOriginX = Config.Bind("Displays", "PedestalOriginX", -16.64f,
+            "World X of the first weapon podium.");
+        PedestalOriginY = Config.Bind("Displays", "PedestalOriginY", -28.52f,
+            "World Y of the podium line.");
+        PedestalSpacing = Config.Bind("Displays", "PedestalSpacing", 2f,
+            "Distance between podiums.");
+        PedestalPoolGap = Config.Bind("Displays", "PedestalPoolGap", 9f,
+            "Extra space between the last weapon and the first curse.");
     }
+
+    internal static ConfigEntry<bool> PedestalsEnabled { get; private set; }
+    internal static ConfigEntry<float> PedestalOriginX { get; private set; }
+    internal static ConfigEntry<float> PedestalOriginY { get; private set; }
+    internal static ConfigEntry<float> PedestalSpacing { get; private set; }
+    internal static ConfigEntry<float> PedestalPoolGap { get; private set; }
 }

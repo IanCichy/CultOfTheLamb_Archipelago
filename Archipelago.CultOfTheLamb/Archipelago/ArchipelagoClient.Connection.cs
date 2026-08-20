@@ -348,6 +348,21 @@ public partial class ArchipelagoClient
             CursePoolService.Register();
         }
 
+        // After both pools, since it reads what each one manages. Registered whenever either
+        // exists - it's the only way to see weapon and curse grants in game.
+        if (WeaponPoolService != null || CursePoolService != null)
+        {
+            EquipmentDisplayService = new EquipmentDisplayService(
+                WeaponPoolService, CursePoolService,
+                ArchipelagoPlugin.PedestalsEnabled, ArchipelagoPlugin.PedestalOriginX,
+                ArchipelagoPlugin.PedestalOriginY, ArchipelagoPlugin.PedestalSpacing,
+                ArchipelagoPlugin.PedestalPoolGap,
+                // The Teleport curses only exist with Woolhaven - their sermon upgrade sits
+                // behind Major_DLC_Sermon_Packs - so without it there's nothing to display.
+                SlotData.GetBool(successResult.SlotData, "includeWoolhaven"));
+            EquipmentDisplayService.Register();
+        }
+
         if (SlotData.GetBool(successResult.SlotData, "buildingChecks"))
         {
             BuildingService = new BuildingService(
@@ -521,6 +536,8 @@ public partial class ArchipelagoClient
         WeaponPoolService = null;
         CursePoolService?.Unregister();
         CursePoolService = null;
+        EquipmentDisplayService?.Unregister();
+        EquipmentDisplayService = null;
         DivineInspirationService?.Unregister();
         DivineInspirationService = null;
         BuildingService?.Unregister();

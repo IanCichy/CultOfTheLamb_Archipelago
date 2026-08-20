@@ -395,6 +395,11 @@ internal class EquipmentPoolService : IService
         return SlotData.TryParseEnum(internalName, context, out family);
     }
 
+    /// <summary>Every family this seed randomizes, so a display can show the unreceived ones too.</summary>
+    internal IReadOnlyCollection<EquipmentType> Managed => managed;
+
+    internal bool IsGranted(EquipmentType family) => granted.Contains(family);
+
     /// <summary>What F9 prints for this pool. See DebugActions.</summary>
     internal string DescribeState()
     {

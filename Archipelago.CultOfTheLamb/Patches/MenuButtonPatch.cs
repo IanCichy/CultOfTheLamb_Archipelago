@@ -147,7 +147,7 @@ internal static class MenuButtonPatch
     /// enable and on any language change. Setting .text alone works until the first of those,
     /// then silently reverts - so the components have to go first.
     /// </summary>
-    private static void SetLabel(GameObject button, string label)
+    internal static void SetLabel(GameObject button, string label)
     {
         foreach (var localize in button.GetComponentsInChildren<Localize>(true))
         {

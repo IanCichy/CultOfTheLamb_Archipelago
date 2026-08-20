@@ -34,6 +34,7 @@ public partial class ArchipelagoClient : IDisposable
     // either can be on alone. Null when its option is off.
     internal EquipmentPoolService WeaponPoolService { get; private set; }
     internal EquipmentPoolService CursePoolService { get; private set; }
+    internal EquipmentDisplayService EquipmentDisplayService { get; private set; }
 
     internal DivineInspirationService DivineInspirationService { get; private set; }
     /// <summary>What the multiworld put at each location. Shared by the shop panels and the
