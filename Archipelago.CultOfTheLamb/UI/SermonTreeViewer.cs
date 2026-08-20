@@ -78,25 +78,17 @@ internal static class SermonTreeViewer
         // Before anything that can raise a callback: Awake has already run inside Instantiate, and
         // the cancel patch needs this set the moment the menu can receive input.
         Viewer = viewer;
-        loggedLabel = false;
 
         Neuter(viewer);
         HideTierDividers(viewer);
-        AddDescriptions(viewer);
 
         // Awake deactivates this so the vanilla flow can't be escaped. We're read-only, so the
         // player must be able to leave.
         if (viewer.disableBackPrompt != null) viewer.disableBackPrompt.SetActive(true);
 
         // OnShowStarted re-subscribes every node's confirm handler, after the setup above - so do
-        // it again once the menu is up. The descriptions are re-applied for a related reason:
-        // Destroy is deferred to end of frame, so a node's Localize can still rewrite the label
-        // from its own term when the node activates during the show.
-        viewer.OnShow += () =>
-        {
-            Neuter(viewer);
-            AddDescriptions(viewer);
-        };
+        // it again once the menu is up.
+        viewer.OnShow += () => Neuter(viewer);
 
         // OnHidden rather than OnCancel: the subclass's empty OnCancelButtonInput never sets
         // _didCancel, so OnCancel never fires. Hide always reaches this.
@@ -142,78 +134,6 @@ internal static class SermonTreeViewer
         }
     }
 
-    private static readonly AccessTools.FieldRef<UpgradeTreeNode, TextMeshProUGUI> NodeTitle =
-        AccessTools.FieldRefAccess<UpgradeTreeNode, TextMeshProUGUI>("_title");
-
-    private static readonly AccessTools.FieldRef<UpgradeTreeNode, Localize> NodeLocalize =
-        AccessTools.FieldRefAccess<UpgradeTreeNode, Localize>("_localize");
-
-    /// <summary>
-    /// Puts each upgrade's description under its name.
-    ///
-    /// Vanilla only ever shows the name here - the description lives in the hold-to-confirm overlay,
-    /// which a read-only viewer never opens. Since the label is only visible on the focused node,
-    /// folding the description into it costs no space and answers "what does this actually do".
-    ///
-    /// The Localize component has to go first: it rewrites the text from
-    /// "UpgradeSystem/{upgrade}/Name" on enable and on any language change, so setting .text alone
-    /// reverts. Same reason MenuButtonPatch.SetLabel destroys it.
-    /// </summary>
-    private static void AddDescriptions(UIUpgradePlayerTreeMenuController viewer)
-    {
-        foreach (var node in viewer.GetComponentsInChildren<UpgradeTreeNode>(includeInactive: true))
-        {
-            if (node == null) continue;
-
-            var title = NodeTitle(node);
-            if (title == null) continue;
-
-            string name, description;
-            try
-            {
-                name = UpgradeSystem.GetLocalizedName(node.Upgrade);
-                description = UpgradeSystem.GetLocalizedDescription(node.Upgrade);
-            }
-            catch (Exception)
-            {
-                // I2 throws for a term it doesn't have; the vanilla label is still fine.
-                continue;
-            }
-
-            if (string.IsNullOrEmpty(description)) continue;
-
-            var localize = NodeLocalize(node);
-            if (localize != null) UnityEngine.Object.Destroy(localize);
-
-            // The label is authored as a single line for a short name, so a description would be
-            // truncated away invisibly - which looks exactly like the text never being set.
-            title.enableWordWrapping = true;
-            title.overflowMode = TextOverflowModes.Overflow;
-
-            var rect = title.rectTransform;
-            if (rect != null && rect.sizeDelta.x < MinLabelWidth)
-            {
-                rect.sizeDelta = new Vector2(MinLabelWidth, MinLabelHeight);
-            }
-
-            title.text = $"{name}\n<size=80%>{description}</size>";
-
-            if (!loggedLabel)
-            {
-                loggedLabel = true;
-                Log.LogInfo($"[AP] Sermon label sample: rect {rect?.sizeDelta}, "
-                    + $"overflow {title.overflowMode}, wrap {title.enableWordWrapping}, "
-                    + $"text '{title.text.Replace("\n", " | ")}'");
-            }
-        }
-    }
-
-    // The authored label is sized for a name; a description needs room to wrap into.
-    private const float MinLabelWidth = 340f;
-    private const float MinLabelHeight = 150f;
-
-    /// <summary>One sample line per open, so the log shows whether the text landed without spamming.</summary>
-    private static bool loggedLabel;
 
     /// <summary>
     /// Drops the "N / M" tier rules across the tree.
