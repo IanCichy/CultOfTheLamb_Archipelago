@@ -34,6 +34,23 @@ public partial class ArchipelagoClient
     public string LastError { get; private set; }
 
     /// <summary>
+    /// Which retry the reconnect loop is on, or 0 when it isn't running. Shown in the panel so a
+    /// player can tell "still trying" from "wedged" - the loop is unbounded, so without a visible
+    /// count a long backoff is indistinguishable from nothing happening.
+    /// </summary>
+    public int ReconnectAttempt { get; private set; }
+
+    /// <summary>
+    /// The last attempt reached the server and was turned away, rather than failing to reach it.
+    /// The distinction is the reconnect loop's stopping condition: an unreachable server is worth
+    /// retrying forever, a refused login never is.
+    /// </summary>
+    private bool loginRefused;
+
+    /// <summary>Asks the reconnect loop to stop at its next opportunity. See StopReconnecting.</summary>
+    private bool cancelReconnect;
+
+    /// <summary>
     /// Connects without blocking the game.
     ///
     /// The synchronous version of this froze the main thread for as long as the login took,
@@ -65,6 +82,7 @@ public partial class ArchipelagoClient
         Log.LogInfo($"[AP] Attempting to connect to Archipelago at {url}.");
         Connecting = true;
         LastError = null;
+        loginRefused = false;
 
         // Here rather than in ConnectToServer, which runs on the connect thread below: teardown
         // reaches into save data and Unity objects, so it has to stay on the main thread.
@@ -181,6 +199,13 @@ public partial class ArchipelagoClient
             // orphan it and its polling loop. Safe this early - the handlers attach on the
             // success path below, and no service has registered yet.
             TeardownSession(disconnect: true);
+
+            // Only a real ConnectionRefused packet stops the reconnect loop. TryConnectAndLogin
+            // reports an unreachable server as a LoginFailure too - "Connection timed out" is one
+            // - so treating every failure as a refusal made the loop give up on the one case it
+            // exists for. ErrorCodes is populated only from the server's packet; a failure
+            // manufactured from an exception leaves it empty.
+            loginRefused = failureResult.ErrorCodes is { Length: > 0 };
 
             // The server's own wording is the useful part - "Slot not found", a password
             // mismatch, an incompatible version - so pass it through rather than flattening
@@ -577,6 +602,10 @@ public partial class ArchipelagoClient
     /// </summary>
     public void Disconnect()
     {
+        // First, and outside the null-session guard: "disconnect" while a retry is pending means
+        // stop retrying, and at that moment there is no session to tear down.
+        StopReconnecting();
+
         if (session == null) return;
         Dispose();
         // Asked for, so there's nothing to report - this is what distinguishes a clean
@@ -629,14 +658,45 @@ public partial class ArchipelagoClient
         });
     }
 
+    /// <summary>
+    /// Retries a dropped connection until it succeeds, the server refuses it, or the player stops
+    /// it.
+    ///
+    /// Unbounded on purpose. Nothing queues the checks earned while the socket is down - every
+    /// service re-derives what it owes from the game's own save state at connect - so the only
+    /// thing standing between a dropped socket and a caught-up multiworld is getting the socket
+    /// back. The previous five-attempt cap gave up after about fifteen seconds, which loses to the
+    /// ordinary case of a host restarting their server, and left the player disconnected until
+    /// they happened to notice.
+    ///
+    /// The trade is log noise and idle sockets against an unattended recovery, so the delay backs
+    /// off: a server down for an hour costs two attempts a minute rather than twenty.
+    /// </summary>
     public IEnumerator AttemptReconnection()
     {
         Log.LogDebug("Attempting to reconnect!");
+        cancelReconnect = false;
+        ReconnectAttempt = 0;
 
-        for (int attempt = 1; attempt <= 5; attempt++)
+        while (!cancelReconnect)
         {
-            Log.LogInfo($"[AP] Reconnection attempt #{attempt}");
-            yield return new WaitForSeconds(3f);
+            ReconnectAttempt++;
+            yield return new WaitForSeconds(ReconnectDelay(ReconnectAttempt));
+
+            // Checked again after the wait, not just at the top: the backoff is long enough that
+            // the player acting inside it is the expected case rather than a race.
+            if (cancelReconnect) break;
+
+            // Quiet after the first few. This can run for hours, and a line every thirty seconds
+            // buries whatever the player opened the log to find.
+            if (ReconnectAttempt <= 5 || ReconnectAttempt % 10 == 0)
+            {
+                Log.LogInfo($"[AP] Reconnection attempt #{ReconnectAttempt}");
+            }
+            else
+            {
+                Log.LogDebug($"[AP] Reconnection attempt #{ReconnectAttempt}");
+            }
 
             // Same routine the panel's Connect button uses - one code path for "talk to the
             // server", so a fix to either can't drift away from the other.
@@ -644,16 +704,44 @@ public partial class ArchipelagoClient
 
             if (IsConnected)
             {
-                Log.LogInfo("[AP] Reconnected to Archipelago.");
-                reconnecting = false;
-                yield break;
+                Log.LogInfo($"[AP] Reconnected to Archipelago after {ReconnectAttempt} attempt(s).");
+                break;
+            }
+
+            // Unreachable is worth retrying; refused isn't. Looping forever against a server
+            // that's answering would also spam the host's console, not just ours.
+            if (loginRefused)
+            {
+                Log.LogError($"[AP] The server refused the reconnection, so giving up: {LastError}");
+                Dispose();
+                break;
             }
         }
 
-        Log.LogError("[AP] Failed to reconnect after 5 attempts.");
-        Dispose();
+        if (cancelReconnect) Log.LogInfo("[AP] Stopped trying to reconnect.");
+
         reconnecting = false;
-        LastError = "Lost the connection and could not get it back after 5 attempts.";
+        ReconnectAttempt = 0;
+    }
+
+    /// <summary>3s, doubling to a 30s ceiling: 3, 6, 12, 24, 30, 30...</summary>
+    private static float ReconnectDelay(int attempt) =>
+        Mathf.Min(3f * Mathf.Pow(2f, attempt - 1), 30f);
+
+    /// <summary>
+    /// Ends the retry loop. Since the loop is otherwise unbounded, this is the only way out of it
+    /// besides connecting or being refused - both connecting manually and disconnecting go
+    /// through here, which is what keeps the panel usable while a retry is pending.
+    ///
+    /// `reconnecting` drops immediately rather than when the coroutine notices, so the UI responds
+    /// to the click instead of to the end of the current backoff.
+    /// </summary>
+    public void StopReconnecting()
+    {
+        if (!reconnecting) return;
+
+        cancelReconnect = true;
+        reconnecting = false;
     }
 
     private void Session_OnMessageReceived(LogMessage message)

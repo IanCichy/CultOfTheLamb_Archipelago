@@ -76,7 +76,11 @@ internal class ArchipelagoConnectPanel : ApPanelBase
         // Read once: the button's enabled state and the line explaining it must agree, and IMGUI
         // needs the Layout and Repaint passes to agree with each other too.
         var canConnectHere = HasLoadedSave();
-        var connecting = IsBusy();
+
+        // Deliberately not "is a retry pending": the retry loop is unbounded, so gating Connect on
+        // it would disable the button for as long as the server stayed down. Only an attempt
+        // actually in flight blocks a new one, and connecting manually cancels the loop.
+        var connecting = client.Connecting;
         var canConnect = !connecting && canConnectHere && slot.Trim().Length > 0;
 
         GUILayout.BeginHorizontal();
@@ -88,7 +92,9 @@ internal class ArchipelagoConnectPanel : ApPanelBase
             ArchipelagoConsoleCommand.Connect(server.Trim(), ParsePort(), slot.Trim(), password);
         }
 
-        GUI.enabled = client.IsConnected;
+        // Enabled while retrying too, where it means "stop retrying" - the only way to end an
+        // unbounded loop from the UI.
+        GUI.enabled = client.IsConnected || client.reconnecting;
         if (GUILayout.Button("Disconnect", GUILayout.Height(34f)))
         {
             ArchipelagoConsoleCommand.Disconnect();
@@ -131,16 +137,21 @@ internal class ArchipelagoConnectPanel : ApPanelBase
     }
 
     /// <summary>
-    /// An attempt is in flight, whether the player started it or a dropped socket did. Ordered
-    /// ahead of LastError everywhere it's used, so a retry reads as "still trying" rather than
-    /// flickering the previous failure between attempts.
+    /// Both in-flight states are reported ahead of LastError, so a retry reads as "still trying"
+    /// rather than flickering the previous failure between attempts. The retry line names the
+    /// attempt number because the loop never ends on its own - without a number, a thirty-second
+    /// backoff looks the same as a wedged client.
     /// </summary>
-    private bool IsBusy() => client.Connecting || client.reconnecting;
-
     private string StatusText()
     {
         if (client.IsConnected) return $"Connected as {ArchipelagoClient.ConnectedPlayerName}.";
-        if (IsBusy()) return "Connecting...";
+        if (client.Connecting) return "Connecting...";
+
+        if (client.reconnecting)
+        {
+            return $"Lost the connection - retrying (attempt {client.ReconnectAttempt}). "
+                + "Connect retries now; Disconnect stops.";
+        }
 
         return client.LastError == null ? "Not connected." : $"Not connected. {client.LastError}";
     }

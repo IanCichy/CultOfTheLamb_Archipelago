@@ -139,6 +139,11 @@ public class ArchipelagoPlugin : BaseUnityPlugin
     private void ArchipelagoConsoleCommand_OnArchipelagoCommandCalled(string url, int port, string slot, string password)
     {
         Log.LogDebug($"Connecting to {url}:{port} as {slot}");
+
+        // An explicit connect supersedes a pending retry - otherwise the retry loop would keep
+        // dialling the *old* details underneath the ones just typed in.
+        AP.StopReconnecting();
+
         StartCoroutine(AP.ConnectRoutine($"{url}:{port}", slot, password));
     }
 
