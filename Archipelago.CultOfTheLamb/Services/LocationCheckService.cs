@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Archipelago.CultOfTheLamb.Patches;
 using Archipelago.MultiClient.Net;
 
@@ -11,6 +12,10 @@ namespace Archipelago.CultOfTheLamb.Services;
 ///  - Bishops: InteractionMonsterHeartPatch.OnBossDefeated, keyed by FollowerLocation.
 ///  - Minibosses + Witnesses: DataManagerKilledBossPatch.OnBossKillRecorded, keyed by the
 ///    game's internal boss-name string.
+///
+/// Both events only fire at the moment of the kill, so Register also re-derives from the save's
+/// own kill records - see SendChecksForRecordedKills. That's what makes a boss killed while
+/// disconnected still pay out on the next connect.
 /// </summary>
 internal class LocationCheckService : IService
 {
@@ -25,6 +30,60 @@ internal class LocationCheckService : IService
     {
         InteractionMonsterHeartPatch.OnBossDefeated += HandleBossDefeated;
         DataManagerKilledBossPatch.OnBossKillRecorded += HandleBossKillRecorded;
+
+        SendChecksForRecordedKills();
+    }
+
+    /// <summary>
+    /// Pays for every boss the save already records as dead.
+    ///
+    /// Without this a boss killed while disconnected is lost for good: the events above only fire
+    /// at the moment of the kill, and these are the goal-critical checks. The game writes both
+    /// kill records to save data, so the answer is sitting there at connect - GoalService already
+    /// reads the same two fields to decide whether the goal is met, which meant the server could
+    /// record a satisfied goal for checks that were never sent.
+    ///
+    /// Re-sending is free: CheckSender filters against AllLocationsChecked, which the Connected
+    /// packet has already populated by the time any service registers.
+    /// </summary>
+    private void SendChecksForRecordedKills()
+    {
+        var data = DataManager.Instance;
+        if (data == null) return;
+
+        var pending = new List<long>();
+
+        // Bishops, keyed by FollowerLocation - the same type the mapping uses.
+        if (data.BossesCompleted != null)
+        {
+            foreach (var location in data.BossesCompleted)
+            {
+                if (RegionMapping.BishopLocationToCheckId.TryGetValue(location, out var checkId))
+                {
+                    pending.Add(checkId);
+                }
+            }
+        }
+
+        // Minibosses and Witnesses, keyed by the game's internal boss-name string.
+        if (data.KilledBosses != null)
+        {
+            foreach (var bossKey in data.KilledBosses)
+            {
+                if (bossKey == null || BossKeyMapping.IsPostGameVariant(bossKey)) continue;
+
+                if (BossKeyMapping.BossKeyToCheckId.TryGetValue(bossKey, out var checkId))
+                {
+                    pending.Add(checkId);
+                }
+            }
+        }
+
+        if (pending.Count == 0) return;
+
+        Log.LogInfo($"[AP] {pending.Count} boss kill(s) already recorded in the save - "
+            + "sending any whose check hasn't landed yet.");
+        CheckSender.Send(session, pending);
     }
 
     public void Unregister()

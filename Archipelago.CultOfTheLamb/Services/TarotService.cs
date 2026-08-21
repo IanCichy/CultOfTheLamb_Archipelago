@@ -21,6 +21,14 @@ namespace Archipelago.CultOfTheLamb.Services;
 /// The revoke/restore/persist/sweep machinery lives in <see cref="ManagedCollection{T}"/>, which
 /// also explains why grants are held outside the game's collection. What stays here is what is
 /// genuinely about tarot: slot-data parsing, the unlock decision, and the patch wiring.
+///
+/// **A card earned while disconnected is lost, and holding grants outside the collection is why.**
+/// Every other check source re-derives from save state at connect; this one can't. On a clean
+/// disconnect ManagedCollection.Restore writes revoked *and* granted cards back into
+/// PlayerFoundTrinkets and Settle deletes the store row, so at the next connect a card the
+/// multiworld gave you is indistinguishable from one you earned offline. A catch-up pass would
+/// self-check every tarot item received. Fixing it needs a new persisted record - granted kept
+/// separate from revoked at settle time - rather than a read of anything the game already stores.
 /// </summary>
 internal class TarotService : IService
 {

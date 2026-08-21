@@ -13,9 +13,12 @@ namespace Archipelago.CultOfTheLamb.Services;
 /// The mapping comes from slot data, keyed by *enum* name because that's what a BuyEntry
 /// exposes and display names are nothing like it ("The Burning Dead" is Skull).
 ///
-/// No catch-up pass on connect: a purchase is recorded only as BuyEntry.Bought on the shop
-/// prefab, which isn't reachable unless the player is standing in that hub. Cards bought while
-/// disconnected are missed until the shop is revisited.
+/// **No catch-up is possible, and a card bought while disconnected is lost for good.** Unlike the
+/// other check sources there is nothing in save data to re-derive from: DataManager.Shops does
+/// persist BuyEntry.Bought, but the tarot branch of Interaction_BuyItem.Activate spawns a
+/// TarotCustomTarget and returns before any Bought = true / UpdateShop call, so a tarot slot
+/// leaves no trace at all. The card landing in PlayerFoundTrinkets is the only evidence, and that
+/// can't be told apart from a card Archipelago itself granted - see TarotService.
 /// </summary>
 internal class TarotShopService : IService
 {

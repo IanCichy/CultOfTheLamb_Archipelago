@@ -16,6 +16,12 @@ namespace Archipelago.CultOfTheLamb.Services;
 ///
 /// One instance handles weapons or curses, not both, since the two are independent YAML options
 /// and either can be on alone. Nothing here touches save data.
+///
+/// No catch-up pass, and it doesn't need one. The check fires on first *equip*, and the game
+/// records which families you own rather than which you've ever equipped - so there is nothing to
+/// re-derive. It self-heals instead: players re-equip every run, so an equip missed while
+/// disconnected pays on the next one. GrantedNotInPool exists to keep that true, by making sure a
+/// granted family stays offerable.
 /// </summary>
 internal class EquipmentPoolService : IService
 {
