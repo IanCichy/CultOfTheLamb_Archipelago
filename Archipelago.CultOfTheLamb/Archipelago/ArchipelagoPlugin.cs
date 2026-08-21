@@ -151,7 +151,7 @@ public class ArchipelagoPlugin : BaseUnityPlugin
     {
         Log.LogWarning($"Archipelago client was disconnected from the server: {reason}");
 
-        if (!isReconnecting && AP.reconnecting)
+        if (!isReconnecting && AP.Reconnecting)
         {
             isReconnecting = true;
             StartCoroutine(ReconnectAndReset());

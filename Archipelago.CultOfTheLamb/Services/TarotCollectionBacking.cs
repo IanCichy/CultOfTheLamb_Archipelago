@@ -1,5 +1,3 @@
-using System;
-
 namespace Archipelago.CultOfTheLamb.Services;
 
 /// <summary>

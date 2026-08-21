@@ -1,7 +1,6 @@
 using Archipelago.CultOfTheLamb.Services;
 using Archipelago.MultiClient.Net;
 using System;
-using System.Collections.Generic;
 
 namespace Archipelago.CultOfTheLamb;
 
@@ -15,9 +14,12 @@ public partial class ArchipelagoClient : IDisposable
     public delegate void ClientDisconnected(string reason);
     public event ClientDisconnected OnClientDisconnect;
 
-    public string lastServerUrl { get; set; }
-    public string lastSlotName { get; set; }
-    public string lastPassword { get; set; }
+    // What the last connection attempt actually used, which is what a retry replays and what the
+    // F9 dump reports. Set only by ConnectRoutine - an outside writer would send the retry loop
+    // at different details than the ones the player is looking at.
+    public string LastServerUrl { get; private set; }
+    public string LastSlotName { get; private set; }
+    public string LastPassword { get; private set; }
     public bool IsConnected => session != null && session.Socket.Connected;
 
     internal LocationCheckService LocationCheckService { get; private set; }
@@ -53,18 +55,16 @@ public partial class ArchipelagoClient : IDisposable
     /// <summary>Takes most of the game's own follower quests out of rotation.</summary>
     internal QuestTrimService QuestTrimService { get; private set; }
 
-    public ArchipelagoItemLogicController ItemLogic;
+    public ArchipelagoItemLogicController ItemLogic { get; private set; }
 
     private ArchipelagoSession session;
+
     /// <summary>
     /// A retry is pending or in flight. Written only by the reconnect machinery in
     /// ArchipelagoClient.Connection - an outside setter could desync it from the cancel flag and
     /// the live coroutine, and the UI reads it to decide whether its buttons do anything.
     /// </summary>
-    public bool reconnecting { get; private set; } = false;
-    public static string ConnectedPlayerName;
+    public bool Reconnecting { get; private set; }
 
-    public ArchipelagoClient()
-    {
-    }
+    public static string ConnectedPlayerName { get; private set; }
 }

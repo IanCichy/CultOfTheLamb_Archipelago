@@ -1025,8 +1025,8 @@ internal static class DebugActions
         // What was actually connected with, rather than what the config currently says - those
         // differ the moment someone edits the panel without connecting.
         Log.LogInfo($"[AP] Connected: {ap?.IsConnected ?? false}"
-            + $" | slot: '{ap?.lastSlotName}'"
-            + $" | server: {ap?.lastServerUrl}");
+            + $" | slot: '{ap?.LastSlotName}'"
+            + $" | server: {ap?.LastServerUrl}");
         Log.LogInfo($"[AP] Region locking active: {RegionLockState.Active}");
 
         foreach (var pair in RegionMapping.RegionToDungeonLocation)

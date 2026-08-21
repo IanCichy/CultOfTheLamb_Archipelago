@@ -69,9 +69,9 @@ public partial class ArchipelagoClient
             yield break;
         }
 
-        lastServerUrl = url;
-        lastSlotName = slotName;
-        lastPassword = password;
+        LastServerUrl = url;
+        LastSlotName = slotName;
+        LastPassword = password;
 
         if (IsConnected)
         {
@@ -617,7 +617,7 @@ public partial class ArchipelagoClient
     private void Socket_ErrorReceived(Exception e, string message)
     {
         Log.LogDebug($"Error received: {e}, message: {message}");
-        reconnecting = true;
+        Reconnecting = true;
         Session_SocketClosed(message);
     }
 
@@ -638,7 +638,7 @@ public partial class ArchipelagoClient
         // restarting their server, the usual case - dropped the session with no reconnect at all.
         // A user-initiated disconnect can't get here: TeardownSession unsubscribes this handler
         // before it calls DisconnectAsync.
-        reconnecting = true;
+        Reconnecting = true;
 
         MainThreadQueue.Enqueue(() =>
         {
@@ -695,7 +695,7 @@ public partial class ArchipelagoClient
 
             // Same routine the panel's Connect button uses - one code path for "talk to the
             // server", so a fix to either can't drift away from the other.
-            yield return ConnectRoutine(lastServerUrl, lastSlotName, lastPassword);
+            yield return ConnectRoutine(LastServerUrl, LastSlotName, LastPassword);
 
             if (IsConnected)
             {
@@ -715,7 +715,7 @@ public partial class ArchipelagoClient
 
         if (cancelReconnect) Log.LogInfo("[AP] Stopped trying to reconnect.");
 
-        reconnecting = false;
+        Reconnecting = false;
         ReconnectAttempt = 0;
     }
 
@@ -733,10 +733,10 @@ public partial class ArchipelagoClient
     /// </summary>
     public void StopReconnecting()
     {
-        if (!reconnecting) return;
+        if (!Reconnecting) return;
 
         cancelReconnect = true;
-        reconnecting = false;
+        Reconnecting = false;
     }
 
     private void Session_OnMessageReceived(LogMessage message)
@@ -746,7 +746,7 @@ public partial class ArchipelagoClient
 
     private void ArchipelagoConsoleCommand_OnArchipelagoReconnectCommandCalled()
     {
-        reconnecting = true;
+        Reconnecting = true;
         Dispose();
         OnClientDisconnect?.Invoke("Manual reconnect requested.");
     }

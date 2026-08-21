@@ -1,4 +1,3 @@
-using System;
 using Archipelago.CultOfTheLamb.Console;
 using BepInEx.Configuration;
 using UnityEngine;
@@ -94,7 +93,7 @@ internal class ArchipelagoConnectPanel : ApPanelBase
 
         // Enabled while retrying too, where it means "stop retrying" - the only way to end an
         // unbounded loop from the UI.
-        GUI.enabled = client.IsConnected || client.reconnecting;
+        GUI.enabled = client.IsConnected || client.Reconnecting;
         if (GUILayout.Button("Disconnect", GUILayout.Height(34f)))
         {
             ArchipelagoConsoleCommand.Disconnect();
@@ -147,7 +146,7 @@ internal class ArchipelagoConnectPanel : ApPanelBase
         if (client.IsConnected) return $"Connected as {ArchipelagoClient.ConnectedPlayerName}.";
         if (client.Connecting) return "Connecting...";
 
-        if (client.reconnecting)
+        if (client.Reconnecting)
         {
             return $"Lost the connection - retrying (attempt {client.ReconnectAttempt}). "
                 + "Connect retries now; Disconnect stops.";
