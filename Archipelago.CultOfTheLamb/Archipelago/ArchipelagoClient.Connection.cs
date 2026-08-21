@@ -689,14 +689,9 @@ public partial class ArchipelagoClient
 
             // Quiet after the first few. This can run for hours, and a line every thirty seconds
             // buries whatever the player opened the log to find.
-            if (ReconnectAttempt <= 5 || ReconnectAttempt % 10 == 0)
-            {
-                Log.LogInfo($"[AP] Reconnection attempt #{ReconnectAttempt}");
-            }
-            else
-            {
-                Log.LogDebug($"[AP] Reconnection attempt #{ReconnectAttempt}");
-            }
+            var attemptLine = $"[AP] Reconnection attempt #{ReconnectAttempt}";
+            if (ReconnectAttempt <= 5 || ReconnectAttempt % 10 == 0) Log.LogInfo(attemptLine);
+            else Log.LogDebug(attemptLine);
 
             // Same routine the panel's Connect button uses - one code path for "talk to the
             // server", so a fix to either can't drift away from the other.

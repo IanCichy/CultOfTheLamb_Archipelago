@@ -56,7 +56,12 @@ public partial class ArchipelagoClient : IDisposable
     public ArchipelagoItemLogicController ItemLogic;
 
     private ArchipelagoSession session;
-    public bool reconnecting { get; set; } = false;
+    /// <summary>
+    /// A retry is pending or in flight. Written only by the reconnect machinery in
+    /// ArchipelagoClient.Connection - an outside setter could desync it from the cancel flag and
+    /// the live coroutine, and the UI reads it to decide whether its buttons do anything.
+    /// </summary>
+    public bool reconnecting { get; private set; } = false;
     public static string ConnectedPlayerName;
 
     public ArchipelagoClient()

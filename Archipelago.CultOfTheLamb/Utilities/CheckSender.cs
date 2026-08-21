@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Archipelago.MultiClient.Net;
 
 namespace Archipelago.CultOfTheLamb;
@@ -37,7 +38,19 @@ internal static class CheckSender
             return;
         }
 
-        session.Locations.CompleteLocationChecks(pending);
+        // Async because the synchronous overload parks the caller on a Task.Wait until the socket
+        // sender dequeues, and most calls here are on the Unity main thread - a connect alone makes
+        // seven of them back to back while every service catches up.
+        //
+        // The faulted continuation is the point: dropping the Task would turn a send failure into
+        // an unobserved exception, which trades a frame hitch for a check that silently never
+        // lands. Logging off the main thread is fine, as it is everywhere else in this class's
+        // callers.
+        session.Locations.CompleteLocationChecksAsync(pending).ContinueWith(
+            task => Log.LogError($"[AP] Failed to send {pending.Length} check(s): "
+                + $"{task.Exception?.GetBaseException().Message}"),
+            TaskContinuationOptions.OnlyOnFaulted);
+
         CheckNotifier.Announce(session, pending);
     }
 

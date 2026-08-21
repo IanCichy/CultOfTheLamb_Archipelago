@@ -29,6 +29,9 @@ namespace Archipelago.CultOfTheLamb.Services;
 /// multiworld gave you is indistinguishable from one you earned offline. A catch-up pass would
 /// self-check every tarot item received. Fixing it needs a new persisted record - granted kept
 /// separate from revoked at settle time - rather than a read of anything the game already stores.
+///
+/// If you do write that catch-up: it cannot live in Register(), which runs before any received item
+/// has been applied. See the note on IService.Register.
 /// </summary>
 internal class TarotService : IService
 {
