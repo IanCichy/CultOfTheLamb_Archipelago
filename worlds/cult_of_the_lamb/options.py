@@ -281,10 +281,15 @@ class RandomizeTarotCards(Toggle):
 
 
 class StartingTarotCards(Range):
-    """How many Tarot Cards to start with, replacing the 15 the game normally gives you.
+    """How many extra Tarot Cards to start with, on top of the 15 the game gives you.
 
     These are yours from the start, so they have neither a check nor an item - each one you add
-    removes one of each. 0 means starting with an empty collection."""
+    removes one of each.
+
+    The game's own 15 starting cards are always kept: nothing in Cult of the Lamb can unlock one
+    a second time, so randomizing them would create checks that can never be sent. Only the cards
+    beyond those 15 are randomized, which is why this has no effect with the Vanilla Defaults
+    pool below."""
     display_name = "Starting Tarot Cards"
     range_start = 0
     range_end = 20
@@ -294,8 +299,9 @@ class StartingTarotCards(Range):
 class StartingTarotPool(Choice):
     """Which cards the starting ones are drawn from.
 
-    vanilla_defaults: the 15 the game normally starts you with. They exist so an early deck
-      isn't full of situational cards, which is why this is the default.
+    vanilla_defaults: the 15 the game normally starts you with. You always keep those anyway -
+      the game can't re-unlock one, so they're never randomized - which makes this the "no extra
+      cards" setting, and Starting Tarot Cards above has no effect alongside it.
 
     any: any randomizable card, including Woolhaven ones if that option is on. More variance -
       it can hand you something excellent on day one, or three cards you can't use yet."""

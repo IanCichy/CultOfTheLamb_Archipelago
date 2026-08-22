@@ -157,7 +157,27 @@ class CultOfTheLambWorld(World):
             }
             cards = [c for c in cards if c.internal not in shop_cards]
 
+        # The game has no way to give a default card back once it's been taken, so managing one
+        # would create a location nobody can ever check.
+        #
+        # Every route to a permanent unlock ends at TarotCards.UnlockTrinket, and the only things
+        # that reach it are scripted pickups with a CardOverride (Moon, Sun, Lovers2, Joker), the
+        # Mystic Shop's own eight MysticCards, and the hub shop slots. None of those is a default
+        # card. The three functions that would hand over an arbitrary unfound card -
+        # GiveNewTrinket, UnlockRandomTrinket, UnlockTrinkets - have no callers at all, and a
+        # crusade card pickup draws from GetUnusedFoundTrinkets, i.e. cards you already own, so it
+        # is a run buff rather than an unlock. The one thing that does re-add a default is
+        # GameManager.Awake, which writes straight into PlayerFoundTrinkets when it finds the list
+        # empty - bypassing UnlockTrinket, so no check fires, and the client's sweep removes it
+        # again a second later.
+        #
+        # Handed back to the game for the same reasons as the shop cards above: no item, no
+        # location, not revoked, and the player simply keeps them as they would in vanilla.
+        cards = [c for c in cards if not c.default]
+
         if self.options.starting_tarot_pool == StartingTarotPool.option_vanilla_defaults:
+            # Empty by construction now that defaults aren't managed, so this asks for no extra
+            # starting cards - which is the honest answer, since all 15 are already in hand.
             candidates = [c for c in cards if c.default]
         else:
             candidates = list(cards)
@@ -316,6 +336,18 @@ class CultOfTheLambWorld(World):
         if self.divine_inspiration_is_curated:
             for name in DI_EARLY_ITEM_NAMES:
                 self.multiworld.local_early_items[self.player][name] = 1
+
+        # Same treatment, and for a sharper reason: the four Bishops' domains are the only thing
+        # gating this world, so where their keys land decides whether the seed is paced or a wait.
+        # Left to the fill they are three items among the whole multiworld's locations, and a seed
+        # that put all three in other players' games opened the second domain at sphere 37 of 64 -
+        # hours of one biome before anything new. Pinning one copy here guarantees a second domain
+        # early without touching the other two, which stay in the pool and keep the seed a seed.
+        #
+        # Only the first copy: pinning more would spend the sphere-1 budget the comment above
+        # warns about, and would flatten the pacing this is trying to protect.
+        if self.regions_are_gated:
+            self.multiworld.local_early_items[self.player][PROGRESSIVE_REGION_ACCESS] = 1
 
         # Count the locations actually created rather than the whole table: options can
         # disable whole blocks (sermons, cards, DLC content), and padding to the table size

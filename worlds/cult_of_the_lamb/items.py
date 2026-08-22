@@ -588,8 +588,11 @@ class TarotCardData(NamedTuple):
     dlc: bool = False
     # Co-op only. In AllTrinkets, but meaningless in a solo seed, so never pooled.
     coop: bool = False
-    # Unlocked from the start of a vanilla run. Archipelago revokes these on connect so they
-    # have to be earned like everything else - see TarotService.
+    # Unlocked from the start of a vanilla run, and - crucially - unlockable *only* that way:
+    # GameManager.Awake seeds them straight into PlayerFoundTrinkets and nothing in the game ever
+    # routes one through UnlockTrinket. Taking one away is therefore permanent, so these are left
+    # out of the managed pool entirely rather than becoming a location nobody can check. See
+    # CultOfTheLambWorld.pick_tarot_cards for the full reasoning.
     default: bool = False
     # Only obtainable after the vanilla final boss. See POSTGAME_TAROT_CARDS.
     postgame: bool = False

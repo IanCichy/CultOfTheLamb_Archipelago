@@ -2,6 +2,7 @@ from typing import TYPE_CHECKING
 
 from BaseClasses import Region
 
+from .items import TAROT_CARDS
 from .locations import (
     DIVINE_INSPIRATION_COUNT, CultOfTheLambLocation, get_locations_for_region, location_name_to_id,
 )
@@ -36,7 +37,23 @@ def create_regions(world: "CultOfTheLambWorld") -> None:
     # Cards the player starts with can never be earned, so their checks would be unreachable.
     # Dropped by name rather than filtered in get_locations_for_region, which keys off category
     # and DLC. Applies to both blocks below, since a starting card can be region-tied.
-    starting = {f"Tarot Card - {card.display}" for card in world.starting_tarot_cards}
+    # Two reasons a card's check can't exist, and location_table carries every card either way -
+    # it's a static, positionally-indexed table, so entries are filtered by name here rather than
+    # removed from it.
+    #
+    # Already held: a starting card can never be earned again.
+    #
+    # Not managed at all: pick_tarot_cards drops the game's 15 default cards (nothing in the game
+    # can re-unlock one) and, with shop checks off, the shop cards. Those stay with the game, so
+    # they get no item - and without this they'd still get a location, which is strictly worse
+    # than the bug it replaced: an unreachable check with no item to pair against it.
+    managed = {card.display for card in world.tarot_cards}
+    begins_with = {card.display for card in world.starting_tarot_cards}
+    starting = {
+        f"Tarot Card - {card.display}" for card in TAROT_CARDS
+        if card.display not in managed or card.display in begins_with
+    }
+
     starting |= {f"Weapon - {w.display}" for w in world.starting_weapons}
     starting |= {f"Curse - {c.display}" for c in world.starting_curses}
 
