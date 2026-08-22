@@ -18,7 +18,16 @@ namespace Archipelago.CultOfTheLamb.Patches;
 internal static class AltarMenuButtonPatch
 {
     private const string ButtonName = "ArchipelagoSermonsButton";
-    private const string ButtonLabel = "Archipelago";
+
+    /// <summary>
+    /// Abbreviated because the label inherits its width from the button we clone, and the game's
+    /// own labels top out at "Doctrine" - eight characters. "Archipelago" is one unbroken word too
+    /// wide for that box, so TMP wrapped it mid-word into "Archipelag" / "o". Widening isn't an
+    /// option either: the icons sit about 130px apart and the full word needs closer to 190, so it
+    /// would overlap Crown and Rituals instead. The description below spells it out in full.
+    /// </summary>
+    private const string ButtonLabel = "AP";
+
     private const string ButtonDescription = "View the sermon upgrades Archipelago has granted.";
 
     /// <summary>Which entry OnShowStarted re-focuses on; 1 is Player Upgrades, our neighbour.</summary>
