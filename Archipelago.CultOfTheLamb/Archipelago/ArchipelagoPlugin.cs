@@ -38,6 +38,10 @@ public class ArchipelagoPlugin : BaseUnityPlugin
         harmony = new Harmony(PluginGUID);
         harmony.PatchAll();
 
+        // Manual, because its target is a compiler-generated iterator that PatchAll can't reach by
+        // attribute - and because a resolution failure there should cost a warning, not the plugin.
+        BaseUpgradeGuardPatch.ApplyRoutineFinalizer(harmony);
+
         CreateConfigurations();
         DebugCommands.Init(Config);
 
@@ -95,6 +99,11 @@ public class ArchipelagoPlugin : BaseUnityPlugin
             AP?.FollowerMilestoneService?.Tick();
             AP?.SnailShrineService?.Tick();
             AP?.BroomService?.Tick();
+
+            // Runs a Temple upgrade that was held back because the base wasn't live. Not gated on
+            // a session: the upgrade is already in the save by then, so it has to complete whether
+            // or not Archipelago is still connected.
+            BaseUpgradeGuardPatch.Tick();
 
             // Re-places the base podiums after a scene load and lights one whose family has just
             // arrived. Same once-a-second budget: a few dictionary reads in the steady state.
