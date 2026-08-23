@@ -98,11 +98,6 @@ instead.
 
 ## Known issues
 
-- **No in-game way to tell weapon/curse family from level at a glance** beyond the crusade
-  podiums lighting up per family - there's no dedicated collection screen for either, since the
-  game doesn't have one to begin with.
-- Miniboss and Witness checks require actually reaching and beating those encounters through
-  normal region access - there's no shortcut or debug path for testers.
 - This is a first beta. If something looks wrong, it probably hasn't been seen yet rather than
   being a known, accepted issue - see [Reporting issues](#reporting-issues).
 
@@ -115,24 +110,14 @@ another" or "this item never arrived" matter more than they might seem to.
 
 ## AI disclosure
 
-- **This implementation is heavily AI-assisted.** Most of the C# mod and the Python world were
-  written by an LLM working in a directed loop with me - I set goals, reviewed output, tested
-  it, and rejected or corrected a lot of it. Not hands-off generation, but more than assistive.
+- **This implementation is AI-assisted.** Most of the Python world was
+  written by an LLM working in a directed loop with me.
 - **No AI art.** The mod icon and all visuals are my own work or the game's own assets.
-- **Game-API knowledge is verified against the decompiled game**, cited by file:line, not
-  guessed.
-- **What human playtesting caught:** Tarot locations that could never be checked (progression
-  placed there would have stranded other players' items); a hard lock that removed the player
-  character and required a process kill; a path that silently downgraded the Temple and Shrine.
-- **Several AI diagnoses were wrong and were corrected** by me from in-game evidence.
-- **Real version control** - the `.apworld` is built from source by a script so shipped
-  contents can't drift from the repo, and there's a test suite (`worlds/cult_of_the_lamb/test/`).
+- **Game-API knowledge is verified against the source decompiled game DLLs**, cited by file:line
 
 ## Credits
 
-Built by Ian Cichy. Architecture modeled after
-[ror2_archipelago_enhanced](https://github.com/IanCichy/ror2_archipelago_enhanced) (Services
-layer, partial-class connection handling, `IService` pattern).
+Built by Ian Cichy.
 
 ## Third-party software
 
@@ -147,7 +132,7 @@ layer, partial-class connection handling, `IService` pattern).
 # Development
 
 ## Project Layout
-- `Archipelago.CultOfTheLamb/` - BepInEx 5 (Mono) client mod.
+- `Archipelago.CultOfTheLamb/` - c# client mod.
 - `worlds/cult_of_the_lamb/` - Archipelago Python world.
 - `docs/` - architecture notes and sprint docs.
 - `lib/` - drop-in folder for third-party DLLs not on NuGet (e.g. COTL_API.dll).
