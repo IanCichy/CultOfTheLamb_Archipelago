@@ -55,13 +55,28 @@ internal static class BaseUpgradeGuardPatch
         || type == UpgradeSystem.Type.Temple_IV;
 
     /// <summary>
-    /// Whether the routine can complete. Shrines is the one the crash proved matters; the menu
-    /// flag is included because the routine drives a camera sequence that has no business starting
-    /// underneath an open menu.
+    /// Whether the routine can complete.
+    ///
+    /// **Both** unguarded index-0 accesses have to be satisfied, because the routine swaps the
+    /// Shrine and the Temple as a pair:
+    ///
+    ///     BuildingShrine.Shrines[0]                              // :920
+    ///     StructureManager.GetAllStructuresOfType&lt;Structures_Temple&gt;()[0]  // :994
+    ///
+    /// An earlier version of this guard checked only the first, which let a fresh cult through -
+    /// a new save has a Shrine but no Temple - and it threw at :994 instead. That is the worse
+    /// throw site: it lands *after* :990-991 have reactivated the player and put it into
+    /// CustomAnimation, so the player exists but cannot move.
+    ///
+    /// The menu flag is included because the routine drives a camera sequence that has no
+    /// business starting underneath an open menu.
     /// </summary>
     private static bool BaseIsReady()
     {
         if (BuildingShrine.Shrines == null || BuildingShrine.Shrines.Count == 0) return false;
+
+        var temples = StructureManager.GetAllStructuresOfType<Structures_Temple>();
+        if (temples == null || temples.Count == 0) return false;
 
         var ui = MonoSingleton<UIManager>.Instance;
         return ui == null || !ui.ForceBlockMenus;
@@ -168,13 +183,35 @@ internal static class BaseUpgradeGuardPatch
 
         try
         {
-            foreach (var player in PlayerFarming.players)
-            {
-                if (player?.gameObject != null) player.gameObject.SetActive(true);
-            }
-
             var ui = MonoSingleton<UIManager>.Instance;
             if (ui != null) ui.ForceBlockMenus = false;
+
+            foreach (var player in PlayerFarming.players)
+            {
+                if (player?.gameObject == null) continue;
+
+                player.gameObject.SetActive(true);
+
+                // The one that actually strands you at the later throw site. :991 puts the player
+                // into CustomAnimation immediately before the Temple lookup at :994, so by then
+                // it is visible and reactivated but unable to move. Restoring activation alone -
+                // which is all the first version of this did - fixes nothing.
+                if (player.state != null) player.state.CURRENT_STATE = StateMachine.State.Idle;
+
+                if (player.indicator != null) player.indicator.SetGameObjectActive(true);
+            }
+
+            // :938 pins the camera to the shrine and :939-940 put the game into conversation
+            // framing. Neither is undone on the failure path, so without this the view stays on
+            // the shrine even once the player can move again.
+            var camera = GameManager.GetInstance()?.CamFollowTarget;
+            if (camera != null)
+            {
+                foreach (var shrine in BuildingShrine.Shrines)
+                {
+                    if (shrine != null) camera.RemoveTarget(shrine.gameObject);
+                }
+            }
         }
         catch (Exception e)
         {

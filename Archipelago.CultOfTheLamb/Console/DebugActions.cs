@@ -346,6 +346,39 @@ internal static class DebugActions
             granted ? NotificationBase.Flair.Positive : NotificationBase.Flair.None);
     }
 
+    /// <summary>
+    /// What tier the Temple and Shrine structures actually are, as opposed to what
+    /// UnlockedUpgrades claims. A mismatch means an UpgradeBaseRoutine died before its swap -
+    /// recorded as upgraded, never actually built - which is the state the base-upgrade hard lock
+    /// used to leave behind. Read-only.
+    ///
+    /// There was briefly a companion key here that called BiomeBaseManager.UpgradeBase directly,
+    /// to prove BaseUpgradeGuardPatch worked. It did, and it is gone: invoking that routine
+    /// outside the game's own flow is a good way to hard-lock a save, and it also leaves
+    /// Temple_IV queued in UnlocksToReveal so the upgrade cutscene replays on the next altar
+    /// visit. Not something to leave a keybind pointed at.
+    /// </summary>
+    internal static void DumpBaseStructureTiers()
+    {
+        foreach (var brain in StructureManager.GetAllStructuresOfType<Structures_Temple>())
+        {
+            Log.LogInfo($"[AP] Debug: Temple structure is {brain?.Data?.Type.ToString() ?? "null"}");
+        }
+
+        foreach (var shrine in BuildingShrine.Shrines)
+        {
+            Log.LogInfo($"[AP] Debug: Shrine structure is "
+                + $"{shrine?.StructureBrain?.Data?.Type.ToString() ?? "null"}");
+        }
+
+        foreach (var tier in new[] { UpgradeSystem.Type.Building_Temple2,
+                                     UpgradeSystem.Type.Temple_III,
+                                     UpgradeSystem.Type.Temple_IV })
+        {
+            Log.LogInfo($"[AP] Debug: UnlockedUpgrades has {tier}: {UpgradeSystem.GetUnlocked(tier)}");
+        }
+    }
+
     private static bool TryFindLockedUpgrade(out UpgradeSystem.Type locked)
     {
         foreach (UpgradeSystem.Type candidate in System.Enum.GetValues(typeof(UpgradeSystem.Type)))
@@ -1036,6 +1069,7 @@ internal static class DebugActions
         }
 
         DumpGameBossState();
+        DumpBaseStructureTiers();
         DumpTarotState();
         DumpEquipmentPools(ap);
         if (ap?.DivineInspirationService != null)
