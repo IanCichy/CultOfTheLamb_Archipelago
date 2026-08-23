@@ -8,7 +8,7 @@
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     <LangVersion>latest</LangVersion>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <VersionPrefix>0.8.0</VersionPrefix>
+    <VersionPrefix>0.9.0</VersionPrefix>
     <OutputPath>bin\$(Configuration)</OutputPath>
   </PropertyGroup>
 
@@ -16,7 +16,9 @@
     <MakeDir Directories="bin/zip/" />
     <!-- net472 (unlike RoR2's netstandard2.1) doesn't emit a .deps.json - that's an SDK-style
          netcore/netstandard dependency manifest, not a .NET Framework concept. -->
-    <Copy SourceFiles="$(TargetPath);$(TargetDir)/$(TargetName).pdb" DestinationFolder="bin/Build/" />
+    <!-- No .pdb here - bin/Build/ is the zip's source, and debug symbols don't belong in a
+         release. The ModFolder copy below still ships it, for local breakpoint debugging. -->
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="bin/Build/" />
     <Copy SourceFiles="$(OutputPath)/Archipelago.MultiClient.Net.dll;$(OutputPath)/Newtonsoft.Json.dll;" DestinationFolder="bin/Build/" />
     <!-- manifest.json + icon.png + README.md at the zip root are Thunderstore/r2modman
          package requirements, not decoration - r2modman's "Import local mod" reads them. -->

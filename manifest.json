@@ -1,6 +1,6 @@
 {
 	"name": "Archipelago_CultOfTheLamb",
-	"version_number": "0.8.0",
+	"version_number": "0.9.0",
 	"website_url": "https://github.com/IanCichy/CultOfTheLamb_Archipelago",
 	"description": "Archipelago multiworld randomizer client implementation enabling Cult of the Lamb based Archipelago runners.",
 	"dependencies": [

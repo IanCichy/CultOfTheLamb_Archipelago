@@ -1,5 +1,5 @@
-description: Cult of the Lamb - Archipelago example settings
-name: IanCotL
+description: Cult of the Lamb - Archipelago full example settings
+name: PlayerName
 game: Cult of the Lamb
 
 # Every option the world supports, set to its default. Delete anything you don't want to

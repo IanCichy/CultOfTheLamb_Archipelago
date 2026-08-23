@@ -220,7 +220,7 @@ for _card in sorted(_card_locations, key=tarot_tier):
 # "First equipped", not "first added to the pool", and the difference matters: the pool is
 # real save data that this world never writes to, so on an established save it already
 # contains every weapon and a pool-entry check could never fire again. Equipping is something
-# the player does fresh every seed. See docs/sprints/sprint-0d-equipment-pools.md.
+# the player does fresh every seed.
 #
 # They live in "Cult" but never get depth bands - rules.py gates each one on its own item,
 # which is real logic rather than an approximation, and set_depth_rules would overwrite it.

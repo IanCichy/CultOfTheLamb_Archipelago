@@ -47,7 +47,11 @@ internal static class EquipmentPoolPatch
         private static void Postfix(ref EquipmentType __result)
         {
             var substitute = SubstituteWeapon;
-            if (substitute != null) __result = substitute(__result);
+            if (substitute == null) return;
+
+            var chosen = __result;
+            __result = substitute(__result);
+            EquipmentDiagnostics.RecordOffer("weapon", chosen, __result);
         }
     }
 
@@ -59,7 +63,11 @@ internal static class EquipmentPoolPatch
         private static void Postfix(ref EquipmentType __result)
         {
             var substitute = SubstituteCurse;
-            if (substitute != null) __result = substitute(__result);
+            if (substitute == null) return;
+
+            var chosen = __result;
+            __result = substitute(__result);
+            EquipmentDiagnostics.RecordOffer("curse", chosen, __result);
         }
     }
 
@@ -131,8 +139,13 @@ internal static class EquipmentPoolPatch
     [HarmonyPatch(typeof(PlayerWeapon), nameof(PlayerWeapon.SetWeapon))]
     internal static class WeaponEquip
     {
+        // WeaponLevel is taken purely for the diagnostic - see EquipmentDiagnostics.
         [HarmonyPostfix]
-        private static void Postfix(EquipmentType weaponType) => WeaponEquipped?.Invoke(weaponType);
+        private static void Postfix(EquipmentType weaponType, int WeaponLevel)
+        {
+            EquipmentDiagnostics.RecordEquip("weapon", weaponType, WeaponLevel);
+            WeaponEquipped?.Invoke(weaponType);
+        }
     }
 
     /// <summary>The curse-side counterpart.</summary>
@@ -140,6 +153,10 @@ internal static class EquipmentPoolPatch
     internal static class CurseEquip
     {
         [HarmonyPostfix]
-        private static void Postfix(EquipmentType Spell) => CurseEquipped?.Invoke(Spell);
+        private static void Postfix(EquipmentType Spell, int CurseLevel)
+        {
+            EquipmentDiagnostics.RecordEquip("curse", Spell, CurseLevel);
+            CurseEquipped?.Invoke(Spell);
+        }
     }
 }

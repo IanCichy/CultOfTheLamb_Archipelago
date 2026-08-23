@@ -12,8 +12,8 @@ namespace Archipelago.CultOfTheLamb.Console;
 /// <summary>
 /// The bodies behind DebugCommands' keybinds. Each one exercises exactly one candidate AP
 /// feature against the real game API so a single debug build can prove or kill all of them in
-/// one sitting (see docs/sprints/sprint-2-feature-slice.md). Every API called here was read
-/// out of the decompiled source first - see DecompiledGamesViaDnSpy/Cotl/AI_INDEX.md §4b.
+/// one sitting. Every API called here was read out of the decompiled source first - see
+/// DecompiledGamesViaDnSpy/Cotl/AI_INDEX.md §4b.
 ///
 /// These are deliberately hardcoded single samples, not a general grant API. Once a feature
 /// is proven, the real implementation belongs in a Service driven by received AP items.

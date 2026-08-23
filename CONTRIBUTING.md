@@ -71,7 +71,7 @@ Anything that improves that loop beats anything that merely adds more content to
 ## Conventions
 
 - **Comments explain why, not what.** One to three sentences. Long-form design rationale belongs
-  in `docs/sprints/`, not the source.
+  in a design doc under `docs/`, not the source.
 - **Never change a YAML option's name** once shipped — it silently breaks everyone's config.
 - **Item and location ids are append-only.** Ids are positional, so inserting a row mid-table
   repoints everything after it.

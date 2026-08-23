@@ -45,14 +45,51 @@ internal static class BaseUpgradeGuardPatch
     /// <summary>Stops the waiting message repeating every tick.</summary>
     private static bool loggedWaiting;
 
+    /// <summary>Stops RepairIfBehind re-firing a cutscene every tick if the rebuild won't take.</summary>
+    private static bool repairAttempted;
+
     private static readonly MethodInfo UpgradeBaseMethod =
         AccessTools.Method(typeof(BiomeBaseManager), "UpgradeBase");
 
     /// <summary>The three tiers that actually start the coroutine - BiomeBaseManager.cs:904-910.</summary>
     private static bool StartsTheRoutine(UpgradeSystem.Type type) =>
-        type == UpgradeSystem.Type.Building_Temple2
-        || type == UpgradeSystem.Type.Temple_III
-        || type == UpgradeSystem.Type.Temple_IV;
+        TierOf(type) > 0;
+
+    /// <summary>Which base tier an upgrade builds, or 0 if it isn't one of the three.</summary>
+    private static int TierOf(UpgradeSystem.Type type) => type switch
+    {
+        UpgradeSystem.Type.Building_Temple2 => 2,
+        UpgradeSystem.Type.Temple_III => 3,
+        UpgradeSystem.Type.Temple_IV => 4,
+        _ => 0,
+    };
+
+    /// <summary>The tier the Temple structure is actually built at, or 0 if there isn't one.</summary>
+    private static int CurrentTier()
+    {
+        var temples = StructureManager.GetAllStructuresOfType<Structures_Temple>();
+        if (temples == null || temples.Count == 0) return 0;
+
+        return temples[0]?.Data?.Type switch
+        {
+            StructureBrain.TYPES.TEMPLE_IV => 4,
+            StructureBrain.TYPES.TEMPLE_III => 3,
+            StructureBrain.TYPES.TEMPLE_II => 2,
+            _ => 1,
+        };
+    }
+
+    /// <summary>
+    /// The highest base tier the save records as unlocked, or null if none of the three are.
+    /// Nullable rather than a sentinel: UpgradeSystem.Type has no None member.
+    /// </summary>
+    private static UpgradeSystem.Type? HighestOwnedTier()
+    {
+        if (UpgradeSystem.GetUnlocked(UpgradeSystem.Type.Temple_IV)) return UpgradeSystem.Type.Temple_IV;
+        if (UpgradeSystem.GetUnlocked(UpgradeSystem.Type.Temple_III)) return UpgradeSystem.Type.Temple_III;
+        if (UpgradeSystem.GetUnlocked(UpgradeSystem.Type.Building_Temple2)) return UpgradeSystem.Type.Building_Temple2;
+        return null;
+    }
 
     /// <summary>
     /// Whether the routine can complete.
@@ -88,6 +125,39 @@ internal static class BaseUpgradeGuardPatch
     {
         // Anything else returns without starting a coroutine, so it can't lock and needn't wait.
         if (!StartsTheRoutine(upgradeType)) return true;
+
+        // The routine doesn't check what you already have - it removes the current Shrine and
+        // Temple and places whichever tier it was handed. Run it with a tier at or below the one
+        // standing and it silently *downgrades* the base. Vanilla never does, because tiers are
+        // bought in ascending order at the shrine; we can, because they arrive from the multiworld
+        // and the game defers each reveal into UnlocksToReveal until the next altar visit, by
+        // which point a later tier may already have been applied.
+        //
+        // Observed: a queued Building_Temple2 flushed onto a tier-IV base and rebuilt it as II.
+        var requested = TierOf(upgradeType);
+        var current = CurrentTier();
+
+        if (current > 0 && requested <= current)
+        {
+            // Refusing outright would leave the save stranded whenever the structures have already
+            // fallen behind the record, so re-run the highest tier actually owned instead. That is
+            // a no-op when the base is already correct, and a repair when it isn't.
+            var highest = HighestOwnedTier();
+
+            if (highest != null && TierOf(highest.Value) > current && BaseIsReady())
+            {
+                Log.LogWarning($"[AP] {upgradeType} would rebuild the base at tier {requested}, "
+                    + $"below the tier {current} already standing. Running {highest} instead.");
+                deferred = highest;
+                loggedWaiting = false;
+                return false;
+            }
+
+            Log.LogInfo($"[AP] Skipped {upgradeType}: the base is already at tier {current}. "
+                + "Running it would downgrade the Temple and Shrine.");
+            return false;
+        }
+
         if (BaseIsReady()) return true;
 
         deferred = upgradeType;
@@ -106,7 +176,11 @@ internal static class BaseUpgradeGuardPatch
     /// </summary>
     internal static void Tick()
     {
-        if (deferred == null) return;
+        if (deferred == null)
+        {
+            RepairIfBehind();
+            return;
+        }
 
         if (!BaseIsReady())
         {
@@ -135,6 +209,36 @@ internal static class BaseUpgradeGuardPatch
 
         Log.LogInfo($"[AP] Base is ready - running the held-back {upgrade} upgrade now.");
         UpgradeBaseMethod.Invoke(manager, new object[] { upgrade });
+    }
+
+    /// <summary>
+    /// Rebuilds the base when the structures have fallen behind what the save says is unlocked.
+    ///
+    /// The prefix's own repair branch only fires when something calls UpgradeBase, and after a
+    /// downgrade there is nothing left in UnlocksToReveal to call it - so that path is correct and
+    /// unreachable, leaving the base stranded. This drives it instead.
+    ///
+    /// Observed state it exists for: Temple and Shrine standing at tier II while UnlockedUpgrades
+    /// holds Temple_IV, after a queued Building_Temple2 flushed onto an already-upgraded base.
+    ///
+    /// Runs at most once per session. A repair that doesn't take would otherwise re-fire a
+    /// multi-second cutscene every tick, which is worse than the drift it fixes.
+    /// </summary>
+    private static void RepairIfBehind()
+    {
+        if (repairAttempted || !BaseIsReady()) return;
+
+        var highest = HighestOwnedTier();
+        if (highest == null) return;
+
+        var current = CurrentTier();
+        if (current <= 0 || TierOf(highest.Value) <= current) return;
+
+        repairAttempted = true;
+        Log.LogWarning($"[AP] The base is built at tier {current} but the save records "
+            + $"{highest} as unlocked. Rebuilding to match - this happens once per session.");
+        deferred = highest;
+        loggedWaiting = false;
     }
 
     /// <summary>
