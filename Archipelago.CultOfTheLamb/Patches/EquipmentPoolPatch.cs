@@ -5,7 +5,8 @@ namespace Archipelago.CultOfTheLamb.Patches;
 
 /// <summary>
 /// Restricts what weapons and curses the game may offer, and reports what the player equipped.
-///
+/// </summary>
+/// <remarks>
 /// The save data is never touched - the opposite of TarotService, because emptying WeaponPool
 /// doesn't withhold anything: GetRandomWeaponInPool opens with a ladder that hands over the
 /// first weapon you *don't* own on the first floor of every run, so a revoked weapon is
@@ -15,7 +16,7 @@ namespace Archipelago.CultOfTheLamb.Patches;
 ///
 /// All four hooks are null unless a session sets them, so the game is untouched when
 /// disconnected or when the options are off.
-/// </summary>
+/// </remarks>
 internal static class EquipmentPoolPatch
 {
     /// <summary>
@@ -139,7 +140,8 @@ internal static class EquipmentPoolPatch
     [HarmonyPatch(typeof(PlayerWeapon), nameof(PlayerWeapon.SetWeapon))]
     internal static class WeaponEquip
     {
-        // WeaponLevel is taken purely for the diagnostic - see EquipmentDiagnostics.
+        // WeaponLevel is taken purely for the diagnostic, which only compiles into a debug build -
+        // see EquipmentDiagnostics. Harmony still injects the parameter either way.
         [HarmonyPostfix]
         private static void Postfix(EquipmentType weaponType, int WeaponLevel)
         {

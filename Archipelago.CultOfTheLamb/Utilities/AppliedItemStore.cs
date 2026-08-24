@@ -7,20 +7,21 @@ namespace Archipelago.CultOfTheLamb;
 
 /// <summary>
 /// Remembers how many received items have already been applied to a given save.
-///
+/// </summary>
+/// <remarks>
 /// The server replays a slot's entire item history on every connect, and the client must drain
 /// it or lose items received while disconnected. Re-applying it is only harmless for idempotent
 /// grants - Inventory.AddItem stacks, so before this existed spamming F5 was an infinite
 /// resource generator.
 ///
-/// Keyed by **save slot** as well as AP seed and slot, because "already applied" is a property
-/// of the save file, not of the client install. Sidecar file rather than the game save, because
+/// Keyed by **save slot** as well as AP seed and slot, because "already applied" is a property of
+/// the save file, not of the client install. Sidecar file rather than the game save, because
 /// DataManager is MessagePack-serialized with fixed [Key(N)] attributes.
 ///
-/// Known limitation: reloading an earlier autosave of the same slot leaves the count ahead of
-/// what that save received, so those items are skipped. Better than unbounded duplication, and
-/// it matches how most AP clients behave.
-/// </summary>
+/// Known limitation: reloading an earlier autosave of the same slot leaves the count ahead of what
+/// that save received, so those items are skipped - better than unbounded duplication, and it
+/// matches how most AP clients behave.
+/// </remarks>
 internal static class AppliedItemStore
 {
     private static string StorePath =>
@@ -51,12 +52,16 @@ internal static class AppliedItemStore
     }
 
     /// <summary>
-    /// Identity of "this playthrough": which save, on which seed, as which slot. SAVE_SLOT is
-    /// read at connect time, by which point a save is loaded.
+    /// Identity of "this playthrough": which save, on which seed, as which slot.
+    ///
+    /// SaveSlot.Current rather than the raw SAVE_SLOT: the game parks a Woolhaven save at slot+10
+    /// and moves SAVE_SLOT between the two while writing, so the raw value can key the same save
+    /// two different ways within one session - and a key that misses reads the count as 0 and
+    /// re-applies the entire item history.
     /// </summary>
     internal static string BuildKey(string seed, int apSlot)
     {
-        return $"save{SaveAndLoad.SAVE_SLOT}:{seed ?? "noseed"}:{apSlot}";
+        return $"save{SaveSlot.Current}:{seed ?? "noseed"}:{apSlot}";
     }
 
     private static Dictionary<string, int> ReadAll()
