@@ -249,15 +249,16 @@ internal static class DebugActions
     /// <summary>
     /// F2 - list the sermon upgrades you currently own, to the log. Randomizing sermons removes
     /// the game's own way of showing this tree.
-    ///
+    /// </summary>
+    /// <remarks>
     /// Deliberately does NOT open UIUpgradePlayerTreeMenuController: that menu can't be
     /// dismissed (empty OnCancelButtonInput) and its only exit is DoUnlock(), so opening it to
     /// "just look" hands out a free upgrade the randomizer never granted.
     ///
-    /// The player-facing viewer is now SermonTreeViewer ("Archipelago" on the Temple Altar menu),
-    /// which opens the game's own tree read-only. This stays as the log-only diagnostic: it's the
-    /// independent second opinion, since both read UpgradePlayerConfiguration.
-    /// </summary>
+    /// The player-facing viewer is SermonTreeViewer ("Archipelago" on the Temple Altar menu); this
+    /// stays as the log-only diagnostic, an independent second opinion since both read
+    /// UpgradePlayerConfiguration.
+    /// </remarks>
     internal static void ListOwnedSermonUpgrades()
     {
         // Filter against the game's own sermon tree rather than guessing by name prefix.
@@ -352,11 +353,9 @@ internal static class DebugActions
     /// recorded as upgraded, never actually built - which is the state the base-upgrade hard lock
     /// used to leave behind. Read-only.
     ///
-    /// There was briefly a companion key here that called BiomeBaseManager.UpgradeBase directly,
-    /// to prove BaseUpgradeGuardPatch worked. It did, and it is gone: invoking that routine
-    /// outside the game's own flow is a good way to hard-lock a save, and it also leaves
-    /// Temple_IV queued in UnlocksToReveal so the upgrade cutscene replays on the next altar
-    /// visit. Not something to leave a keybind pointed at.
+    /// Don't add a companion key that calls BiomeBaseManager.UpgradeBase directly: invoking that
+    /// routine outside the game's own flow is a good way to hard-lock a save, and it leaves
+    /// Temple_IV queued in UnlocksToReveal so the upgrade cutscene replays on the next altar visit.
     /// </summary>
     internal static void DumpBaseStructureTiers()
     {
@@ -582,14 +581,15 @@ internal static class DebugActions
     /// Dumps the three upgrade-tree definitions - the authoritative answer to which upgrades are
     /// sermon upgrades and which are Woolhaven-only. The trees are ScriptableObjects, so neither
     /// is answerable from the decompile, and the wiki was out of date on both.
-    ///
+    /// </summary>
+    /// <remarks>
     ///  - UpgradeTreeConfiguration      : the Divine Inspiration building/ritual tree
-    ///  - UpgradePlayerConfiguration    : the Temple sermon tree  <- the one we randomize
+    ///  - UpgradePlayerConfiguration    : the Temple sermon tree  (the one we randomize)
     ///  - DLCUpgradeTreeConfiguration   : the Woolhaven tree
     ///
     /// AllUpgradesRequiringUpgrade is the real prerequisite graph - not needed for granting,
     /// since UnlockAbility ignores prerequisites, but useful for checking the progressive chains.
-    /// </summary>
+    /// </remarks>
     private static void DumpUpgradeTrees(StringBuilder sb)
     {
         var gameManager = GameManager.GetInstance();
@@ -779,7 +779,7 @@ internal static class DebugActions
 
     /// <summary>
     /// The tier table - and specifically the cumulative NumRequiredToUnlock thresholds, which
-    /// are the whole reason this dump exists for Sprint 0e.
+    /// are the whole reason this dump exists.
     ///
     /// A node is available when NumUnlockedUpgrades() >= NumRequiredNodesForTier(its tier)
     /// AND its own prerequisites are met (UpgradeTreeNode.cs:296). The first half is a
@@ -932,21 +932,10 @@ internal static class DebugActions
     }
 
     /// <summary>
-    /// Everything about the objective guide, then a sweep-and-rebuild.
-    ///
-    /// The per-line I2 read-back is the reason this exists as its own key. A term that never
-    /// registered and a broken UI look identical in game - a blank quest line - and nothing
-    /// else distinguishes them. The same read-back is what diagnosed the blank-notification
-    /// bug three attempts in.
-    ///
-    /// The save-list counts are the leak detector: after a disconnect every one must be zero,
-    /// or a player is left with Archipelago lines in a vanilla quest log. The rebuild at the
-    /// end lets one session exercise add -> sweep -> re-add without reconnecting.
-    /// </summary>
-    /// <summary>
     /// Ctrl+F2 - records all four Bishops as beaten and breaks every chain on the Gateway door,
     /// so the Narinder goal can be tested without a full playthrough.
-    ///
+    /// </summary>
+    /// <remarks>
     /// Save writes only. DoorRoomChainDoor.Start reads BossesCompleted and DoorRoomChainProgress
     /// and sets DoorActive at >= 5 chains (there are five breaks for four Bishops - the fourth
     /// triggers the fifth), so the door is open the next time the Door Room loads.
@@ -954,7 +943,7 @@ internal static class DebugActions
     /// Does **not** send the four Bishop location checks: those fire from Interaction_MonsterHeart
     /// when a heart is actually taken, and faking that is a different job. The goal re-check below
     /// is what this key is for.
-    /// </summary>
+    /// </remarks>
     internal static void CompleteBishopsAndOpenGateway(ArchipelagoClient ap)
     {
         // Refuses on any other goal even though the key is compiled out of normal builds: on a
@@ -997,6 +986,18 @@ internal static class DebugActions
         ap?.GoalService?.Recheck();
     }
 
+    /// <summary>
+    /// Everything about the objective guide, then a sweep-and-rebuild.
+    /// </summary>
+    /// <remarks>
+    /// The per-line I2 read-back is why this has its own key: a term that never registered and a
+    /// broken UI look identical in game - a blank quest line - and the same read-back is what
+    /// diagnosed the blank-notification bug three attempts in.
+    ///
+    /// The save-list counts are the leak detector: after a disconnect every one must be zero, or a
+    /// player is left with Archipelago lines in a vanilla quest log. The rebuild at the end lets
+    /// one session exercise add -> sweep -> re-add without reconnecting.
+    /// </remarks>
     internal static void DumpQuestGuide(ArchipelagoClient ap)
     {
         Log.LogInfo("[AP] ---- objective guide ----");

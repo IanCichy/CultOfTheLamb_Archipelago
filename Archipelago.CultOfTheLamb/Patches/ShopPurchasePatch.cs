@@ -7,11 +7,9 @@ namespace Archipelago.CultOfTheLamb.Patches;
 /// Catches purchases from any hub shop. Interaction_BuyItem is the universal shop-slot class -
 /// tarot, decorations and plain stalls alike - so one patch covers every shop in the game.
 ///
-/// Activate() is the purchase-completed step. Patched rather than subscribing to its own
-/// OnItemBought, which is per-instance and would mean hooking every slot object as it spawns.
-///
-/// The BuyEntry handed back says what was bought, so subscribers can filter to the kinds they
-/// care about.
+/// Activate() is the purchase-completed step, patched rather than subscribing to its own
+/// OnItemBought, which is per-instance and would mean hooking every slot object as it spawns. The
+/// BuyEntry handed back says what was bought, so subscribers can filter to the kinds they want.
 /// </summary>
 [HarmonyPatch(typeof(Interaction_BuyItem))]
 internal static class ShopPurchasePatch

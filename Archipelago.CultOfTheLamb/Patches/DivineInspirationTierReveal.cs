@@ -9,14 +9,15 @@ namespace Archipelago.CultOfTheLamb.Patches;
 /// <summary>
 /// Opens every tier of the Divine Inspiration tree in curated_checks, where Archipelago grants the
 /// upgrades and there are no ability points to spend on opening a row.
-///
+/// </summary>
+/// <remarks>
 /// Patches the reader, not the data: zeroing the serialized _numRequiredToUnlock changes nothing
 /// on screen, because TierLockIcon and UpgradeTreeNode read through their own config reference.
 ///
 /// Filtered by tree in both patches. NumRequiredNodesForTier is the tier-unlock test, not just the
 /// lock icon, and GameManager holds three of these configs - unfiltered, this opens the player and
 /// Woolhaven trees too.
-/// </summary>
+/// </remarks>
 [HarmonyPatch(typeof(UpgradeTreeConfiguration),
     nameof(UpgradeTreeConfiguration.NumRequiredNodesForTier))]
 internal static class DivineInspirationTierReveal

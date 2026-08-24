@@ -8,7 +8,8 @@ namespace Archipelago.CultOfTheLamb.Patches;
 /// <summary>
 /// Stops a Temple/Shrine upgrade from hard-locking the game when it runs at a moment the base
 /// isn't live.
-///
+/// </summary>
+/// <remarks>
 /// BiomeBaseManager.UpgradeBaseRoutine takes control before it validates anything:
 ///
 ///     ForceBlockMenus = true;                          // :915
@@ -25,14 +26,14 @@ namespace Archipelago.CultOfTheLamb.Patches;
 /// interaction, when the base structures aren't enabled and BuildingShrine.Shrines is empty.
 /// Vanilla can't reach it: a base upgrade is bought at a shrine, which is by definition present.
 ///
-/// **Deferring rather than skipping is deliberate.** The routine isn't a cutscene - it removes the
+/// **Deferring rather than skipping is deliberate**: the routine isn't a cutscene, it removes the
 /// old Shrine and Temple and places the next tier, so dropping the call would keep the unlock on
-/// record while the buildings never change. That trades a visible lock for silent permanent loss,
-/// which is worse. So the upgrade is held and replayed once the base is live.
+/// record while the buildings never change - trading a visible lock for silent permanent loss. The
+/// upgrade is held and replayed once the base is live instead.
 ///
 /// This guards the symptom. The root cause - granting building upgrades outside the shrine flow at
 /// all - is a dequeue gate in ProcessQueue, tracked separately.
-/// </summary>
+/// </remarks>
 [HarmonyPatch]
 internal static class BaseUpgradeGuardPatch
 {
@@ -93,7 +94,8 @@ internal static class BaseUpgradeGuardPatch
 
     /// <summary>
     /// Whether the routine can complete.
-    ///
+    /// </summary>
+    /// <remarks>
     /// **Both** unguarded index-0 accesses have to be satisfied, because the routine swaps the
     /// Shrine and the Temple as a pair:
     ///
@@ -107,7 +109,7 @@ internal static class BaseUpgradeGuardPatch
     ///
     /// The menu flag is included because the routine drives a camera sequence that has no
     /// business starting underneath an open menu.
-    /// </summary>
+    /// </remarks>
     private static bool BaseIsReady()
     {
         if (BuildingShrine.Shrines == null || BuildingShrine.Shrines.Count == 0) return false;
@@ -213,7 +215,8 @@ internal static class BaseUpgradeGuardPatch
 
     /// <summary>
     /// Rebuilds the base when the structures have fallen behind what the save says is unlocked.
-    ///
+    /// </summary>
+    /// <remarks>
     /// The prefix's own repair branch only fires when something calls UpgradeBase, and after a
     /// downgrade there is nothing left in UnlocksToReveal to call it - so that path is correct and
     /// unreachable, leaving the base stranded. This drives it instead.
@@ -223,7 +226,7 @@ internal static class BaseUpgradeGuardPatch
     ///
     /// Runs at most once per session. A repair that doesn't take would otherwise re-fire a
     /// multi-second cutscene every tick, which is worse than the drift it fixes.
-    /// </summary>
+    /// </remarks>
     private static void RepairIfBehind()
     {
         if (repairAttempted || !BaseIsReady()) return;

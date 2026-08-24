@@ -7,7 +7,8 @@ namespace Archipelago.CultOfTheLamb.Services;
 
 /// <summary>
 /// Both halves of sermon randomization:
-///
+/// </summary>
+/// <remarks>
 ///  - Location: filling the sermon bar sends "Sermon Upgrade N" (see SermonUpgradePatch).
 ///  - Item: a received sermon item calls UpgradeSystem.UnlockAbility for the upgrade it maps to.
 ///
@@ -15,7 +16,7 @@ namespace Archipelago.CultOfTheLamb.Services;
 /// here, so adding or reordering upgrades on the Python side can't silently desync the two
 /// halves. Each entry is an ordered list: one element is a standalone upgrade, several make a
 /// progressive chain whose Nth copy grants the Nth tier.
-/// </summary>
+/// </remarks>
 internal class SermonService : IService
 {
     private readonly ArchipelagoSession session;
@@ -61,9 +62,9 @@ internal class SermonService : IService
     /// filters against what the server already has.
     ///
     /// One knock-on worth knowing: a sermon taken offline also hands out a real vanilla upgrade,
-    /// since the choice screen isn't suppressed once Unregister runs. Catch-up pays the check on
-    /// top, so the player keeps that upgrade for free. A leaked reward beats a lost check, and the
-    /// alternative - withholding the check - would strand an item for someone else.
+    /// since the choice screen isn't suppressed once Unregister runs, and catch-up pays the check on
+    /// top - so the player keeps that upgrade for free. A leaked reward beats a lost check, since
+    /// withholding it would strand an item for someone else.
     /// </summary>
     private void SendChecksUpTo(int level)
     {

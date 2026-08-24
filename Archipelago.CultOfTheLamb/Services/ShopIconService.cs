@@ -9,18 +9,16 @@ using UnityEngine;
 namespace Archipelago.CultOfTheLamb.Services;
 
 /// <summary>
-/// Marks shop slots that are Archipelago checks: the AP logo in place of the item's own art,
-/// and the scouted item name appended to the buy prompt. Without it, a slot looks identical
-/// whether or not buying it sends a check.
+/// Marks shop slots that are Archipelago checks: the AP logo in place of the item's own art, and
+/// the scouted item name appended to the buy prompt. Without it, a slot looks identical whether or
+/// not buying it sends a check.
 ///
 /// Two entry points, because a shop and a connection can happen in either order:
 /// ShopSlotDisplayPatch.OnShopInitialised (walked into a shop while connected) and the sweep in
-/// Register() (connected while already standing in one). Both enqueue the shop and Tick() does
-/// the work over following frames - InitTarotShop runs inside shopKeeperManager.Start(), before
-/// any card art exists.
-///
-/// Item names come from a single pre-scout on connect: scouting is async and the buy prompt is
-/// rebuilt every frame, so there's no chance to fetch on demand.
+/// Register() (connected while already standing in one). Both enqueue the shop and Tick() does the
+/// work over following frames, since InitTarotShop runs inside shopKeeperManager.Start() before
+/// any card art exists. Item names come from a single pre-scout on connect: scouting is async and
+/// the buy prompt is rebuilt every frame, so there's no chance to fetch on demand.
 /// </summary>
 internal class ShopIconService : IService
 {
@@ -204,15 +202,16 @@ internal class ShopIconService : IService
 
     /// <summary>
     /// Turns off the Spine skeletons under a slot, and reports how many.
-    ///
+    /// </summary>
+    /// <remarks>
     /// A tarot slot draws in two layers: a plain SpriteRenderer holding the card back, and a
     /// Spine skeleton on top painting the card's face. Replacing only the sprite leaves the
     /// face covering the logo, so the skeleton has to go too.
     ///
-    /// Only ever runs on slots that are open AP checks, which are always tarot cards - so this
-    /// can't strip an animation off an ordinary stall. Buying a card destroys its slot outright
+    /// Only ever runs on slots that are open AP checks, which are always tarot cards, so this can't
+    /// strip an animation off an ordinary stall - and buying a card destroys its slot outright
     /// (Interaction_BuyItem.Activate), so nothing has to turn these back on mid-session.
-    /// </summary>
+    /// </remarks>
     private int HideSpineArt(GameObject slot)
     {
         var hidden = 0;
@@ -275,15 +274,16 @@ internal class ShopIconService : IService
 
     /// <summary>
     /// Rewrites the buy prompt to name the Archipelago item rather than the tarot card.
-    ///
-    /// Replacing rather than appending, because the card name is actively misleading: the slot
-    /// is a location, and what buying it produces is whatever the multiworld put there. The
-    /// card itself comes from the item pool, on its own schedule.
-    ///
-    /// Rebuilt through the game's own format string and cost formatter so it stays localised
-    /// and keeps the vanilla "for &lt;icon&gt; N" shape. Runs from the Label getter, which the game
-    /// polls while the player stands near a slot, so it stays cheap.
     /// </summary>
+    /// <remarks>
+    /// Replacing rather than appending, because the card name is actively misleading: the slot is a
+    /// location, and what buying it produces is whatever the multiworld put there - the card itself
+    /// comes from the item pool on its own schedule.
+    ///
+    /// Rebuilt through the game's own format string and cost formatter so it stays localised and
+    /// keeps the vanilla "for &lt;icon&gt; N" shape. Runs from the Label getter, which the game polls
+    /// while the player stands near a slot, so it stays cheap.
+    /// </remarks>
     private void HandleLabelBuilt(Interaction_BuyItem buyItem)
     {
         if (buyItem == null) return;
@@ -300,15 +300,15 @@ internal class ShopIconService : IService
     /// Rewrites the panel that floats over a slot, which otherwise describes the tarot card -
     /// its name, its lore, and the effect it grants - none of which is what buying the slot
     /// does any more.
+    /// </summary>
+    /// <remarks>
+    /// This panel, not the buy prompt, is where the check's details belong: it's the surface with
+    /// room for them, and it's already the thing a player reads before deciding to spend.
     ///
-    /// This panel, not the buy prompt, is where the check's details belong: it's the surface
-    /// with room for them, and it's already the thing a player reads before deciding to spend.
-    /// </summary>
-    /// <summary>
-    /// The item is the card's name, because it's the biggest text on the panel and it's what the
-    /// player is deciding about. Who it's for goes in the flavour line, and the location goes in
-    /// the body - it's the slot they're standing on, so it's the least surprising thing here.
-    /// </summary>
+    /// The item takes the card's name slot, because it's the biggest text on the panel and it's
+    /// what the player is deciding about. Who it's for goes in the flavour line, and the location
+    /// goes in the body - it's the slot they're standing on, so it's the least surprising there.
+    /// </remarks>
     private void HandleTarotDisplayBuilt(UITarotDisplay display, TarotCards.Card card)
     {
         if (!cardToCheckId.TryGetValue(card.ToString(), out var checkId)) return;

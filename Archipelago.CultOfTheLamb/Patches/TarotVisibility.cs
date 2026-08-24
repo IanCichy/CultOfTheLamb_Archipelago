@@ -9,17 +9,18 @@ namespace Archipelago.CultOfTheLamb.Patches;
 /// Shows the player's Archipelago cards to the two parts of the game that should see them -
 /// the in-run draw pool and the collection screen - while keeping them out of
 /// PlayerFoundTrinkets everywhere else (see ManagedCollection for why).
-///
+/// </summary>
+/// <remarks>
 /// Both work by lending the cards to the list for one call and taking them straight back out.
 /// Lending rather than adjusting the result matters for the draw pool: GetUnusedFoundTrinkets
 /// filters on fleece, corruption pairing, season, relic scale and the resurrect ability, and a
 /// re-implementation would drift from the game's within a patch or two.
 ///
-/// Other readers are left alone. Completion percentage, GetTrinketsUnlocked and the
+/// Other readers are left alone - completion percentage, GetTrinketsUnlocked and the
 /// ALL_TAROTS_UNLOCKED achievement under-report while connected and correct themselves on
-/// disconnect. Lending to them isn't worth it - the achievement path writes a permanent unlock,
-/// which is the one thing this class exists to prevent.
-/// </summary>
+/// disconnect. Lending to them isn't worth it, since the achievement path writes a permanent
+/// unlock, which is the one thing this class exists to prevent.
+/// </remarks>
 internal static class TarotVisibility
 {
     /// <summary>

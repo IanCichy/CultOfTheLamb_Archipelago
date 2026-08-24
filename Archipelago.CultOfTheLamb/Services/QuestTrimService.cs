@@ -6,7 +6,8 @@ namespace Archipelago.CultOfTheLamb.Services;
 
 /// <summary>
 /// Takes most of the game's built-in follower quests out of rotation, leaving a curated slice.
-///
+/// </summary>
+/// <remarks>
 /// Followers periodically walk over and offer one of ~87 hardcoded quests - cook three great
 /// meals, dress someone in a fancy suit, murder a specific follower at night. Most are busywork
 /// that pulls against whatever the multiworld actually wants, and a new player can't tell the
@@ -17,7 +18,7 @@ namespace Archipelago.CultOfTheLamb.Services;
 /// The lever is Quests.RemovedQuests - the developers' own kill switch, a private static
 /// List&lt;int&gt; of indices into Quests.QuestsAll, and the very first filter inside
 /// Quests.GetQuest's eligibility loop. See AI_INDEX.md §5a.
-/// </summary>
+/// </remarks>
 internal class QuestTrimService : IService
 {
     // Matches worlds/cult_of_the_lamb/options.py VanillaFollowerQuests.

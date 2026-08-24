@@ -4,10 +4,14 @@ using System.Collections.Generic;
 namespace Archipelago.CultOfTheLamb.Services;
 
 /// <summary>
-/// The game-side collection a <see cref="ManagedCollection{T}"/> manages. Three operations is
-/// all the state machine needs, which is what lets the game's very different storage shapes -
-/// a List of enums, a List of ints, a system with its own methods - plug in as small adapters.
+/// The game-side collection a <see cref="ManagedCollection{T}"/> manages.
 /// </summary>
+/// <typeparam name="T">The game enum stored in the collection, such as TarotCards.Card.</typeparam>
+/// <remarks>
+/// Three operations is all the state machine needs, which is what lets the game's very different
+/// storage shapes - a List of enums, a List of ints, a system with its own methods - plug in as
+/// small adapters.
+/// </remarks>
 internal interface IManagedBacking<T> where T : struct, Enum
 {
     /// <summary>
@@ -25,6 +29,9 @@ internal interface IManagedBacking<T> where T : struct, Enum
 
 /// <summary>
 /// Holds part of a game collection outside the save, so Archipelago can hand it out instead.
+/// </summary>
+/// <typeparam name="T">The game enum stored in the collection, such as TarotCards.Card.</typeparam>
+/// <remarks>
 /// Fleeces, follower forms, doctrines, structures and outfits are all this shape.
 ///
 /// **The gate problem.** Every route the game has to offer you something first checks you don't
@@ -36,8 +43,8 @@ internal interface IManagedBacking<T> where T : struct, Enum
 /// is put back on disconnect.
 ///
 /// Where a system has a single reward method to intercept - as sermons do - prefer a Harmony
-/// prefix there. This class is for collections that can only be managed after the fact.
-/// </summary>
+/// prefix there; this class is for collections that can only be managed after the fact.
+/// </remarks>
 internal class ManagedCollection<T> where T : struct, Enum
 {
     private readonly string collectionKey;
@@ -74,6 +81,8 @@ internal class ManagedCollection<T> where T : struct, Enum
     private bool debtDirty;
 
     /// <param name="collectionKey">Namespaces this collection's rows in the store.</param>
+    /// <param name="backing">Adapter onto the game's own collection.</param>
+    /// <param name="managed">Every entry this seed owns, whether or not its check sits on it.</param>
     /// <param name="noun">What one entry is called, for log lines the player reads.</param>
     /// <param name="legacyKey">See <see cref="ManagedCollectionStore.Owed{T}"/>.</param>
     internal ManagedCollection(

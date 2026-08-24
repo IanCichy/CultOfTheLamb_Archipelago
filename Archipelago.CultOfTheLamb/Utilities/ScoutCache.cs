@@ -8,19 +8,18 @@ namespace Archipelago.CultOfTheLamb;
 /// <summary>
 /// What the multiworld put at each of this slot's locations, so the client can name an item
 /// rather than only the check that held it.
-///
-/// One bulk scout on connect. The alternative - fetching on demand as each check completes -
-/// would make the announcement async and force it back through MainThreadQueue, for a lookup
-/// that's wanted within the same frame.
-///
-/// <c>HintCreationPolicy</c> is deliberately left at its default (no hint). This is a labelling
-/// convenience; burning the player's hint points to render text, let alone broadcasting hints
-/// to the whole multiworld on connect, would be hostile.
-///
-/// Callers must cope with a miss. There's a round trip between connecting and the scout landing,
-/// and a check completed in that window has no item name yet - every caller falls back to the
-/// location name.
 /// </summary>
+/// <remarks>
+/// One bulk scout on connect: fetching on demand as each check completes would make the
+/// announcement async and force it back through MainThreadQueue, for a lookup that's wanted within
+/// the same frame. <c>HintCreationPolicy</c> is deliberately left at its default (no hint) - this
+/// is a labelling convenience, and burning the player's hint points to render text, let alone
+/// broadcasting hints to the whole multiworld on connect, would be hostile.
+///
+/// Callers must cope with a miss: there's a round trip between connecting and the scout landing,
+/// so a check completed in that window has no item name yet and every caller falls back to the
+/// location name.
+/// </remarks>
 internal class ScoutCache
 {
     private readonly ArchipelagoSession session;

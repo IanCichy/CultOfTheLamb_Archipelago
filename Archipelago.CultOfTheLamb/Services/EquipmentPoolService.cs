@@ -10,19 +10,19 @@ namespace Archipelago.CultOfTheLamb.Services;
 /// <summary>
 /// Makes the weapon and curse families an Archipelago system: the game may only offer a family
 /// the multiworld has granted, and equipping one for the first time sends a check.
-///
-/// Vanilla already treats these as progression, just invisibly - see EquipmentPoolPatch for the
-/// ladder that hands out the Axe, then the Dagger, then the rest on a fixed schedule.
-///
-/// One instance handles weapons or curses, not both, since the two are independent YAML options
-/// and either can be on alone. Nothing here touches save data.
-///
-/// No catch-up pass, and it doesn't need one. The check fires on first *equip*, and the game
-/// records which families you own rather than which you've ever equipped - so there is nothing to
-/// re-derive. It self-heals instead: players re-equip every run, so an equip missed while
-/// disconnected pays on the next one. GrantedNotInPool exists to keep that true, by making sure a
-/// granted family stays offerable.
 /// </summary>
+/// <remarks>
+/// Vanilla already treats these as progression, just invisibly - see EquipmentPoolPatch for the
+/// ladder that hands out the Axe, then the Dagger, then the rest on a fixed schedule. One instance
+/// handles weapons or curses, not both, since the two are independent YAML options and either can
+/// be on alone. Nothing here touches save data.
+///
+/// No catch-up pass, and it doesn't need one: the check fires on first *equip* and the game
+/// records which families you own rather than which you've ever equipped, so there is nothing to
+/// re-derive. It self-heals instead - players re-equip every run, so an equip missed while
+/// disconnected pays on the next one, which is what GrantedNotInPool keeps true by making sure a
+/// granted family stays offerable.
+/// </remarks>
 internal class EquipmentPoolService : IService
 {
     /// <summary>
@@ -264,7 +264,8 @@ internal class EquipmentPoolService : IService
 
     /// <summary>
     /// Granted families the player's pool doesn't contain, as their base type.
-    ///
+    /// </summary>
+    /// <remarks>
     /// In practice this is the Flail and nothing else: vanilla's ladder seeds every other family
     /// into WeaponPool within the first few runs, but it only ever offers the Chain inside
     /// Woolhaven (GetRandomWeaponInPool checks PlayerFarming.Location == Dungeon1_5), and a
@@ -275,7 +276,7 @@ internal class EquipmentPoolService : IService
     /// Once every family has been granted that branch is unreachable, and a Flail the player
     /// never happened to collect can never be offered again - stranding its check, and any
     /// progression the fill put there.
-    /// </summary>
+    /// </remarks>
     private List<EquipmentType> GrantedNotInPool()
     {
         var pool = Pool();

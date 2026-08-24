@@ -7,7 +7,6 @@ using Newtonsoft.Json.Linq;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using UnityEngine;
@@ -52,13 +51,14 @@ public partial class ArchipelagoClient
 
     /// <summary>
     /// Connects without blocking the game.
-    ///
+    /// </summary>
+    /// <remarks>
     /// The synchronous version of this froze the main thread for as long as the login took,
     /// which was tolerable when connecting meant pressing a key you already knew worked. Behind
     /// a form where people mistype addresses, it's a multi-second hang with nothing on screen.
     ///
     /// Drive it with StartCoroutine from a MonoBehaviour.
-    /// </summary>
+    /// </remarks>
     public IEnumerator ConnectRoutine(string url, string slotName, string password = null)
     {
         // A second attempt spawns its own thread and tears down the session the first is still
@@ -181,9 +181,8 @@ public partial class ArchipelagoClient
     }
 
     /// <summary>
-    /// Processes a login result. Must be called on the Unity main thread if it ends up
-    /// touching any Unity APIs (UI updates, etc.) - currently it doesn't, but game-specific
-    /// slot data handling added later probably will.
+    /// Processes a login result. Must run on the Unity main thread: it constructs every service,
+    /// and those register Harmony hooks and touch Unity APIs as they start.
     /// </summary>
     private void ProcessLoginResult(LoginResult result)
     {
@@ -661,17 +660,17 @@ public partial class ArchipelagoClient
     /// <summary>
     /// Retries a dropped connection until it succeeds, the server refuses it, or the player stops
     /// it.
-    ///
-    /// Unbounded on purpose. Nothing queues the checks earned while the socket is down - every
+    /// </summary>
+    /// <remarks>
+    /// Unbounded on purpose: nothing queues the checks earned while the socket is down - every
     /// service re-derives what it owes from the game's own save state at connect - so the only
-    /// thing standing between a dropped socket and a caught-up multiworld is getting the socket
-    /// back. The previous five-attempt cap gave up after about fifteen seconds, which loses to the
-    /// ordinary case of a host restarting their server, and left the player disconnected until
-    /// they happened to notice.
+    /// thing between a dropped socket and a caught-up multiworld is getting the socket back. A
+    /// five-attempt cap gave up after about fifteen seconds, which loses to the ordinary case of a
+    /// host restarting their server.
     ///
     /// The trade is log noise and idle sockets against an unattended recovery, so the delay backs
     /// off: a server down for an hour costs two attempts a minute rather than twenty.
-    /// </summary>
+    /// </remarks>
     public IEnumerator AttemptReconnection()
     {
         Log.LogDebug("Attempting to reconnect!");

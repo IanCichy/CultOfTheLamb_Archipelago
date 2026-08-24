@@ -10,16 +10,16 @@ namespace Archipelago.CultOfTheLamb;
 /// that promise in memory alone isn't enough: the game autosaves constantly, so the file on disk
 /// is missing those entries for the whole session, and a crash or an alt-F4 would lose real
 /// player data permanently.
-///
+/// </summary>
+/// <remarks>
 /// Keyed by **collection and save slot only**, unlike AppliedItemStore's save+seed+slot key -
 /// "we owe this save its cards back" is a property of the save alone, true across a different
 /// seed, a different AP slot, or a reinstall.
 ///
-/// Sidecar file rather than the game save, because DataManager is MessagePack-serialized with
-/// fixed [Key(N)] attributes. Entries are stored as enum *names*: a name survives the game
-/// reordering an enum between updates, where a shifted ordinal would silently hand back the
-/// wrong cards.
-/// </summary>
+/// Sidecar file rather than the game save, because DataManager is MessagePack-serialized with fixed
+/// [Key(N)] attributes. Entries are stored as enum *names*, which survive the game reordering an
+/// enum between updates where a shifted ordinal would silently hand back the wrong cards.
+/// </remarks>
 internal static class ManagedCollectionStore
 {
     private static string StorePath =>
@@ -43,9 +43,9 @@ internal static class ManagedCollectionStore
     /// outlives game updates, and losing one card beats failing to return the other fifty-nine.
     ///
     /// <paramref name="legacyKey"/> is an older, un-namespaced key to fall back to when the
-    /// namespaced one is absent. Tarot shipped before this store was generalised and wrote a
-    /// bare "saveN", so without the fallback a player who updated mid-session would be owed
-    /// cards under a key nothing reads any more. Safe to delete once no such file can exist.
+    /// namespaced one is absent: tarot shipped before this store was generalised and wrote a bare
+    /// "saveN", so without the fallback a player who updated mid-session would be owed cards under
+    /// a key nothing reads any more. Safe to delete once no such file can exist.
     /// </summary>
     internal static List<T> Owed<T>(string collection, int saveSlot, string legacyKey = null)
         where T : struct, Enum

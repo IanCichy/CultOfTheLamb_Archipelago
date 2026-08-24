@@ -5,18 +5,19 @@ namespace Archipelago.CultOfTheLamb;
 
 /// <summary>
 /// Shows an in-game popup when checks are sent.
-///
+/// </summary>
+/// <remarks>
 /// Half of what makes a multiworld feel alive is watching your checks go out, and the game gives
 /// no feedback of its own for it - receiving items at least produces the game's own pickup
 /// banners, but sending was entirely silent.
 ///
-/// The popup leads with the **item and who gets it**, not the location. The location is the
-/// thing the player just did and already knows about; the item is the part they can't see.
-/// It still gets a second line, since "which check was that" is a fair question.
+/// The popup leads with the **item and who gets it**, not the location: the location is the thing
+/// the player just did and already knows about, while the item is the part they can't see. It still
+/// gets a second line, since "which check was that" is a fair question.
 ///
-/// Batches deliberately: milestone catch-up can send a dozen checks in one call (and does, on
+/// Batches deliberately - milestone catch-up can send a dozen checks in one call (and does, on
 /// every reconnect), and a dozen stacked popups would bury the screen.
-/// </summary>
+/// </remarks>
 internal static class CheckNotifier
 {
     private const string Game = "Cult of the Lamb";

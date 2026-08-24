@@ -70,7 +70,8 @@ internal sealed class QuestGuideEntry
 /// <summary>
 /// Puts an Archipelago checklist into the game's own quest log: the win condition, region
 /// access, and one live-progress line per check block this seed switched on.
-///
+/// </summary>
+/// <remarks>
 /// The game tells a player nothing about the seed they're in. The vanilla quest log fills with
 /// follower errands and never mentions the win condition, how many followers the multiworld
 /// wants, or which blocks are even active - so a new player has no way to tell what to aim for.
@@ -82,7 +83,7 @@ internal sealed class QuestGuideEntry
 /// A brand-new ObjectivesData subclass would not serialize - the [Union] list is closed and the
 /// save would break - but Objectives_Custom is union member 8 and its CustomQuestType is an
 /// int-backed enum, so an out-of-range cast round-trips fine and gives us free identity.
-/// </summary>
+/// </remarks>
 internal class QuestGuideService : IService
 {
     /// <summary>
@@ -114,7 +115,6 @@ internal class QuestGuideService : IService
     private readonly GuideHudMode hudMode;
     private readonly List<QuestGuideEntry> entries;
 
-    /// <summary>Last text pushed into each term, so a steady-state tick does no work.</summary>
     /// <summary>Everything believed about the loaded save, dropped when it changes.</summary>
     private void ForgetSave()
     {
@@ -233,6 +233,7 @@ internal class QuestGuideService : IService
     private readonly HashSet<long> checkedSnapshot = new();
 
     /// <summary>Progress last rendered per line, so an unchanged tick composes no strings.</summary>
+    /// <summary>Last text pushed into each term, so a steady-state tick does no work.</summary>
     private readonly Dictionary<string, (int Current, int Target)> lastProgress = new();
 
     /// <summary>Terms already registered whose text never changes.</summary>

@@ -15,7 +15,8 @@ namespace Archipelago.CultOfTheLamb.Patches;
 
 /// <summary>
 /// Rearranges which tier each Divine Inspiration upgrade sits in.
-///
+/// </summary>
+/// <remarks>
 /// Logic-neutral by construction. The tier gate is a *count* -
 /// <c>NumUnlockedUpgrades() &gt;= NumRequiredNodesForTier(tier)</c> - so moving an upgrade
 /// between tiers changes what the player sees and reaches, but not how many unlocks any tier
@@ -36,7 +37,7 @@ namespace Archipelago.CultOfTheLamb.Patches;
 /// The intra-tree prerequisite graph is empty in this tree - all four `RequiresUpgrade` entries
 /// have parents outside the 69 (PleasureSystem, TailorSystem, DiscipleSystem, System_PlayerTent)
 /// - so there is no ordering constraint left to respect once centrals are pinned.
-/// </summary>
+/// </remarks>
 internal static class DivineInspirationShuffle
 {
     internal const int ModeDefault = 0;
@@ -202,23 +203,22 @@ internal static class DivineInspirationShuffle
             }
         }
 
-        /// <summary>
-        /// Makes the node's art match the upgrade it now holds.
-        ///
-        /// Writing `_upgrade` alone moves the *name* - that's resolved from the field at
-        /// runtime - but not the icon or category pip, which are baked onto the prefab. The
-        /// result is a node captioned "Demonic Summoning Circle" wearing the Janitor Station's
-        /// broom.
-        ///
-        /// UpgradeTreeNode.OnValidate() already does exactly this refresh (icon sprite,
-        /// category text and colour, title, localize term) and is pure field assignment with
-        /// nothing editor-only in it - but Unity only calls it in the editor, so a build never
-        /// runs it. Calling the game's own routine beats reimplementing four lookups and
-        /// getting one subtly wrong.
-        /// </summary>
         /// <summary>Same refresh, used by Restore to put the authored art back.</summary>
         internal static void RefreshAuthoredVisuals(UpgradeTreeNode node) => RefreshVisuals(node);
 
+        /// <summary>
+        /// Makes the node's art match the upgrade it now holds.
+        /// </summary>
+        /// <remarks>
+        /// Writing `_upgrade` alone moves the *name* - that's resolved from the field at runtime -
+        /// but not the icon or category pip, which are baked onto the prefab, giving a node
+        /// captioned "Demonic Summoning Circle" wearing the Janitor Station's broom.
+        ///
+        /// UpgradeTreeNode.OnValidate() already does exactly this refresh (icon sprite, category
+        /// text and colour, title, localize term) and is pure field assignment with nothing
+        /// editor-only in it, but Unity only calls it in the editor so a build never runs it.
+        /// Calling the game's own routine beats reimplementing four lookups and getting one wrong.
+        /// </remarks>
         private static void RefreshVisuals(UpgradeTreeNode node)
         {
             if (OnValidate == null) return;

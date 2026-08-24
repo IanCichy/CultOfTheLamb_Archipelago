@@ -8,7 +8,8 @@ namespace Archipelago.CultOfTheLamb.Services;
 /// Sends AP location checks for every defeated boss. Two independent sources, because the
 /// game tracks the two boss classes in two unrelated ways (see
 /// DecompiledGamesViaDnSpy/Cotl/AI_INDEX.md §3 and §3a):
-///
+/// </summary>
+/// <remarks>
 ///  - Bishops: InteractionMonsterHeartPatch.OnBossDefeated, keyed by FollowerLocation.
 ///  - Minibosses + Witnesses: DataManagerKilledBossPatch.OnBossKillRecorded, keyed by the
 ///    game's internal boss-name string.
@@ -16,7 +17,7 @@ namespace Archipelago.CultOfTheLamb.Services;
 /// Both events only fire at the moment of the kill, so Register also re-derives from the save's
 /// own kill records - see SendChecksForRecordedKills. That's what makes a boss killed while
 /// disconnected still pay out on the next connect.
-/// </summary>
+/// </remarks>
 internal class LocationCheckService : IService
 {
     private readonly ArchipelagoSession session;
@@ -36,7 +37,8 @@ internal class LocationCheckService : IService
 
     /// <summary>
     /// Pays for every boss the save already records as dead.
-    ///
+    /// </summary>
+    /// <remarks>
     /// Without this a boss killed while disconnected is lost for good: the events above only fire
     /// at the moment of the kill, and these are the goal-critical checks. The game writes both
     /// kill records to save data, so the answer is sitting there at connect - GoalService already
@@ -45,7 +47,7 @@ internal class LocationCheckService : IService
     ///
     /// Re-sending is free: CheckSender filters against AllLocationsChecked, which the Connected
     /// packet has already populated by the time any service registers.
-    /// </summary>
+    /// </remarks>
     private void SendChecksForRecordedKills()
     {
         var data = DataManager.Instance;

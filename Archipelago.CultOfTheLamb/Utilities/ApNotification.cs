@@ -6,14 +6,15 @@ namespace Archipelago.CultOfTheLamb;
 
 /// <summary>
 /// Shows an in-game popup with arbitrary text.
-///
+/// </summary>
+/// <remarks>
 /// NotificationCentre.PlayGenericNotification(locKey, flair) takes an **I2 localization key, not
 /// display text**, and I2 returns null for an unregistered term with no fallback
 /// (LocalizationManager.cs:1019) - so passing raw English produces a *blank* popup.
 ///
 /// So the term is registered at runtime first - see I2Terms, which does the same job for the
 /// objective guide's quest lines.
-/// </summary>
+/// </remarks>
 internal static class ApNotification
 {
     // Internal because it is also how NotificationStylePatch tells our popups from the game's:
@@ -27,19 +28,21 @@ internal static class ApNotification
     /// <summary>
     /// Shows <paramref name="text"/> as a game notification, or holds it until the game is
     /// willing to show one.
-    ///
-    /// Holding matters more than it sounds. The game suppresses notifications outright while
-    /// the HUD is hidden or NotificationsEnabled is off - cutscenes, full-screen menus, the
-    /// follower recruitment flow - and PlayGenericNotification just returns silently in that
-    /// state. Those are exactly the moments checks fire: recruiting a follower, killing a
-    /// boss, finishing a ritual. Showing immediately meant the player saw nothing for most of
-    /// the checks that matter, with nothing in the log to say so.
     /// </summary>
+    /// <param name="text">The line the player reads.</param>
+    /// <param name="flair">The game's own notification styling to use.</param>
     /// <param name="glow">
     /// What the popup's flair should glow. Null keeps the default AP green. See ApColors - the
     /// glow carries the *direction* of the event, which is what's readable from the corner of
     /// the eye mid-crusade, while the wording carries the detail.
     /// </param>
+    /// <remarks>
+    /// Holding matters more than it sounds: the game suppresses notifications outright while the
+    /// HUD is hidden or NotificationsEnabled is off - cutscenes, full-screen menus, the follower
+    /// recruitment flow - and PlayGenericNotification just returns silently. Those are exactly the
+    /// moments checks fire, so showing immediately meant the player saw nothing for most of the
+    /// checks that matter, with nothing in the log to say so.
+    /// </remarks>
     internal static void Show(
         string text,
         NotificationBase.Flair flair = NotificationBase.Flair.None,

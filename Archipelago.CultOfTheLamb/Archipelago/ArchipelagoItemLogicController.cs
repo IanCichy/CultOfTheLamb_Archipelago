@@ -97,7 +97,7 @@ public partial class ArchipelagoItemLogicController : IService
             && item.Player.Slot != session.ConnectionInfo.Slot;
 
         // Read off the flags rather than matched by name: "Dissent Trap" is the only one today,
-        // but Sprint 11 adds more and a hardcoded list would quietly stop being true.
+        // but more are planned and a hardcoded list would quietly stop being true.
         var isTrap = item.Flags.HasFlag(ItemFlags.Trap);
 
         return new PendingItem(

@@ -21,6 +21,7 @@ SACRIFICE_GATED_REGION = "Silk Cradle"
 
 
 def create_regions(world: "CultOfTheLambWorld") -> None:
+    """Builds this seed's region graph and hangs each enabled block's locations off it."""
     player = world.player
     multiworld = world.multiworld
 
@@ -32,14 +33,10 @@ def create_regions(world: "CultOfTheLambWorld") -> None:
     multiworld.regions.append(cult)
     menu.connect(cult)
 
-    # Home-base checks (sermon upgrades). Only added when the matching option is on, so a
-    # seed that isn't randomizing them doesn't carry unreachable locations.
-    # Cards the player starts with can never be earned, so their checks would be unreachable.
-    # Dropped by name rather than filtered in get_locations_for_region, which keys off category
-    # and DLC. Applies to both blocks below, since a starting card can be region-tied.
     # Two reasons a card's check can't exist, and location_table carries every card either way -
     # it's a static, positionally-indexed table, so entries are filtered by name here rather than
-    # removed from it.
+    # removed from it, and by name rather than in get_locations_for_region, which keys off
+    # category and DLC. Applies to both blocks below, since a starting card can be region-tied.
     #
     # Already held: a starting card can never be earned again.
     #
@@ -65,6 +62,8 @@ def create_regions(world: "CultOfTheLambWorld") -> None:
         for n in range(world.divine_inspiration_location_count + 1, DIVINE_INSPIRATION_COUNT + 1)
     }
 
+    # Each block is only added when its option is on, so a seed that isn't randomizing one
+    # doesn't carry unreachable locations for it.
     cult_categories = set()
     if world.options.randomize_sermon_upgrades:
         cult_categories.add("Sermon")
@@ -118,6 +117,7 @@ def create_regions(world: "CultOfTheLambWorld") -> None:
 
 
 def add_locations(region: Region, location_names, player: int) -> None:
+    """Attaches locations to a region by name, looking each id up in `location_table`."""
     for location_name in location_names:
         region.locations.append(CultOfTheLambLocation(
             player, location_name, location_name_to_id[location_name], region))

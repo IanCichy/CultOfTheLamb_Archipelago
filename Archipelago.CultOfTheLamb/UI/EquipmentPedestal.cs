@@ -6,17 +6,16 @@ namespace Archipelago.CultOfTheLamb.UI;
 
 /// <summary>
 /// A plinth in the base showing one weapon or curse family, lit when Archipelago has granted it.
-///
-/// Weapons and curses are the only randomized system with no native screen anywhere in the game -
-/// the wheels are in-run only and read the transient pool, and there's no PlayerFoundWeapons to
-/// mirror the way PlayerFoundTrinkets backs the tarot collection. So unlike sermons or tarot there
-/// is nothing to unhide, and the display has to be built.
+/// </summary>
+/// <remarks>
+/// Weapons and curses are the only randomized system with no native screen anywhere in the game
+/// (see EquipmentDisplayService), so the display has to be built rather than unhidden.
 ///
 /// The art is the game's own crusade podium, loaded through Addressables. It isn't in Resources -
 /// only 525 GameObjects are, and none is a plinth - but it is one of ~33,600 addressable keys.
 ///
 /// Purely visual: no StructureBrain, no StructureManager entry, nothing written to save data.
-/// </summary>
+/// </remarks>
 internal static class EquipmentPedestal
 {
     /// <summary>
@@ -145,15 +144,16 @@ internal static class EquipmentPedestal
 
     /// <summary>
     /// Uses the podium's own lit and unlit art for received vs not.
-    ///
+    /// </summary>
+    /// <remarks>
     /// The prefab ships both states as separate child groups, so a granted family gets the lit
     /// stone and an ungranted one the dead stone. Must run before Strip, since these references
     /// live on the component it destroys.
     ///
-    /// Lighting deliberately stays off. It is a large radial glow sized for a dark dungeon room;
-    /// in the base it washes several metres of ground and the pedestals read as blobs rather than
-    /// objects. A live crusade podium does use it, but that context is not this one.
-    /// </summary>
+    /// Lighting deliberately stays off: it's a large radial glow sized for a dark dungeon room, and
+    /// in the base it washes several metres of ground so the pedestals read as blobs rather than
+    /// objects.
+    /// </remarks>
     private static void ApplyLitState(GameObject plinth, bool received)
     {
         // By child name rather than through Interaction_WeaponSelectionPodium's fields: Strip

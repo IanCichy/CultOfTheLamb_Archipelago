@@ -2,14 +2,15 @@ namespace Archipelago.CultOfTheLamb.Services;
 
 /// <summary>
 /// The tarot collection, as a <see cref="ManagedCollection{T}"/> backing.
-///
+/// </summary>
+/// <remarks>
 /// DataManager.Instance.PlayerFoundTrinkets is read through the property on every call rather
 /// than captured once: the instance is replaced across save loads, and a stale reference would
 /// have the sweep tidying a collection nothing is reading any more.
 ///
 /// Stateless, so the plugin can build one while disconnected for
 /// <see cref="ManagedCollection{T}.SettleIfOwed"/>.
-/// </summary>
+/// </remarks>
 internal class TarotCollectionBacking : IManagedBacking<TarotCards.Card>
 {
     /// <summary>Namespaces this collection's rows in the store.</summary>

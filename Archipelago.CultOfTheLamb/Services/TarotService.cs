@@ -9,30 +9,26 @@ namespace Archipelago.CultOfTheLamb.Services;
 /// <summary>
 /// Makes the tarot collection an Archipelago system: earning a card sends a check, and cards
 /// arrive as items.
-///
+/// </summary>
+/// <remarks>
 /// The collection is emptied on connect, including the cards the game normally starts you with -
-/// a randomizer where a sixth of the pool is already in hand isn't randomizing those. The seed's
-/// own starting cards are granted straight back.
+/// a randomizer where a sixth of the pool is already in hand isn't randomizing those - and the
+/// seed's own starting cards are granted straight back.
 ///
-/// Card identity comes from slot data, keyed by AP item name, because display names are nothing
-/// like the TarotCards.Card enum names ("The Burning Dead" is Skull) and hardcoding either side
-/// would let the two drift silently.
-///
-/// The revoke/restore/persist/sweep machinery lives in <see cref="ManagedCollection{T}"/>, which
-/// also explains why grants are held outside the game's collection. What stays here is what is
-/// genuinely about tarot: slot-data parsing, the unlock decision, and the patch wiring.
+/// Card identity comes from slot data, keyed by AP item name: display names are nothing like the
+/// TarotCards.Card enum names ("The Burning Dead" is Skull), so hardcoding either side would let
+/// the two drift silently. The revoke/restore/persist/sweep machinery is
+/// <see cref="ManagedCollection{T}"/>; what stays here is slot-data parsing, the unlock decision,
+/// and the patch wiring.
 ///
 /// **A card earned while disconnected is lost, and holding grants outside the collection is why.**
-/// Every other check source re-derives from save state at connect; this one can't. On a clean
-/// disconnect ManagedCollection.Restore writes revoked *and* granted cards back into
-/// PlayerFoundTrinkets and Settle deletes the store row, so at the next connect a card the
-/// multiworld gave you is indistinguishable from one you earned offline. A catch-up pass would
-/// self-check every tarot item received. Fixing it needs a new persisted record - granted kept
-/// separate from revoked at settle time - rather than a read of anything the game already stores.
-///
-/// If you do write that catch-up: it cannot live in Register(), which runs before any received item
-/// has been applied. See the note on IService.Register.
-/// </summary>
+/// Every other check source re-derives from save state at connect; this one can't, because
+/// ManagedCollection.Restore writes revoked *and* granted cards back into PlayerFoundTrinkets,
+/// leaving a card the multiworld gave you indistinguishable from one you earned offline. Fixing
+/// it needs a new persisted record - granted kept separate from revoked at settle time - and it
+/// cannot live in Register(), which runs before any received item has been applied (see the note
+/// on IService.Register).
+/// </remarks>
 internal class TarotService : IService
 {
     private readonly ArchipelagoSession session;

@@ -6,14 +6,15 @@ namespace Archipelago.CultOfTheLamb;
 
 /// <summary>
 /// Reads values out of the slot data the server sends at connect.
-///
+/// </summary>
+/// <remarks>
 /// Newtonsoft is the client library's serializer, so anything nested arrives as
 /// <see cref="JObject"/> / <see cref="JArray"/> rather than native .NET collections, and every
 /// scalar arrives boxed. Both facts were being rediscovered in a handful of services.
 ///
 /// **Malformed entries are skipped, not thrown.** This all runs during connect, where an
 /// exception costs the whole session rather than the one value that was wrong.
-/// </summary>
+/// </remarks>
 internal static class SlotData
 {
     internal static bool GetBool(IReadOnlyDictionary<string, object> slotData, string key) =>

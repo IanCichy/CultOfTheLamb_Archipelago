@@ -7,9 +7,8 @@ from BaseClasses import Item, ItemClassification
 #
 # **These do not need to be globally unique.** Archipelago namespaces the datapackage by game:
 # "different games may reuse these names or IDs" (docs/network protocol.md), and "locations can
-# share IDs with other games' locations" (docs/world api.md). An earlier comment here treated the
-# range as a placeholder pending a registry check - there is no registry, and nothing to collide
-# with. Moving these would invalidate every existing seed for no gain.
+# share IDs with other games' locations" (docs/world api.md). There is no registry to check them
+# against, and moving them would invalidate every existing seed for no gain.
 #
 # The two real constraints, both asserted below the table: ids must be unique *within* this world,
 # and must fit in 1..2^53-1 (Archipelago recommends staying under 2^31-1, which these do).
@@ -49,6 +48,7 @@ def ap_item_name(category: str, display: str) -> str:
 
 
 class ItemData(NamedTuple):
+    """One row of `item_table`: its AP id, classification, and which block it belongs to."""
     code: Optional[int]
     classification: ItemClassification
     category: str
@@ -201,6 +201,7 @@ def sermon_item_counts(include_dlc: bool) -> Dict[str, int]:
 
 
 class EquipmentData(NamedTuple):
+    """One weapon or curse family - its display name, the game's enum name, and its AP id."""
     display: str
     internal: str
     code: int
@@ -258,6 +259,7 @@ DI_TIER_THRESHOLDS = [0, 4, 10, 20, 25]
 
 
 class DivineInspirationData(NamedTuple):
+    """One upgrade in the Shrine tree, with the tier that gates it."""
     display: str
     internal: str
     tier: int  # 1-5
@@ -382,6 +384,7 @@ carry the player past the tier-2 threshold of 4 unlocks, which is intended.
 
 
 class DivineInspirationGroup(NamedTuple):
+    """Several DI upgrades granted together as one item, used by curated_checks."""
     display: str
     upgrades: Tuple[str, ...]
     # Progression only when a rule in rules.py names the item; useful otherwise. Kept here rather
@@ -522,6 +525,7 @@ assert set(_DI_CURATED_COVERAGE) == {u.internal for u in DIVINE_INSPIRATION}, (
 
 
 class BuildingData(NamedTuple):
+    """One buildable structure, with the DI tier that unlocks it."""
     display: str
     internal: str  # StructureBrain.TYPES
     tier: int      # of the DI upgrade that unlocks it
@@ -582,6 +586,7 @@ TAROT_ITEM_OFFSET = 600
 
 
 class TarotCardData(NamedTuple):
+    """One Tarot card - display name, the game's enum name, and its pool flags."""
     display: str
     internal: str
     # Woolhaven DLC card - only in the pool when Include Woolhaven DLC is on.
@@ -765,7 +770,8 @@ item_table: Dict[str, ItemData] = {
     PROGRESSIVE_REGION_ACCESS: ItemData(offset + 1, ItemClassification.progression, "Region"),
 
     # Useful-but-not-required unlocks. "Doctrine Unlock"/"Structure Unlock" are still
-    # generic placeholders (see module docstring above); Weapons/Tarot/Relics are real names.
+    # generic placeholders (see the naming note at the top of this file); Weapons/Tarot/Relics
+    # are real names.
     "Doctrine Unlock": ItemData(offset + 100, ItemClassification.useful, "Doctrine"),
     "Structure Unlock": ItemData(offset + 101, ItemClassification.useful, "Structure"),
 
@@ -898,12 +904,10 @@ DI_EARLY_ITEM_NAMES: Tuple[str, ...] = tuple(
 # `progression` for any unrelated reason would otherwise silently repoint the gate in rules.py.
 DI_GATE_ITEM = DI_PROGRESSIVE_CULT
 
-# The previous check here was `len(item_table) == len(set(item_table))`, which compares a dict's
-# length to its own key set and is therefore True for every possible dict. It could never fail.
-#
-# These three can. A duplicate *name* silently overwrites an earlier entry, losing an item and
-# leaving its id unused; a duplicate *code* gives two names the same id, so the client applies the
-# wrong item; and an id that runs past the location range collides with a location.
+# Three real checks, replacing one that compared a dict's length to its own key set and so could
+# never fail. A duplicate *name* silently overwrites an earlier entry, losing an item and leaving
+# its id unused; a duplicate *code* gives two names the same id, so the client applies the wrong
+# item; and an id that runs past the location range collides with a location.
 _codes = [data.code for data in item_table.values() if data.code is not None]
 _duplicate_codes = {code for code, count in Counter(_codes).items() if count > 1}
 assert not _duplicate_codes, (
@@ -932,8 +936,8 @@ for _category, _expected in _expected_counts.items():
         f"a display name, so one silently overwrote the other")
 
 # Sermons can't use the count check above: SERMON_ITEM_UPGRADES is itself keyed by item name, so a
-# duplicate has already collapsed by the time its length is read - comparing it to the table would
-# compare a collapsed number against itself, which is the exact bug this block replaced.
+# duplicate has already collapsed by the time its length is read, and comparing it to the table
+# would compare a collapsed number against itself.
 #
 # Checking the raw source rows instead. Their display names are distinct even within a progressive
 # chain ("Might of the Devout I", "II"), because _chain_for maps them onto a shared item name

@@ -169,10 +169,9 @@ def set_depth_rules(
     20-strong flock both need hours of play and opened regions, and the game doesn't express
     that in a way Archipelago can see. Split into `_BANDS` bands requiring 0..N copies.
 
-    The deepest band requires *all* the copies, deliberately. An earlier version capped this
-    one short of the total, reasoning that requiring all of them would leave the last copy
-    with nowhere late to go. That's backwards: the last copy having nowhere late to go is the
-    goal. Capping it is what made "your fourth door is behind Sermon Upgrade 32" a legal seed.
+    The deepest band requires *all* the copies, deliberately - the last copy having nowhere late
+    to go is the goal. Capping it short of the total is what made "your fourth door is behind
+    Sermon Upgrade 32" a legal seed.
 
     **Exclusion** does the job the bands can't. A band says a location is *unreachable*, which
     is a lie - you genuinely can reach sermon 30 with one region open, it just takes hours -

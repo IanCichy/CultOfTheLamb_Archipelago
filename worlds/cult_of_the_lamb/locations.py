@@ -57,10 +57,8 @@ location_table: Dict[str, LocationData] = {
 # The game's own identifier for each boss encounter, sent through slot data so the client doesn't
 # have to hardcode these location ids.
 #
-# It used to: Utilities/CultOfTheLambIds.cs wrote all twenty out as `3_051_000 + N`, where N is the
-# row's position in the dict above. That made *reordering this table* silently repoint every boss
-# check - and these are the goal-critical ones. Every other block already sends its ids, so these
-# were the exception.
+# **Reordering the dict above silently repoints every boss check**, and these are the goal-critical
+# ones - which is why they travel as slot data rather than as `3_051_000 + N` positional ids.
 #
 # Minibosses and Witnesses are keyed by MiniBossController.name, which is what
 # DataManager.KilledBosses stores. Confirmed in-game by dumping a live boss room; see

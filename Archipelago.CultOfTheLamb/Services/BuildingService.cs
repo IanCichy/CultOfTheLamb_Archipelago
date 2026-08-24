@@ -9,13 +9,14 @@ namespace Archipelago.CultOfTheLamb.Services;
 
 /// <summary>
 /// Sends a check the first time the player builds each of a curated set of structures.
-///
+/// </summary>
+/// <remarks>
 /// Named locations rather than sequential, unlike most blocks here: which building you put up is
 /// a real choice, so "Build - Kitchen" says more than "Building 12".
 ///
 /// The set comes from slot data, so the client never needs its own opinion about which of the
 /// game's 332 structures are interesting - and the two sides can't drift.
-/// </summary>
+/// </remarks>
 internal class BuildingService : IService
 {
     private readonly ArchipelagoSession session;
@@ -35,7 +36,6 @@ internal class BuildingService : IService
     {
         StructureBuildPatch.Built = OnBuilt;
 
-        // Catch up anything standing before this connect, or built while disconnected.
         SendChecksForExisting();
 
         Log.LogInfo($"[AP] Building checks active: {structureToCheckId.Count} structure(s) mapped.");

@@ -5,21 +5,21 @@ namespace Archipelago.CultOfTheLamb.Patches;
 
 /// <summary>
 /// Reports every finished building.
-///
+/// </summary>
+/// <remarks>
 /// <c>Structures_BuildSite.OnBuildComplete</c> looks like the hook and isn't: it's a
 /// per-instance <c>Action</c> with no arguments, so it says *that* something finished, not
 /// *what*. <c>Build()</c> has <c>Data.ToBuildType</c> right there.
 ///
-/// **Two classes need patching.** Simple structures go through
-/// <see cref="Structures_BuildSite"/>; multi-stage ones go through
+/// **Two classes need patching**: simple structures go through
+/// <see cref="Structures_BuildSite"/>, multi-stage ones through
 /// <see cref="Structures_BuildSiteProject"/>, whose <c>Build()</c> is private. Patch only the
 /// first and every project building silently never fires.
 ///
 /// Decorations are not filtered here. Both originals branch on
 /// <c>StructuresData.GetCategory(...) == AESTHETIC</c>, but the service works from an explicit
-/// list of 25 buildings, so anything not on it is ignored anyway - and filtering twice would
-/// just be a second place to get the category wrong.
-/// </summary>
+/// list of 25 buildings, so filtering twice would only be a second place to get it wrong.
+/// </remarks>
 internal static class StructureBuildPatch
 {
     /// <summary>Set by BuildingService while connected; null leaves the game untouched.</summary>

@@ -5,7 +5,8 @@ interface IService
     /// <summary>
     /// Hooks the game up to this system for the duration of a session, and catches up on anything
     /// that happened while there wasn't one.
-    ///
+    /// </summary>
+    /// <remarks>
     /// **Register runs before a single received item has been applied.** ArchipelagoItemLogicController
     /// registers alongside everything else, and its own Register only *drains* the server's replayed
     /// backlog into a queue - the grants happen frames later in ProcessQueue. So catch-up here may
@@ -14,7 +15,7 @@ interface IService
     /// granted yet, and the answer would be silently wrong rather than obviously empty.
     ///
     /// Anything that genuinely needs granted state has to run after the queue drains, not here.
-    /// </summary>
+    /// </remarks>
     public void Register();
 
     public void Unregister();

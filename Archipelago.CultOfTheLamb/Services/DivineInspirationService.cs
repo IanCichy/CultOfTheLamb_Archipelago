@@ -14,12 +14,10 @@ namespace Archipelago.CultOfTheLamb.Services;
 /// Checks are **sequential**: the Nth upgrade unlocked in that tree is the Nth check. That's the
 /// only shape that works in all three active modes, because in checks_and_techs the player never
 /// picks anything and a per-upgrade location would fire for whatever the multiworld handed over
-/// rather than for something the player did. It also sidesteps the tree's prerequisites - 11 of
-/// the 69 sit behind external systems - since the player just unlocks things in whatever order
-/// the game allows.
-///
-/// The count comes from the tree's own <c>NumUnlockedUpgrades()</c> rather than a tally kept
-/// here, so it survives reconnects and catches up unlocks made while disconnected.
+/// rather than for something the player did. It also sidesteps the tree's prerequisites - 11 of the
+/// 69 sit behind external systems - since the player unlocks things in whatever order the game
+/// allows. The count comes from the tree's own <c>NumUnlockedUpgrades()</c> rather than a tally
+/// kept here, so it survives reconnects and catches up unlocks made while disconnected.
 /// </summary>
 internal class DivineInspirationService : IService
 {
@@ -123,7 +121,6 @@ internal class DivineInspirationService : IService
 
         GrantFreeUpgrades();
 
-        // Catch up meter fills from before this connect, or from while disconnected.
         SendChecksUpTo(EarnedCount());
 
         Log.LogInfo($"[AP] Divine Inspiration active: mode {ModeName}, {locationCount} "
@@ -187,17 +184,18 @@ internal class DivineInspirationService : IService
 
     /// <summary>
     /// How many ability points the player has ever earned from the Devotion meter.
-    ///
+    /// </summary>
+    /// <remarks>
     /// <c>DataManager.Level</c> is incremented once per fill in PlayerFarming.GetXP and is never
     /// decremented - spending points moves <c>AbilityPoints</c>, not this. That makes it a
     /// monotonic, save-backed count, the same shape as the sermon system's
     /// Doctrine_PlayerUpgrade_Level, so a reconnect or a session played offline catches up
     /// without tracking anything ourselves.
     ///
-    /// It counts *meter fills only*. Points the multiworld hands over go straight into
-    /// AbilityPoints without touching Level, which is exactly right - a received point isn't
+    /// It counts *meter fills only*: points the multiworld hands over go straight into
+    /// AbilityPoints without touching Level, which is exactly right, since a received point isn't
     /// something the player earned.
-    /// </summary>
+    /// </remarks>
     private static int EarnedCount() => DataManager.Instance?.Level ?? 0;
 
     private void OnPointEarned() => SendChecksUpTo(EarnedCount());

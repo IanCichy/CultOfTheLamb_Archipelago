@@ -6,7 +6,8 @@ namespace Archipelago.CultOfTheLamb;
 /// <summary>
 /// Registers localization terms at runtime so mod-authored text can be shown by game UI that
 /// only accepts an I2 key.
-///
+/// </summary>
+/// <remarks>
 /// Several of the game's display paths take a term key rather than a string -
 /// NotificationCentre.PlayGenericNotification(locKey, flair), ObjectivesData.GroupId (the
 /// objective group's title), and Objectives_Custom.Text (which looks up
@@ -17,7 +18,7 @@ namespace Archipelago.CultOfTheLamb;
 /// Two callers with different key schemes: ApNotification hashes the message text into a key
 /// under its own prefix, while QuestGuideService uses fixed keys the game computes for itself.
 /// Hence the explicit-key API - the key is the caller's business, the registration isn't.
-/// </summary>
+/// </remarks>
 internal static class I2Terms
 {
     /// <summary>

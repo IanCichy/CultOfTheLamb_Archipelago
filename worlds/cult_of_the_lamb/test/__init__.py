@@ -4,8 +4,8 @@ from test.bases import WorldTestBase
 class CultOfTheLambTestBase(WorldTestBase):
     """Shared base for this world's tests.
 
-    Carries the two accessors every test file otherwise re-declares. The four pre-existing files
-    still have their own copies; new tests should use this.
+    Carries the two accessors every test file otherwise re-declares. Most files still subclass
+    WorldTestBase directly and keep their own copies; new tests should use this instead.
     """
     game = "Cult of the Lamb"
 

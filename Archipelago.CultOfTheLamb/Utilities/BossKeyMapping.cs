@@ -4,7 +4,8 @@ namespace Archipelago.CultOfTheLamb;
 
 /// <summary>
 /// Miniboss/Witness kill key -> AP location id, filled from slot data at connect.
-///
+/// </summary>
+/// <remarks>
 /// The key is what DataManager.KilledBosses stores: MiniBossController.name, which is also the
 /// boss's follower-skin name - the equivalence that makes these strings recoverable from code at
 /// all (see AI_INDEX.md section 3a). These are not the display names players see; those live in
@@ -14,7 +15,7 @@ namespace Archipelago.CultOfTheLamb;
 /// locations.py's dict - so reordering that dict silently repointed every boss check, and these
 /// are the goal-critical ones. The world sends them now, like every other block does. The key
 /// strings stay here because they're game knowledge, not seed data.
-/// </summary>
+/// </remarks>
 internal static class BossKeyMapping
 {
     /// <summary>Suffix the game appends when re-killing a boss in post-game (Layer2) mode.</summary>

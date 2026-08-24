@@ -5,7 +5,8 @@ namespace Archipelago.CultOfTheLamb.Services;
 
 /// <summary>
 /// Sends a check for each broom level earned by sweeping.
-///
+/// </summary>
+/// <remarks>
 /// <c>DataManager.ChoreXPLevel</c> is monotonic and save-persisted - the same shape as the sermon
 /// and Divine Inspiration counters - so the Nth level is the Nth check.
 ///
@@ -13,7 +14,7 @@ namespace Archipelago.CultOfTheLamb.Services;
 /// (PlayerChoreXPBarController:62 and :234, the solo and co-op paths), but it's save state, so
 /// reading it also catches sweeping done while disconnected and re-derives correctly after a
 /// reload. Same reasoning as SnailShrineService.
-/// </summary>
+/// </remarks>
 internal class BroomService : IService
 {
     private readonly ArchipelagoSession session;

@@ -9,7 +9,8 @@ namespace Archipelago.CultOfTheLamb.Patches;
 /// Owns the Divine Inspiration point economy: reports when the player fills the Devotion meter,
 /// optionally withholds the point it would have paid, and can cap how much Devotion a point
 /// costs.
-///
+/// </summary>
+/// <remarks>
 /// The award is patched at <c>UpgradeSystem.AbilityPoints</c>'s **setter** rather than at
 /// PlayerFarming's <c>++</c> (`PlayerFarming.cs:2024`). That `++` is the only non-debug award
 /// site today, but the setter catches every path including any the game adds later, and it's
@@ -17,7 +18,7 @@ namespace Archipelago.CultOfTheLamb.Patches;
 ///
 /// Everything here is inert unless a session sets it, so the game is untouched when
 /// disconnected.
-/// </summary>
+/// </remarks>
 internal static class DivineInspirationPatch
 {
     /// <summary>
@@ -107,16 +108,16 @@ internal static class DivineInspirationPatch
 
     /// <summary>
     /// Caps what the next point costs.
-    ///
+    /// </summary>
+    /// <remarks>
     /// The game's curve runs 1, 13, 29 ... up to 465 and then stays there
     /// (`DataManager.TargetXP`, 41 entries, clamped by index), which totals roughly 24,000
     /// Devotion for all 69 points - a completionist number, not a one-seed number. Capping the
     /// tail keeps the early curve intact while making the whole tree reachable in a normal run.
     ///
-    /// Applied as a postfix on purpose: `AllUnlockedMultiplier` triples the cost inside
-    /// GetTargetXP once nothing is left to unlock, so clamping afterwards neutralises that
-    /// cliff for free.
-    /// </summary>
+    /// Applied as a postfix on purpose: `AllUnlockedMultiplier` triples the cost inside GetTargetXP
+    /// once nothing is left to unlock, so clamping afterwards neutralises that cliff for free.
+    /// </remarks>
     [HarmonyPatch(typeof(DataManager), nameof(DataManager.GetTargetXP))]
     internal static class DevotionCost
     {

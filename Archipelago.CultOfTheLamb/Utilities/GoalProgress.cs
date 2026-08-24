@@ -2,7 +2,8 @@ namespace Archipelago.CultOfTheLamb;
 
 /// <summary>
 /// How far along the seed's win condition is, counted from the game's own save state.
-///
+/// </summary>
+/// <remarks>
 /// Shared by GoalService (which reports victory to the server) and QuestGuideService (which
 /// shows the same number as a quest line). Two readers meant two chances to disagree about
 /// what "defeated" means - particularly around the "_P2" post-game Witness re-fights - so the
@@ -11,7 +12,7 @@ namespace Archipelago.CultOfTheLamb;
 /// Save state rather than a session tally, deliberately: BossesCompleted and KilledBosses are
 /// both already written by the time our handlers run, so these are correct after a reconnect
 /// and for progress made before ever connecting. See AI_INDEX.md §3 and §3a.
-/// </summary>
+/// </remarks>
 internal static class GoalProgress
 {
     /// <summary>How many of the four base-game Bishops have been killed.</summary>

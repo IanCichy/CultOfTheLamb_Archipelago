@@ -6,7 +6,8 @@ namespace Archipelago.CultOfTheLamb.Patches;
 
 /// <summary>
 /// Turns "the sermon bar filled" into an Archipelago check instead of an upgrade you pick.
-///
+/// </summary>
+/// <remarks>
 /// SermonController.PlayerUpgrade() is the whole reward step - Disciple Point, tree menu, choice,
 /// then the level increment - so replacing it wholesale is what decouples earning an upgrade from
 /// receiving one.
@@ -16,7 +17,7 @@ namespace Archipelago.CultOfTheLamb.Patches;
 ///
 /// The level counter doubles as the location index - incremented once per fill and persisted, so
 /// it survives reconnects and sermons given while disconnected.
-/// </summary>
+/// </remarks>
 [HarmonyPatch(typeof(SermonController))]
 internal static class SermonUpgradePatch
 {
@@ -28,16 +29,16 @@ internal static class SermonUpgradePatch
 
     /// <summary>
     /// Caps what the next Temple upgrade costs.
-    ///
-    /// Vanilla climbs 0.3, 0.4, 1.1 ... to 10.0 and holds there, so the last 25 of the 38
-    /// upgrades all sit at the ceiling - roughly 298 XP total, or ~150 sermons at a 20-strong
-    /// flock. Sermons are a once-a-day ritual rather than a trickle, which makes that a worse
-    /// grind than Devotion.
+    /// </summary>
+    /// <remarks>
+    /// Vanilla climbs 0.3, 0.4, 1.1 ... to 10.0 and holds there, so the last 25 of the 38 upgrades
+    /// all sit at the ceiling - roughly 298 XP total, or ~150 sermons at a 20-strong flock, and
+    /// sermons are a once-a-day ritual rather than a trickle.
     ///
     /// **PlayerUpgrade only.** The five doctrine categories route through this same method on a
     /// much steeper curve, and this world doesn't randomize them yet - capping them would speed
     /// up content the player didn't ask to change.
-    /// </summary>
+    /// </remarks>
     [HarmonyPatch(typeof(DoctrineUpgradeSystem),
         nameof(DoctrineUpgradeSystem.GetXPTargetBySermon))]
     internal static class SermonXpTarget

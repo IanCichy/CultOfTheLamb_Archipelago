@@ -4,19 +4,18 @@ namespace Archipelago.CultOfTheLamb.Services;
 
 /// <summary>
 /// Sends a check for each of the first N Followers recruited.
-///
+/// </summary>
+/// <remarks>
 /// FollowerManager.OnFollowerAdded is the single funnel and a public static event, so no Harmony
 /// patch is needed. (FollowerRecruit.OnRecruitFinalised is the wrong hook - it fires
 /// mid-animation, before the Follower is in the list, so the count sticks one behind.)
 ///
-/// The count is derived from save state rather than tallied in-session, so it survives
-/// reconnects and catches up recruits made while disconnected. It counts Followers *ever*
-/// recruited, not the current flock, so a plague or a sacrifice spree can't make a milestone
-/// already passed unreachable again.
-///
-/// Every check up to the current count is re-sent each time. Idempotent by design, so a missed
+/// The count is derived from save state rather than tallied in-session, so it survives reconnects
+/// and catches up recruits made while disconnected, and it counts Followers *ever* recruited
+/// rather than the current flock - so a plague or a sacrifice spree can't make a milestone already
+/// passed unreachable again. Every check up to the current count is re-sent each time, so a missed
 /// event or a save edited outside the mod self-corrects on the next recruitment.
-/// </summary>
+/// </remarks>
 internal class FollowerMilestoneService : IService
 {
     private readonly ArchipelagoSession session;
@@ -33,7 +32,6 @@ internal class FollowerMilestoneService : IService
     public void Register()
     {
         FollowerManager.OnFollowerAdded += HandleFollowerAdded;
-        // Catch up on anything recruited before this connect.
         SendChecksUpTo(CountEverRecruited());
         Log.LogInfo($"[AP] Follower milestones active: {locationCount} location(s) "
             + $"from id {locationBaseId}.");

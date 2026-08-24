@@ -6,17 +6,17 @@ namespace Archipelago.CultOfTheLamb.Services;
 /// <summary>
 /// The seed's pacing caps: how much Devotion an ability point costs, how much XP a Temple
 /// upgrade costs, and how long a structure takes to build.
-///
-/// All three exist because the game's curves are built for completion over dozens of hours,
-/// while an Archipelago seed wants those same blocks finishable in one. Each is the same shape -
-/// a postfix clamping one public static - so they live together rather than being scattered
-/// across the services that happen to care about them.
-///
-/// Deliberately **not** tied to whether the matching block is randomized. These are quality of
-/// life, not randomizer settings: a seed with sermon randomization off should still be able to
-/// cap sermon XP, and a seed with Divine Inspiration off should still cap Devotion. So this
-/// registers unconditionally and reads the caps straight from slot data.
 /// </summary>
+/// <remarks>
+/// All three exist because the game's curves are built for completion over dozens of hours, while
+/// an Archipelago seed wants those same blocks finishable in one. Each is the same shape - a
+/// postfix clamping one public static - so they live together rather than scattered across the
+/// services that happen to care about them.
+///
+/// Deliberately **not** tied to whether the matching block is randomized: these are quality of
+/// life, not randomizer settings, so a seed with sermon randomization off should still be able to
+/// cap sermon XP. This registers unconditionally and reads the caps straight from slot data.
+/// </remarks>
 internal class EconomyService : IService
 {
     private readonly int devotionCap;

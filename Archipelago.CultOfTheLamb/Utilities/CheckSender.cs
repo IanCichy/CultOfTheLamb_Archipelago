@@ -7,7 +7,8 @@ namespace Archipelago.CultOfTheLamb;
 
 /// <summary>
 /// Sends location checks, skipping the ones the server already has.
-///
+/// </summary>
+/// <remarks>
 /// Services that derive checks from save state re-derive them on every connect, which is what
 /// catches up progress made while disconnected - but it also re-sends checks from sessions ago,
 /// popping a notification for each. Filtering here leaves each service free to re-derive as
@@ -15,7 +16,7 @@ namespace Archipelago.CultOfTheLamb;
 ///
 /// Not the same as a service's own "already sent" flags: those cover repeat polls within one
 /// session, this covers everything from previous ones.
-/// </summary>
+/// </remarks>
 internal static class CheckSender
 {
     /// <summary>

@@ -8,16 +8,17 @@ namespace Archipelago.CultOfTheLamb.Services;
 /// <summary>
 /// A line of podiums in the base - every weapon, a gap, then every curse - showing which families
 /// Archipelago has granted.
-///
-/// These are the only randomized system with no native screen anywhere in the game. The weapon and
+/// </summary>
+/// <remarks>
+/// These are the only randomized system with no native screen anywhere in the game: the weapon and
 /// curse wheels are in-run only and read the transient pool, and there is no PlayerFoundWeapons to
 /// mirror how PlayerFoundTrinkets backs the tarot collection. So unlike sermons or tarot there is
 /// nothing to unhide, and the display has to be built.
 ///
-/// Nothing is written to save data: no StructureBrain, no StructureManager entry. The podiums are
+/// Nothing is written to save data - no StructureBrain, no StructureManager entry. The podiums are
 /// respawned per scene load and destroyed on disconnect, so a save that stops using this mod is
 /// unchanged.
-/// </summary>
+/// </remarks>
 internal class EquipmentDisplayService : IService
 {
     private readonly EquipmentPoolService weapons;

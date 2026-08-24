@@ -7,7 +7,8 @@ namespace Archipelago.CultOfTheLamb;
 
 /// <summary>
 /// Loads the mod's own textures out of the assembly.
-///
+/// </summary>
+/// <remarks>
 /// Assets ship as *embedded resources* rather than loose files next to the DLL: r2modman
 /// flattens plugin folders in ways that make relative paths unreliable, and a missing file at
 /// runtime would be a silent visual bug rather than a build error. Embedding makes the DLL
@@ -15,7 +16,7 @@ namespace Archipelago.CultOfTheLamb;
 ///
 /// PNG, not the WebP the AP logo is normally distributed as - Unity's Texture2D.LoadImage only
 /// decodes PNG and JPG.
-/// </summary>
+/// </remarks>
 internal static class ApAssets
 {
     // Default logical name for an EmbeddedResource: RootNamespace + folder path + filename.

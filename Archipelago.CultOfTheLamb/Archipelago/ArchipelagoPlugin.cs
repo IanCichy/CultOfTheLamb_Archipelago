@@ -9,6 +9,14 @@ using UnityEngine;
 
 namespace Archipelago.CultOfTheLamb;
 
+/// <summary>
+/// BepInEx entry point: owns the Harmony instance, the persisted connection settings, and the
+/// single <see cref="ArchipelagoClient"/> every service hangs off.
+///
+/// Also the mod's only Update loop. Services don't run their own - the client's queues have to be
+/// drained on the Unity main thread, so the per-frame and 1 Hz work is driven from here in one
+/// place rather than scattered across MonoBehaviours with undefined ordering.
+/// </summary>
 [BepInPlugin(PluginGUID, PluginName, PluginVersion)]
 public class ArchipelagoPlugin : BaseUnityPlugin
 {

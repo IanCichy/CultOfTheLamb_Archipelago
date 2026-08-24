@@ -93,6 +93,7 @@ class CultOfTheLambWorld(World):
     starting_curses: List[EquipmentData]
 
     def generate_early(self) -> None:
+        """Per-seed choices every later step reads: region order, starting equipment and cards."""
         self.region_order = self.build_region_order()
         # Expand once rather than per filler item - this is sampled dozens of times per seed.
         self.weighted_filler = weighted_filler_names()
@@ -259,14 +260,10 @@ class CultOfTheLambWorld(World):
     def goal_reaches_postgame(self) -> bool:
         """Whether finishing this seed takes the player past the vanilla final boss.
 
-        Still nothing, Narinder included - an earlier version of this docstring expected that
-        goal to flip it. It doesn't: the Mystic Cellar and the corrupted set open *after*
-        Narinder dies, so they sit past that win condition just as they sit past the Bishops
-        one. Switching them on would strand other players' items behind content the winner has
-        no reason to play.
-
-        A goal that genuinely requires post-game content - Woolhaven, roadmap Sprint 11 - is
-        what this is waiting for.
+        Still nothing, Narinder included: the Mystic Cellar and the corrupted set open *after*
+        Narinder dies, so they sit past that win condition just as they sit past the Bishops one,
+        and switching them on would strand other players' items behind content the winner has no
+        reason to play. This is waiting on a goal that genuinely requires post-game content.
         """
         return False
 
@@ -276,12 +273,17 @@ class CultOfTheLambWorld(World):
         return self.options.region_access_order != RegionAccessOrder.option_all_unlocked
 
     def create_regions(self) -> None:
+        """Builds Menu -> Cult -> the four crusade regions, and hangs this seed's locations off
+        them. Blocks whose option is off contribute no locations at all."""
         create_regions(self)
 
     def create_item(self, name: str) -> CultOfTheLambItem:
+        """One item by name, with the classification `item_table` records for it."""
         return create_item(name, self.player)
 
     def create_items(self) -> None:
+        """Fills the item pool, then pads with filler and traps to exactly match the location
+        count. Every block that adds locations adds its items here."""
         item_pool: List[CultOfTheLambItem] = []
 
         if self.regions_are_gated:
@@ -378,6 +380,8 @@ class CultOfTheLambWorld(World):
         self.multiworld.itempool += item_pool
 
     def set_rules(self) -> None:
+        """Access rules and the completion condition. See rules.py for why most blocks get
+        reachability bands rather than real item requirements."""
         set_rules(self)
 
     def get_filler_item_name(self) -> str:
@@ -392,6 +396,8 @@ class CultOfTheLambWorld(World):
         return self.random.choice(self.weighted_filler)
 
     def fill_slot_data(self) -> Dict[str, Any]:
+        """The wire contract with the C# client: every id map and option the mod reads at connect.
+        Keys here are matched by literal string on the client side, so renaming one breaks it."""
         return {
             "worldVersion": MOD_VERSION,
 

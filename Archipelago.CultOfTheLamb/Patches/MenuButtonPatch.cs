@@ -11,7 +11,8 @@ namespace Archipelago.CultOfTheLamb.Patches;
 
 /// <summary>
 /// Puts an "Archipelago" entry in the pause menu and the main menu.
-///
+/// </summary>
+/// <remarks>
 /// Both menus wire their buttons the same way in their own Start() - a serialized MMButton per
 /// entry, each given an onClick listener - so the cheapest correct way to add one is to clone a
 /// button that already exists. A clone inherits the prefab's styling, layout and hover
@@ -20,7 +21,7 @@ namespace Archipelago.CultOfTheLamb.Patches;
 /// The pause menu is the one that matters: it's the only entry point guaranteed to be at a
 /// loaded save, which is the only place connecting can actually finish (see the panel's
 /// CanConnectHere). The main menu one is a convenience for entering details early.
-/// </summary>
+/// </remarks>
 [HarmonyPatch]
 internal static class MenuButtonPatch
 {

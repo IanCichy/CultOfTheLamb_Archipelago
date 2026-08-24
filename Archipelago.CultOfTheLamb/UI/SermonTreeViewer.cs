@@ -10,17 +10,18 @@ namespace Archipelago.CultOfTheLamb.UI;
 
 /// <summary>
 /// Opens the game's own sermon upgrade tree as a read-only viewer.
-///
+/// </summary>
+/// <remarks>
 /// Randomizing sermons costs the player the only routine way to see this tree: SermonUpgradePatch
 /// replaces SermonController.PlayerUpgrade, which was the sole call site of
 /// UIManager.ShowPlayerUpgradeTree. This gives it back, with the real art, connectors and - the
 /// reason it isn't an IMGUI panel - the game's own controller cursor.
 ///
-/// We instantiate the prefab rather than calling ShowPlayerUpgradeTree, and that one decision
-/// removes most of the danger: ShowPlayerUpgradeTree is what sets `revealType` on a Seasons save,
-/// and OnShowCompleted unlocks an upgrade for free when it's set. Going through the inherited
-/// Show(bool) leaves revealType at Count, so that branch is unreachable with no patch at all.
-/// </summary>
+/// We instantiate the prefab rather than calling ShowPlayerUpgradeTree, which removes most of the
+/// danger: ShowPlayerUpgradeTree is what sets `revealType` on a Seasons save, and OnShowCompleted
+/// unlocks an upgrade for free when it's set. Going through the inherited Show(bool) leaves
+/// revealType at Count, so that branch is unreachable with no patch at all.
+/// </remarks>
 internal static class SermonTreeViewer
 {
     /// <summary>
@@ -137,14 +138,15 @@ internal static class SermonTreeViewer
 
     /// <summary>
     /// Drops the "N / M" tier rules across the tree.
-    ///
+    /// </summary>
+    /// <remarks>
     /// They describe spending upgrades to open the next row, which can't happen here - Archipelago
     /// grants sermon upgrades outright and ignores tiers entirely, so the thresholds are a
     /// progression the player can't act on. Same reasoning as DivineInspirationTierReveal.
     ///
     /// Done on our instance rather than by patching NumRequiredNodesForTier, because that reader
     /// also decides node state for the *real* sermon tree the Flock ritual and sermon rewards open.
-    /// </summary>
+    /// </remarks>
     private static void HideTierDividers(UIUpgradePlayerTreeMenuController viewer)
     {
         foreach (var divider in viewer.GetComponentsInChildren<TierLockIcon>(includeInactive: true))

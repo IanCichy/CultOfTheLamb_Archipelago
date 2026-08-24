@@ -10,12 +10,10 @@ namespace Archipelago.CultOfTheLamb.UI;
 /// Without it a session that quietly dropped looks exactly like one that's fine, right up until
 /// a check fails to land.
 ///
-/// Deliberately not interactive - a GraphicRaycaster over the play area risks swallowing clicks
-/// in a game where attacking is a left click.
-///
-/// It gets its own canvas because anchoring to a screen corner needs a full-screen parent. The
-/// cost is that it no longer inherits the HUD's show/hide, so that's mirrored explicitly from
-/// HUD_Manager.Hidden.
+/// Deliberately not interactive - a GraphicRaycaster over the play area risks swallowing clicks in
+/// a game where attacking is a left click. It gets its own canvas because anchoring to a screen
+/// corner needs a full-screen parent, at the cost of no longer inheriting the HUD's show/hide, so
+/// that's mirrored explicitly from HUD_Manager.Hidden.
 /// </summary>
 internal class ArchipelagoHudIndicator : MonoBehaviour
 {

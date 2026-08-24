@@ -6,12 +6,12 @@ namespace Archipelago.CultOfTheLamb.Services;
 
 /// <summary>
 /// Sends a check when a Tarot Card is bought from a hub shop.
-///
-/// Every hub sells a fixed, named set of cards rather than randomised stock, so each purchase
-/// is a stable location. 14 across the four hubs.
-///
-/// The mapping comes from slot data, keyed by *enum* name because that's what a BuyEntry
-/// exposes and display names are nothing like it ("The Burning Dead" is Skull).
+/// </summary>
+/// <remarks>
+/// Every hub sells a fixed, named set of cards rather than randomised stock, so each purchase is
+/// a stable location - 14 across the four hubs. The mapping comes from slot data, keyed by *enum*
+/// name because that's what a BuyEntry exposes and display names are nothing like it ("The Burning
+/// Dead" is Skull).
 ///
 /// **No catch-up is possible, and a card bought while disconnected is lost for good.** Unlike the
 /// other check sources there is nothing in save data to re-derive from: DataManager.Shops does
@@ -19,7 +19,7 @@ namespace Archipelago.CultOfTheLamb.Services;
 /// TarotCustomTarget and returns before any Bought = true / UpdateShop call, so a tarot slot
 /// leaves no trace at all. The card landing in PlayerFoundTrinkets is the only evidence, and that
 /// can't be told apart from a card Archipelago itself granted - see TarotService.
-/// </summary>
+/// </remarks>
 internal class TarotShopService : IService
 {
     private readonly ArchipelagoSession session;
