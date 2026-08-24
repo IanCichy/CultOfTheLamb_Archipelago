@@ -17,7 +17,7 @@ and the log because those two are what make a report actionable.
 The **mod DLL and the apworld are a versioned pair.** The client prints both on connect:
 
 ```
-[AP] Versions: client 0.8.0, apworld 0.8.0
+[AP] Versions: client 0.9.0, apworld 0.9.0
 ```
 
 If those differ, item names and location ids can disagree between the two halves, and the symptom
@@ -70,8 +70,8 @@ Anything that improves that loop beats anything that merely adds more content to
 
 ## Conventions
 
-- **Comments explain why, not what.** One to three sentences. Long-form design rationale belongs
-  in a design doc under `docs/`, not the source.
+- **Comments explain why, not what.** Keep `<summary>` to a sentence or two and put the longer
+  explanation in `<remarks>`; long-form design rationale belongs in a design doc, not the source.
 - **Never change a YAML option's name** once shipped — it silently breaks everyone's config.
 - **Item and location ids are append-only.** Ids are positional, so inserting a row mid-table
   repoints everything after it.

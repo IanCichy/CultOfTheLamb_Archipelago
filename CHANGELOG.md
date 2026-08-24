@@ -19,8 +19,6 @@ pre-release development, so this section covers the whole mod rather than one in
 - Woolhaven DLC content is supported and gated behind `include_woolhaven`.
 - Filler, resources and traps pad the pool, with `trap_percentage` as the counterweight.
 
-See [docs/check-economy.md](https://github.com/IanCichy/CultOfTheLamb_Archipelago/blob/main/docs/check-economy.md) for the full per-system breakdown.
-
 ### In-game support
 - **Sermon tree viewer** ("Archipelago" on the Temple Altar menu): opens the game's own sermon
   upgrade tree as a read-only view, with the real node art, the real layout, and full controller
@@ -75,4 +73,4 @@ See [docs/check-economy.md](https://github.com/IanCichy/CultOfTheLamb_Archipelag
 - Archipelago Python world: regions (Anura/Darkwood/Anchordeep/Silk Cradle), starter item/
   location tables, options, rules. Generation verified end-to-end against a real
   Archipelago checkout.
-- No gameplay hooks yet - see docs/architecture.md for what's real vs. placeholder.
+- No gameplay hooks yet - item and location tables only.

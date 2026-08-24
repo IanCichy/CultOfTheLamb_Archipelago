@@ -19,26 +19,18 @@ checks, receiving items - but still beta software; see [Known issues](#known-iss
 
 ## Installation
 
-### Quick install (from a GitHub release)
-
-1. Install [r2modman](https://thunderstore.io/c/cult-of-the-lamb/p/ebkr/r2modman/) or an
-   equivalent mod manager, and create a profile for Cult of the Lamb.
-2. Grab the mod zip from the
+1. Install [r2modman](https://thunderstore.io/c/cult-of-the-lamb/p/ebkr/r2modman/) or another
+   Thunderstore mod manager, and create a profile for Cult of the Lamb.
+2. Find **Archipelago_CultOfTheLamb** in the profile's online mod list and install it. The
+   correct BepInEx pack comes with it.
+3. Download `cult_of_the_lamb.apworld` from the
    [latest release](https://github.com/IanCichy/CultOfTheLamb_Archipelago/releases/latest) and
-   import it via r2modman's **Settings -> Import local mod**. This pulls in the correct BepInEx
-   pack version automatically.
-3. Grab `cult_of_the_lamb.apworld` from the same release and drop it into your Archipelago
-   install's `custom_worlds\` folder (not `lib\worlds\` - that's for worlds bundled with
-   Archipelago itself).
+   drop it into your Archipelago install's `custom_worlds\` folder - not `lib\worlds\`, which is
+   for the worlds that ship with Archipelago itself.
+
+   This step stays manual by nature: the mod manager installs into **the game**, while the
+   apworld belongs to **your Archipelago install**, which is a separate program.
 4. Launch Cult of the Lamb **through r2modman**, using the profile from step 1.
-
-### Manual install (from a source checkout)
-
-1. Clone this repo.
-2. Build the C# mod - see [Building the C# mod](#building-the-c-mod) below - and copy the
-   output DLLs into your BepInEx `plugins\` folder.
-3. Build the apworld with `py -3.12 build_apworld.py` and drop the resulting
-   `cult_of_the_lamb.apworld` into `custom_worlds\`.
 
 ## Playing
 
@@ -62,9 +54,6 @@ checks, receiving items - but still beta software; see [Known issues](#known-iss
 6. The Temple Altar's **AP** entry opens a read-only viewer of the sermon upgrade tree, and the
    base's crusade podiums light up to show which weapon and curse families you've been granted -
    both useful since Archipelago is the only way into either without the game's own menus.
-
-See [docs/check-economy.md](https://github.com/IanCichy/CultOfTheLamb_Archipelago/blob/main/docs/check-economy.md) for the full shape of the seed: every check
-source, what it pays into, and what rerolls per-seed versus per-run.
 
 ## YAML options
 
@@ -90,11 +79,10 @@ Archipelago.CultOfTheLamb v0.9.0 loaded.
 [AP] Versions: client 0.9.0, apworld 0.9.0
 ```
 
-The two versions should match - a `MISMATCH` warning means your mod build and your apworld
-build are out of step and one needs updating. If you instead see a line about **"Developer
-debug keys are compiled into this build"**, you have a dev build rather than a release build;
-get the release zip from the [releases page](https://github.com/IanCichy/CultOfTheLamb_Archipelago/releases)
-instead.
+The two versions should match - a `MISMATCH` warning means your mod build and your apworld are
+out of step, and usually that the apworld in `custom_worlds\` is older than the mod. If you
+instead see a line about **"Developer debug keys are compiled into this build"**, you have a dev
+build rather than a released one; reinstall the mod through your mod manager.
 
 ## Known issues
 
@@ -127,44 +115,6 @@ Built by Ian Cichy.
 - [BepInEx](https://github.com/BepInEx/BepInEx) - LGPL-2.1
 - [HarmonyLib](https://github.com/pardeike/Harmony) - MIT
 
----
-
-# Development
-
-## Project Layout
-- `Archipelago.CultOfTheLamb/` - c# client mod.
-- `worlds/cult_of_the_lamb/` - Archipelago Python world.
-- `docs/` - architecture notes and sprint docs.
-- `lib/` - drop-in folder for third-party DLLs not on NuGet (e.g. COTL_API.dll).
-
-## Building the C# Mod
-1. Install [BepInEx 5](https://github.com/BepInEx/BepInEx/releases/latest) (x64) into your
-   Cult of the Lamb install if you haven't already.
-2. Copy `Archipelago.CultOfTheLamb/Directory.Build.props.default` to
-   `Directory.Build.props.user` and point `GameFolder` at your local install
-   (gitignored - this stays local).
-3. Open `Archipelago.CultOfTheLamb.sln` and build. The post-build step copies the plugin
-   into `<GameFolder>/BepInEx/plugins/Archipelago.CultOfTheLamb` automatically.
-
-## Working on the AP World
-`worlds/cult_of_the_lamb/` is a standard Archipelago world package. To test generation
-against a full Archipelago checkout: copy (or symlink) the folder into that checkout's
-`worlds/` directory, then run `Generate.py` with a matching player YAML. To package for
-distribution: `py -3.12 build_apworld.py`.
-
-Tests live in `worlds/cult_of_the_lamb/test/` and need that same checkout, since they run on
-Archipelago's own `WorldTestBase`:
-
-```
-python -m unittest discover -s worlds/cult_of_the_lamb/test -t .
-```
-
-They cover the option matrix, and the invariant worth defending is that **every card the
-seed manages has exactly one location** - a card with none can never be earned, and a card
-with two pays twice for one action. Both failures have shipped before.
-
-See [docs/architecture.md](https://github.com/IanCichy/CultOfTheLamb_Archipelago/blob/main/docs/architecture.md) for how the C# client and the Python world
-fit together.
-
 ## License
+
 MIT - see [LICENSE](LICENSE).
