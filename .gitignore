@@ -18,9 +18,8 @@ x86/
 *.userosscache
 *.sln.docstates
 
-# VS Code
+# VS Code - settings.json stays local: it's per-machine editor styling, not project config
 .vscode/*
-!.vscode/settings.json
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
