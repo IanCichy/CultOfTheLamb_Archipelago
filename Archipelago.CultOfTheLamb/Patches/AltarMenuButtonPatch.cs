@@ -119,7 +119,19 @@ internal static class AltarMenuButtonPatch
         // Opened from OnHidden rather than immediately: the altar is UIManager's current menu
         // instance, and SetMenuInstance silently does nothing while that's still true. The altar's
         // own OnHidden closure - registered when it was shown, so it runs first - clears it.
-        menu.OnHidden += () => SermonTreeViewer.Open(() => ReopenAltar(altar));
+        //
+        // Self-unsubscribing, because UIMenuBase invokes OnHidden and never clears it
+        // (UIMenuBase.cs:335, :375) and the altar menu object outlives a single open. A handler
+        // left attached fires on the *next* ordinary altar close too, opening the viewer nobody
+        // asked for - and since closing that viewer reopens the altar, the two bounce off each
+        // other until a scene change tears the menu down.
+        Action openViewer = null;
+        openViewer = () =>
+        {
+            menu.OnHidden -= openViewer;
+            SermonTreeViewer.Open(() => ReopenAltar(altar));
+        };
+        menu.OnHidden += openViewer;
 
         MonoSingleton<UIManager>.Instance.ForceBlockMenus = false;
 
