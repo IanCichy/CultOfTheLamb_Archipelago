@@ -53,7 +53,7 @@ internal static class EquipmentPedestal
     /// the base that would either throw or delete the display. Instantiating under an inactive
     /// parent lets us strip those components before anything on them can run.
     /// </summary>
-    private static GameObject nursery;
+    private static GameObject staging;
 
     internal static int Count => spawned.Count;
 
@@ -99,15 +99,15 @@ internal static class EquipmentPedestal
     {
         if (!EnsurePrefab()) return null;
 
-        if (nursery == null)
+        if (staging == null)
         {
-            nursery = new GameObject("AP Pedestal Nursery");
-            nursery.SetActive(false);
-            Object.DontDestroyOnLoad(nursery);
+            staging = new GameObject("AP Pedestal Staging");
+            staging.SetActive(false);
+            Object.DontDestroyOnLoad(staging);
         }
 
-        // Into the inactive nursery first, so nothing on the prefab wakes up before it's safe.
-        var plinth = Object.Instantiate(prefab, nursery.transform);
+        // Into the inactive staging parent first, so nothing on the prefab wakes before it's safe.
+        var plinth = Object.Instantiate(prefab, staging.transform);
         ApplyLitState(plinth, received);
         Strip(plinth);
 

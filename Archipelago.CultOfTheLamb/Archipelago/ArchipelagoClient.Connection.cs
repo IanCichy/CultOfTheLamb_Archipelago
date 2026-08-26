@@ -372,20 +372,21 @@ public partial class ArchipelagoClient
             CursePoolService.Register();
         }
 
-        // After both pools, since it reads what each one manages. Registered whenever either
-        // exists - it's the only way to see weapon and curse grants in game.
-        if (WeaponPoolService != null || CursePoolService != null)
-        {
-            EquipmentDisplayService = new EquipmentDisplayService(
-                WeaponPoolService, CursePoolService,
-                ArchipelagoPlugin.PedestalsEnabled, ArchipelagoPlugin.PedestalOriginX,
-                ArchipelagoPlugin.PedestalOriginY, ArchipelagoPlugin.PedestalSpacing,
-                ArchipelagoPlugin.PedestalPoolGap,
-                // The Teleport curses only exist with Woolhaven - their sermon upgrade sits
-                // behind Major_DLC_Sermon_Packs - so without it there's nothing to display.
-                SlotData.GetBool(successResult.SlotData, "includeWoolhaven"));
-            EquipmentDisplayService.Register();
-        }
+        // After both pools, since it reads what each one manages. Registered unconditionally: it
+        // also stands the collection book in the base, which is the game's own relic and tarot UI
+        // and is worth having in a seed that randomizes no equipment at all. With both pools null
+        // and the book turned off it places nothing and costs a tick.
+        EquipmentDisplayService = new EquipmentDisplayService(
+            WeaponPoolService, CursePoolService,
+            ArchipelagoPlugin.PedestalsEnabled, ArchipelagoPlugin.CollectionBookEnabled,
+            ArchipelagoPlugin.PedestalSpacing,
+            ArchipelagoPlugin.WeaponOriginX, ArchipelagoPlugin.WeaponOriginY,
+            ArchipelagoPlugin.CurseOriginX, ArchipelagoPlugin.CurseOriginY,
+            ArchipelagoPlugin.BookOriginX, ArchipelagoPlugin.BookOriginY,
+            // The Teleport curses only exist with Woolhaven - their sermon upgrade sits
+            // behind Major_DLC_Sermon_Packs - so without it there's nothing to display.
+            SlotData.GetBool(successResult.SlotData, "includeWoolhaven"));
+        EquipmentDisplayService.Register();
 
         if (SlotData.GetBool(successResult.SlotData, "buildingChecks"))
         {

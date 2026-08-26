@@ -221,7 +221,8 @@ internal static class DebugActions
         }
 
         Log.LogInfo($"[AP] Debug: preview row at X={origin.x:F2} Y={origin.y:F2} - "
-            + "paste these into PedestalOriginX / PedestalOriginY to keep it.");
+            + "paste these into whichever anchor you're placing - WeaponOriginX/Y, CurseOriginX/Y "
+            + "or BookOriginX/Y.");
         ApNotification.Show($"Archipelago: X={origin.x:F2} Y={origin.y:F2} - see the log",
             NotificationBase.Flair.Positive);
     }

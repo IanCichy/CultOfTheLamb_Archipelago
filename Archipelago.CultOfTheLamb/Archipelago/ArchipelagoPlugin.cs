@@ -193,19 +193,40 @@ public class ArchipelagoPlugin : BaseUnityPlugin
         // where they look right is a judgement call - Ctrl+F6 prints your current coordinates.
         PedestalsEnabled = Config.Bind("Displays", "EquipmentPedestals", true,
             "Show weapon and curse podiums in the base.");
-        PedestalOriginX = Config.Bind("Displays", "PedestalOriginX", -16.64f,
+        // Each display anchors itself, rather than the curses and the book being measured off the
+        // end of the weapon row. Chaining them meant the layout moved with the seed: the curse row
+        // shifted two units just for owning Woolhaven (a seventh weapon), and slid twenty-three
+        // units left when weapons weren't randomized at all. Independent origins mean turning any
+        // one system off leaves the other two exactly where they were.
+        WeaponOriginX = Config.Bind("Displays", "WeaponOriginX", -16.64f,
             "World X of the first weapon podium.");
-        PedestalOriginY = Config.Bind("Displays", "PedestalOriginY", -28.52f,
-            "World Y of the podium line.");
+        WeaponOriginY = Config.Bind("Displays", "WeaponOriginY", -28.52f,
+            "World Y of the weapon row.");
+        CurseOriginX = Config.Bind("Displays", "CurseOriginX", 6.36f,
+            "World X of the first curse podium.");
+        CurseOriginY = Config.Bind("Displays", "CurseOriginY", -28.52f,
+            "World Y of the curse row.");
+        BookOriginX = Config.Bind("Displays", "BookOriginX", 0.86f,
+            "World X of the collection book.");
+        BookOriginY = Config.Bind("Displays", "BookOriginY", -28.52f,
+            "World Y of the collection book.");
         PedestalSpacing = Config.Bind("Displays", "PedestalSpacing", 2f,
-            "Distance between podiums.");
-        PedestalPoolGap = Config.Bind("Displays", "PedestalPoolGap", 9f,
-            "Extra space between the last weapon and the first curse.");
+            "Distance between podiums within a row.");
+
+        // The hub's relic-and-tarot lectern, stood in the gap between the two podium groups. Its
+        // own toggle rather than riding on EquipmentPedestals: the podiums are a readout of what
+        // Archipelago granted, while this is the game's own collection UI, useful in any seed.
+        CollectionBookEnabled = Config.Bind("Displays", "CollectionBook", true,
+            "Show the relic and tarot collection book in the base.");
     }
 
     internal static ConfigEntry<bool> PedestalsEnabled { get; private set; }
-    internal static ConfigEntry<float> PedestalOriginX { get; private set; }
-    internal static ConfigEntry<float> PedestalOriginY { get; private set; }
+    internal static ConfigEntry<float> WeaponOriginX { get; private set; }
+    internal static ConfigEntry<float> WeaponOriginY { get; private set; }
+    internal static ConfigEntry<float> CurseOriginX { get; private set; }
+    internal static ConfigEntry<float> CurseOriginY { get; private set; }
+    internal static ConfigEntry<float> BookOriginX { get; private set; }
+    internal static ConfigEntry<float> BookOriginY { get; private set; }
     internal static ConfigEntry<float> PedestalSpacing { get; private set; }
-    internal static ConfigEntry<float> PedestalPoolGap { get; private set; }
+    internal static ConfigEntry<bool> CollectionBookEnabled { get; private set; }
 }
