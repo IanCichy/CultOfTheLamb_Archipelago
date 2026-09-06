@@ -1,5 +1,5 @@
 name: Bug report
-description: Something in the mod behaved wrongly - a crash, a missing check, an item that did nothing.
+description: Something in the mod behaved wrongly. a crash, a missing check, an item that did nothing
 labels: ["bug"]
 body:
   - type: markdown
@@ -7,8 +7,8 @@ body:
       value: |
         Thanks for taking the time to report this.
 
-        **Before you start: press F9 in game.** That dumps the mod's state into the log, and a log
-        with an F9 in it usually answers everything we'd otherwise have to ask you.
+        **Before you start: press F9 in game.** That dumps the mod's state into the log, which usually answers everything 
+        we'd otherwise have to ask you.
 
         The log lives at:
         `<r2modman profile>/BepInEx/LogOutput.log`
@@ -51,8 +51,7 @@ body:
       label: LogOutput.log
       description: >-
         Press F9 in game first, then attach or paste the log. Drag the file into this box to
-        attach it - that's easier to read than a paste, and there's no size limit worth worrying
-        about. If you can only paste part of it, include everything from the line `[AP] Connected!`
+        attach it. If you can only paste part of it, include everything from the line `[AP] Connected!`
         onwards.
       render: text
     validations:
@@ -86,7 +85,7 @@ body:
     attributes:
       label: Solo or multiworld?
       options:
-        - Solo - only my slot
+        - Solo 
         - Multiworld with other people
         - Not sure
     validations:
