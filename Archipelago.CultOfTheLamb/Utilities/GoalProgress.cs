@@ -36,7 +36,7 @@ internal static class GoalProgress
         return count;
     }
 
-    // Base-game Witnesses only, ignoring the "_P2" post-game re-fights, so a Purged-run kill
+    // Base game Witnesses only, ignoring the "_P2" post game re-fights, so a Purged run kill
     // can't count toward a goal not met in the base run. Reads KilledBosses directly rather
     // than DataManager's BeatenWitnessDungeon1..4, which refresh only at specific points
     internal static int CountDefeatedWitnesses()
@@ -58,7 +58,7 @@ internal static class GoalProgress
         return count;
     }
 
-    // DeathCatBeaten is per-save and written only by EnemyDeathCatBoss.OnDie, except on New
+    // DeathCatBeaten is per save and written only by EnemyDeathCatBoss.OnDie, except on New
     // Game+ entry, which force-sets it without a fight (BiomeGenerator.cs:234). Accepted, since
     // NG+ on an Archipelago save is already outside the save policy and this is the only
     // save-backed signal there is

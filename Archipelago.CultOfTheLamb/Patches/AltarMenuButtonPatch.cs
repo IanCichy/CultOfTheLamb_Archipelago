@@ -25,9 +25,9 @@ internal static class AltarMenuButtonPatch
     /// </summary>
     /// <remarks>
     /// The label inherits its width from the cloned button, and the game's own labels top out at
-    /// "Doctrine", eight characters. "Archipelago" is one unbroken word too wide, so TMP wrapped
-    /// it mid-word into "Archipelag" and "o". Widening isn't an option either: the icons sit
-    /// about 130px apart and the full word needs closer to 190, overlapping Crown and Rituals.
+    /// eight characters, so TMP wrapped "Archipelago" mid word. Widening isn't an option either:
+    /// the icons sit about 130px apart and the full word needs closer to 190, which overlaps
+    /// Crown and Rituals.
     /// </remarks>
     private const string ButtonLabel = "AP";
 

@@ -8,13 +8,13 @@ namespace Archipelago.CultOfTheLamb.Patches;
 /// <summary>
 /// Lets the sermon tree be dismissed, but only the copy SermonTreeViewer opened.
 ///
-/// UIUpgradePlayerTreeMenuController.OnCancelButtonInput is an empty override on purpose. The
+/// UIUpgradePlayerTreeMenuController.OnCancelButtonInput is an empty override. The
 /// vanilla flows that open this tree hand out a reward and must not be escaped. Restoring cancel
 /// for everyone would let a player back out of the Hearts of the Faithful ritual and forfeit it.
 /// It could also soft-lock the game waiting for a pick that can no longer happen, since
 /// RitualFlockOfTheFaithful blocks on the menu closing. So the scope is the viewer instance
 /// itself, by reference, rather than an "AP is browsing" flag. A flag left set by an exception or
-/// a scene change would reopen exactly that hole, while a stale instance reference simply never
+/// a scene change would reopen that hole, while a stale instance reference never
 /// matches again.
 /// </summary>
 [HarmonyPatch(typeof(UIUpgradePlayerTreeMenuController))]

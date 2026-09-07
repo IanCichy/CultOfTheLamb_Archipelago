@@ -8,12 +8,10 @@ namespace Archipelago.CultOfTheLamb.Patches;
 /// <remarks>
 /// Two patches are needed because the vanilla door has two independent ways to become passable:
 ///
-/// 1. OnEnableInteraction() sets Unlocked from DataManager.UnlockedDungeonDoor, and
-///    OpenDoor() disables the blocking collider when Unlocked, so a stale or auto-added entry
-///    would let the player simply walk through.
-/// 2. OnInteract() starts the open ritual based only on HaveFollowers, the follower-count
-///    requirement. It never consults UnlockedDungeonDoor at all, so meeting the follower
-///    cost opens an AP-locked region.
+/// 1. OnEnableInteraction() sets Unlocked from DataManager.UnlockedDungeonDoor, and OpenDoor()
+///    disables the blocking collider when Unlocked, so a stale entry lets the player walk through.
+/// 2. OnInteract() starts the open ritual on HaveFollowers alone. It never consults
+///    UnlockedDungeonDoor, so meeting the follower cost opens an AP locked region.
 /// </remarks>
 [HarmonyPatch(typeof(Interaction_BaseDungeonDoor))]
 internal static class BaseDungeonDoorPatch

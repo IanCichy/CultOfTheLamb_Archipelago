@@ -219,7 +219,7 @@ internal class ManagedCollection<T> where T : struct, Enum
         ManagedCollectionStore.Owe(collectionKey, saveSlot, revoked);
         revoked.Clear();
 
-        // `granted` deliberately survives. It's connection state, and the item replay that would
+        // `granted` survives. It's connection state, and the item replay that would
         // rebuild it runs only on connect, not on a save load. That's also why the seed's
         // starting entries aren't re-granted here, because they're still in it.
         saveSlot = SaveSlot.Current;
@@ -260,7 +260,7 @@ internal class ManagedCollection<T> where T : struct, Enum
             backing.Add(value);
         }
 
-        // Only once they're actually back in the collection.
+        // Only once they're back in the collection.
         ManagedCollectionStore.Settle(collectionKey, saveSlot, legacyKey);
 
         Log.LogInfo($"[AP] Returned {owed.Count} {noun}(s) to the save.");

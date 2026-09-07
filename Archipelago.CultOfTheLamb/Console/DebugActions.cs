@@ -15,7 +15,7 @@ namespace Archipelago.CultOfTheLamb.Console;
 /// one sitting. Every API called here was read out of the decompiled source first. See
 /// DcplIdx 4b.
 ///
-/// These are deliberately hardcoded single samples, not a general grant API. Once a feature
+/// These are hardcoded single samples, not a general grant API. Once a feature
 /// is proven, the real implementation belongs in a Service driven by received AP items.
 /// </summary>
 internal static class DebugActions
@@ -26,12 +26,12 @@ internal static class DebugActions
     private const PlayerFleeceManager.FleeceType SampleFleece = PlayerFleeceManager.FleeceType.Gold;
 
     /// <summary>
-    /// Lists what's actually reachable through Resources, written alongside the name table.
+    /// Lists what's reachable through Resources, written alongside the name table.
     ///
     /// The decompile has ~80 Resources.Load paths, but a path appearing in code doesn't mean the
     /// asset shipped there. "Prefabs/Structures/Statue - Sword" is referenced by DungeonDecorator
     /// and resolves to null at runtime. Enumerating is the only way to know what a pedestal can
-    /// actually be built from.
+    /// be built from.
     /// </summary>
     private static void DumpResourcePrefabs(StringBuilder sb)
     {
@@ -355,7 +355,7 @@ internal static class DebugActions
     {
         // Prefer the visible sample, but any real save is likely to have it already, and an
         // "already unlocked" result proves GetUnlocked works while proving nothing about the
-        // grant path, which is the thing actually under test. So fall back to whatever is
+        // grant path, which is the thing under test. So fall back to whatever is
         // still locked.
         var target = SampleUpgrade;
         if (UpgradeSystem.GetUnlocked(target))
@@ -383,9 +383,9 @@ internal static class DebugActions
     }
 
     /// <summary>
-    /// What tier the Temple and Shrine structures actually are, as opposed to what
+    /// What tier the Temple and Shrine structures are, as opposed to what
     /// UnlockedUpgrades claims. A mismatch means an UpgradeBaseRoutine died before its swap, so
-    /// the tier is recorded as upgraded and never actually built, which is the state the
+    /// the tier is recorded as upgraded and never built, which is the state the
     /// base-upgrade hard lock used to leave behind. Read-only.
     ///
     /// Don't add a companion key that calls BiomeBaseManager.UpgradeBase directly. Invoking that
@@ -434,7 +434,7 @@ internal static class DebugActions
     internal static void UnlockSampleTarot()
     {
         // Same already-unlocked problem as F7. Fall back to a card the save doesn't have, so
-        // the grant path is what actually gets exercised.
+        // the grant path is what gets exercised.
         var target = SampleTarotCard;
         var found = DataManager.Instance?.PlayerFoundTrinkets;
         if (found != null && found.Contains(target))
@@ -841,7 +841,7 @@ internal static class DebugActions
             foreach (var upgrade in all)
             {
                 // Description too, because the sermon viewer folds it under each node's name,
-                // and whether I2 actually has a term for these is the only way to tell why one
+                // and whether I2 has a term for these is the only way to tell why one
                 // comes out blank.
                 sb.AppendLine($"{upgrade}\t{Safe(() => UpgradeSystem.GetLocalizedName(upgrade))}"
                     + $"\tDESC: {Safe(() => UpgradeSystem.GetLocalizedDescription(upgrade))}");
@@ -1010,7 +1010,7 @@ internal static class DebugActions
     ///
     /// The second part is the point. locations.py currently puts all five shrines in "Cult"
     /// (always reachable) because which ShrineNumber sits in which hub is a serialized prefab
-    /// field the decompile can't show. Four of the five are actually behind hub access, so
+    /// field the decompile can't show. Four of the five sit behind hub access, so
     /// Archipelago believes them reachable earlier than they are. Standing in a hub and
     /// pressing F9 records the mapping needed to region-scope them properly.
     /// </summary>
@@ -1104,16 +1104,14 @@ internal static class DebugActions
     }
 
     /// <summary>
-    /// Everything about the objective guide, then a sweep-and-rebuild.
+    /// Everything about the objective guide, then a sweep and rebuild.
     /// </summary>
     /// <remarks>
-    /// The per-line I2 read-back is why this has its own key: a term that never registered and a
-    /// broken UI both show a blank quest line. The same read-back diagnosed the
-    /// blank-notification bug three attempts in.
+    /// The I2 read back per line is why this has its own key: a term that never registered and a
+    /// broken UI both show a blank quest line. That is what found the blank notification bug.
     ///
-    /// The save-list counts are the leak detector. After a disconnect every one must be zero, or
-    /// a player keeps Archipelago lines in a vanilla quest log. The rebuild at the end lets one
-    /// session exercise add -> sweep -> re-add without reconnecting.
+    /// The save list counts are the leak detector. After a disconnect every one must be zero, or
+    /// a player keeps Archipelago lines in a vanilla quest log.
     /// </remarks>
     internal static void DumpQuestGuide(ArchipelagoClient ap)
     {
@@ -1188,7 +1186,7 @@ internal static class DebugActions
     internal static void DumpState(ArchipelagoClient ap)
     {
         Log.LogInfo("[AP] ---- Archipelago debug state dump ----");
-        // What was actually connected with, rather than what the config currently says. Those
+        // What was connected with, rather than what the config currently says. Those
         // differ the moment someone edits the panel without connecting.
         Log.LogInfo($"[AP] Connected: {ap?.IsConnected ?? false}"
             + $" | slot: '{ap?.LastSlotName}'"
@@ -1325,7 +1323,7 @@ internal static class DebugActions
     /// F9 inside a boss room and every encounter in it prints its name alongside its I2
     /// DisplayName term and that term's translation.
     ///
-    /// Resources.FindObjectsOfTypeAll rather than FindObjectsOfType, on purpose. MiniBossManager
+    /// Resources.FindObjectsOfTypeAll rather than FindObjectsOfType. MiniBossManager
     /// deactivates every encounter except the selected one (MiniBossManager.cs:129), so the
     /// active-only search would return just one of the four.
     /// </summary>

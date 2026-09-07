@@ -48,7 +48,7 @@ internal static class BaseUpgradeGuardPatch
     private static readonly MethodInfo UpgradeBaseMethod =
         AccessTools.Method(typeof(BiomeBaseManager), "UpgradeBase");
 
-    // The three tiers that actually start the coroutine. BiomeBaseManager.cs:904-910
+    // The three tiers that start the coroutine. BiomeBaseManager.cs:904-910
     private static bool StartsTheRoutine(UpgradeSystem.Type type) =>
         TierOf(type) > 0;
 
@@ -61,7 +61,7 @@ internal static class BaseUpgradeGuardPatch
         _ => 0,
     };
 
-    // The tier the Temple structure is actually built at, or 0 if there isn't one
+    // The tier the Temple structure is built at, or 0 if there isn't one
     private static int CurrentTier()
     {
         var temples = StructureManager.GetAllStructuresOfType<Structures_Temple>();
@@ -155,7 +155,7 @@ internal static class BaseUpgradeGuardPatch
         if (current > 0 && requested <= current)
         {
             // Refusing outright would leave the save stranded whenever the structures have already
-            // fallen behind the record, so re-run the highest tier actually owned instead. That is
+            // fallen behind the record, so re-run the highest tier owned instead. That is
             // a no-op when the base is already correct, and a repair when it isn't.
             var highest = HighestOwnedTier();
 
@@ -187,7 +187,7 @@ internal static class BaseUpgradeGuardPatch
         return false;
     }
 
-    // Replays a held-back upgrade once the base is live. The upgrade is a multi-second
+    // Replays a held back upgrade once the base is live. The upgrade is a multi-second
     // animation, so the once-a-second tick is often enough
     internal static void Tick()
     {
@@ -233,7 +233,7 @@ internal static class BaseUpgradeGuardPatch
     // Observed state: Temple and Shrine standing at tier II while UnlockedUpgrades holds
     // Temple_IV, after a queued Building_Temple2 flushed onto an already-upgraded base.
     //
-    // Runs at most once per session, or a repair that doesn't take re-fires a multi-second
+    // Runs at most once per session, or a repair that doesn't take re-fires a multi second
     // cutscene every tick
     private static void RepairIfBehind()
     {
@@ -318,7 +318,7 @@ internal static class BaseUpgradeGuardPatch
 
                 player.gameObject.SetActive(true);
 
-                // The one that actually strands you at the later throw site. :991 puts the player
+                // The one that strands you at the later throw site. :991 puts the player
                 // into CustomAnimation immediately before the Temple lookup at :994, so by then
                 // it is visible and reactivated but unable to move. Restoring activation alone,
                 // which is all the first version of this did, fixes nothing.

@@ -135,7 +135,7 @@ internal class EquipmentDisplayService : IService
         }
 
         // A toggle flipped since we placed. Tearing down here rather than letting Refresh() run is
-        // what makes turning one display off actually remove it. The early-out above only fires
+        // what makes turning one display off remove it. The early-out above only fires
         // when *both* are off, so without this, unticking the podiums while the book is on left
         // them standing with no way to place them again.
         if (placed && (pedestalsPlaced != enabled.Value || bookPlaced != bookEnabled.Value))

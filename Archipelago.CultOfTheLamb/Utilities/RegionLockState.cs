@@ -18,7 +18,7 @@ internal static class RegionLockState
     private static readonly HashSet<FollowerLocation> unlocked = new();
 
     /// <summary>
-    /// Whether an AP session is actually managing regions.
+    /// Whether an AP session is managing regions.
     /// </summary>
     /// <remarks>
     /// Locking is enforced only while this is true, or a disconnected session would have every

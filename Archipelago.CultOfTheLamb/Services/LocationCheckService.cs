@@ -113,10 +113,8 @@ internal class LocationCheckService : IService
     {
         if (BossKeyMapping.IsPostGameVariant(bossKey))
         {
-            // Post-game "Purged" re-fights re-record the same boss with a _P2 suffix. They are
-            // real, distinct encounters and would roughly double the location count, but
-            // locations.py has no entries for them yet. Log and skip so they don't disappear
-            // without a trace.
+            // Post game Purged fights re-record the same boss with a _P2 suffix. locations.py
+            // has no entries for them yet, so log and skip.
             Log.LogInfo($"[AP] Post-game variant \"{bossKey}\" has no AP location yet - skipping.");
             return;
         }

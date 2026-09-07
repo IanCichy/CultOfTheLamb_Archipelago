@@ -26,7 +26,7 @@ namespace Archipelago.CultOfTheLamb.UI;
 internal static class CollectionBook
 {
     // The room we pull a lectern from when none is already loaded. Verified in play, and the
-    // only key here on purpose. An unverified key reads as researched when it isn't, which is
+    // only key here. An unverified key reads as researched when it isn't, which is
     // how "WeaponPodium" ended up throwing on every launch
     private const string SourceRoomKey = "Assets/_Rooms/Marketplace Relics.prefab";
 

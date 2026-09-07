@@ -14,8 +14,8 @@ using UnityEngine;
 namespace Archipelago.CultOfTheLamb;
 
 /// <summary>
-/// Connection, slot data parsing, and reconnection. This layer is protocol-level and
-/// mostly game-agnostic. Game-specific reactions to slot data live in ArchipelagoPlugin
+/// Connection, slot data parsing, and reconnection. This layer is protocol level and
+/// mostly game agnostic. Game specific reactions to slot data live in ArchipelagoPlugin
 /// and the Services it wires up.
 /// </summary>
 public partial class ArchipelagoClient
@@ -423,7 +423,7 @@ public partial class ArchipelagoClient
 
         // Guidance only, so it creates no location and sends no check. It reads the same
         // slot-data keys the services above were gated on, so it can never advertise a block that
-        // isn't actually running this seed.
+        // isn't running this seed.
         if (SlotData.GetBool(successResult.SlotData, "objectiveGuide"))
         {
             QuestGuideService = new QuestGuideService(
@@ -658,7 +658,7 @@ public partial class ArchipelagoClient
 
             TeardownSession();
 
-            // Dropped rather than asked to stop, so this is genuinely the last error. No need to
+            // Dropped rather than asked to stop, so this is the last error. No need to
             // suppress it while reconnecting: "an attempt is in flight" outranks it wherever the
             // two are displayed together.
             LastError = reason;
@@ -671,10 +671,10 @@ public partial class ArchipelagoClient
     /// it.
     /// </summary>
     /// <remarks>
-    /// Unbounded on purpose. Nothing queues the checks earned while the socket is down, since
+    /// Unbounded. Nothing queues the checks earned while the socket is down, since
     /// every service re-derives what it owes from save state at connect, so the only thing
-    /// between a dropped socket and a caught-up multiworld is getting the socket back. A
-    /// five-attempt cap gave up after about fifteen seconds, which loses to a host restarting
+    /// between a dropped socket and a caught up multiworld is getting the socket back. A
+    /// five attempt cap gave up after about fifteen seconds, which loses to a host restarting
     /// their server.
     ///
     /// The delay backs off, so a server down for an hour costs two attempts a minute rather

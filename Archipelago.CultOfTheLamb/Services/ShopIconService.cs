@@ -38,7 +38,7 @@ internal class ShopIconService : IService
     private readonly List<PendingShop> pending = new();
 
     // ~half a second at 60fps. Long enough for a shop's visuals to finish spawning, short
-    // enough that a genuinely artless slot doesn't get retried all session.
+    // enough that an artless slot doesn't get retried all session.
     private const int MaxDecorateAttempts = 30;
 
     // The buy prompt names the card, not its contents. The item is already spelled out on the

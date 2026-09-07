@@ -69,7 +69,7 @@ internal sealed class QuestGuideEntry
 
 /// <summary>
 /// Puts an Archipelago checklist into the game's own quest log. That means the win condition,
-/// region access, and one live-progress line per check block this seed switched on.
+/// region access, and one live progress line per check block this seed switched on.
 /// </summary>
 /// <remarks>
 /// The vanilla quest log fills with follower errands and never mentions the win condition, how
@@ -450,9 +450,9 @@ internal class QuestGuideService : IService
     private static int lastSweptSlot = -1;
 
     /// <summary>
-    /// The disconnected-idle sweep, run once per loaded save rather than every tick.
+    /// The disconnected idle sweep, run once per loaded save rather than every tick.
     ///
-    /// SweepAll is several full-list scans, one of them over CompletedObjectivesHistory, which
+    /// SweepAll is several full list scans, one of them over CompletedObjectivesHistory, which
     /// grows without bound. A player who never connects would otherwise pay that every second
     /// forever to keep finding nothing. Once per save still covers the case the sweep exists
     /// for, since a crash mid-session is cleaned when that save is next loaded.
@@ -598,7 +598,7 @@ internal class QuestGuideService : IService
 
         if (SlotData.GetBool(slotData, "buildingChecks"))
         {
-            // Check-derived rather than save-derived on purpose. The save has no record of a
+            // Check derived rather than save derived. The save has no record of a
             // non-decoration building, and asking the scene costs ~25 GetAllStructuresOfType
             // queries, far too much at 1 Hz. See BuildingService.DescribeState.
             var buildingIds = SlotData.ParseIdValues(slotData, "buildingLocations");
@@ -632,7 +632,7 @@ internal class QuestGuideService : IService
                 (current, target) => $"Buy tarot cards from the hub shops - {current} of {target}");
         }
 
-        // Weapons and curses are deliberately absent. Their check fires on whatever the player
+        // Weapons and curses are absent. Their check fires on whatever the player
         // happened to pick up, which is not something anyone can aim at.
 
         AssertTextIsSafe(result);

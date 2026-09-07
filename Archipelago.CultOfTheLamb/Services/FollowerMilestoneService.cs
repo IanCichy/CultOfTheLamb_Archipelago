@@ -7,10 +7,10 @@ namespace Archipelago.CultOfTheLamb.Services;
 /// </summary>
 /// <remarks>
 /// FollowerManager.OnFollowerAdded is the single funnel and a public static event, so no Harmony
-/// patch is needed. FollowerRecruit.OnRecruitFinalised is the wrong hook: it fires mid-animation,
+/// patch is needed. FollowerRecruit.OnRecruitFinalised is the wrong hook: it fires mid animation,
 /// before the Follower is in the list, so the count sticks one behind.
 ///
-/// The count is derived from save state rather than tallied in-session, so it survives reconnects
+/// The count is derived from save state rather than tallied in session, so it survives reconnects
 /// and catches up recruits made while disconnected. It counts Followers ever recruited rather
 /// than the current flock, so a plague or a sacrifice spree can't make a passed milestone
 /// unreachable. Every check up to the current count is re-sent each time.
@@ -102,7 +102,7 @@ internal class FollowerMilestoneService : IService
             + $"dead {DataManager.Instance?.Followers_Dead?.Count ?? 0}) "
             + $"- sending milestone checks 1-{highest}.");
 
-        // The full 1..N range every time, deliberately: CheckSender drops whatever the server
+        // The full 1..N range every time: CheckSender drops whatever the server
         // already has, so this can stay a blunt re-derivation without re-announcing old
         // milestones on connect.
         CheckSender.Send(session, checkIds);

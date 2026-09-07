@@ -136,7 +136,7 @@ internal static class ApNotification
     private static string Oneline(string text) =>
         text == null ? "<null>" : text.Replace("\n", " | ");
 
-    // Whether the game would actually display one right now
+    // Whether the game would display one right now
     private static bool CanShowNow()
     {
         if (NotificationCentre.Instance == null)

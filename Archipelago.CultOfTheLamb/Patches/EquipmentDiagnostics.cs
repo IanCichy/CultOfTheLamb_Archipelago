@@ -38,14 +38,9 @@ internal static class EquipmentDiagnostics
             + $"we returned {substituted}{(changed ? " (SUBSTITUTED)" : " (unchanged)")}.");
     }
 
-    /// <summary>
-    /// What was actually equipped, and at what level. The run counters are read here rather than
-    /// passed in because the question is whether they agree with the level the caller supplied:
-    /// a mismatch is the symptom, so both sides have to be in the same line.
-    /// </summary>
-    /// <param name="noun">"weapon" or "curse", so the two families read apart in the log.</param>
-    /// <param name="type">The equipment the game just put in the slot.</param>
-    /// <param name="level">The level the caller handed to SetWeapon or SetSpell.</param>
+    // What was equipped, and at what level. The run counters are read here rather than passed in
+    // because the question is whether they agree with the level the caller supplied, so both
+    // sides need to be on the same line. noun is "weapon" or "curse".
     [Conditional("AP_DEBUG_KEYS")]
     internal static void RecordEquip(string noun, EquipmentType type, int level)
     {

@@ -137,7 +137,7 @@ public partial class ArchipelagoItemLogicController : IService
     // Identifies this save+seed+slot in AppliedItemStore
     private string storeKey;
 
-    // How many items have actually been granted to this save
+    // How many items have been granted to this save
     private int appliedCount;
 
     /// <summary>
@@ -145,7 +145,7 @@ public partial class ArchipelagoItemLogicController : IService
     /// </summary>
     /// <remarks>
     /// The server resends the full history on connect and we have to drain it. Re-granting stacks
-    /// anything non-idempotent, Inventory.AddItem above all, which made reconnect-spamming an
+    /// anything non-idempotent, Inventory.AddItem above all, which made reconnect spamming an
     /// infinite resource generator.
     /// </remarks>
     private int replaysRemaining;
@@ -178,7 +178,7 @@ public partial class ArchipelagoItemLogicController : IService
             // Sends were announced but receives weren't, so an incoming item was only
             // visible in the AP terminal unless the game happened to show its own banner
             // (resources do, an unlocked upgrade doesn't). Announce every genuinely new
-            // item. Replays are deliberately silent, since the player already saw them.
+            // item. Replays are silent, since the player already saw them.
             //
             // Named sender when there is one, so this reads as the mirror of the sent popup.
             var from = senderName == null
@@ -186,7 +186,7 @@ public partial class ArchipelagoItemLogicController : IService
                 : $" from {ApColors.Tint(senderName, ApColors.YellowHex)}";
 
             // Green glow = incoming, red = a trap landing on you. The one case where the colour
-            // is genuinely load-bearing rather than decorative. A trap is worth noticing before
+            // is load bearing rather than decorative. A trap is worth noticing before
             // you work out why the game just got harder.
             var glow = isTrap ? ApColors.Red : ApColors.Green;
 

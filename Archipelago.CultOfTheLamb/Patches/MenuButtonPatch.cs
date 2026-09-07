@@ -37,7 +37,7 @@ internal static class MenuButtonPatch
         AccessTools.FieldRefAccess<MainMenu, Button>("_settingsButton");
 
     /// <summary>
-    /// Twitch Settings is the donor on purpose. It's the closest thing the game already has to
+    /// Twitch Settings is the donor because it's the closest thing the game already has to
     /// what we're adding, a connection to an outside service, so it both looks right and sits
     /// in the right part of the list.
     /// </summary>

@@ -11,17 +11,13 @@ namespace Archipelago.CultOfTheLamb.Services;
 /// Sends a check the first time the player builds each of a curated set of structures.
 /// </summary>
 /// <remarks>
-/// Named locations rather than sequential, unlike most blocks here. Which building you put up is
-/// a real choice, so "Build - Kitchen" says more than "Building 12".
-///
-/// The set comes from slot data, so the client never needs its own opinion about which of the
-/// game's 332 structures are interesting, and the two sides can't drift.
+/// Named locations rather than sequential. "Build - Kitchen" > "Building 12".
 /// </remarks>
 internal class BuildingService : IService
 {
     private readonly ArchipelagoSession session;
 
-    // Structure -> the check its first construction sends
+    // Structure list to keep track of which have been built and which haven't. The value is the location id to send.
     private readonly Dictionary<StructureBrain.TYPES, long> structureToCheckId;
 
     internal BuildingService(
@@ -35,9 +31,7 @@ internal class BuildingService : IService
     public void Register()
     {
         StructureBuildPatch.Built = OnBuilt;
-
         SendChecksForExisting();
-
         Log.LogInfo($"[AP] Building checks active: {structureToCheckId.Count} structure(s) mapped.");
     }
 
@@ -57,16 +51,16 @@ internal class BuildingService : IService
         CheckSender.Send(session, checkId);
     }
 
-    // DataManager.DecorationTypesBuilt records first-built for decorations only, and none of
-    // these are decorations, so this reads what is standing right now. A building demolished
-    // before connecting is missed until one is standing at a later connect.
+    // DataManager.DecorationTypesBuilt records first build for decorations only
+    // This reads what is standing right now in base. A building demolished
+    // before connecting is missed until one is standing
     private void SendChecksForExisting()
     {
         var pending = new List<long>();
 
         foreach (var pair in structureToCheckId)
         {
-            // Guarded per structure. This runs during connect, and one bad type shouldn't cost
+            // Guarded per structure. This runs during connect, and one bad type wont tank
             // the rest of the catch-up.
             try
             {
@@ -85,8 +79,7 @@ internal class BuildingService : IService
         CheckSender.Send(session, pending);
     }
 
-    // StructureBrain.TYPES name -> location id, from "buildingLocations". Unrecognised names
-    // are dropped with a warning
+    // StructureBrain.TYPES name -> location id, from buildingLocations. Unrecognised names are dropped with a warning
     internal static Dictionary<StructureBrain.TYPES, long> ParseLocations(
         IReadOnlyDictionary<string, object> slotData)
     {
@@ -101,8 +94,7 @@ internal class BuildingService : IService
 
         foreach (var entry in mapping)
         {
-            if (!SlotData.TryParseEnum<StructureBrain.TYPES>(
-                    entry.Key, "buildingLocations", out var structure))
+            if (!SlotData.TryParseEnum<StructureBrain.TYPES>(entry.Key, "buildingLocations", out var structure))
             {
                 continue;
             }

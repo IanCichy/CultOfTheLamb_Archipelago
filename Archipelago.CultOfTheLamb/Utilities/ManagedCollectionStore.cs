@@ -87,7 +87,7 @@ internal static class ManagedCollectionStore
         return result;
     }
 
-    // Called once the entries are actually back in the save
+    // Called once the entries are back in the save
     internal static void Settle(string collection, int saveSlot, string legacyKey = null)
     {
         Write(KeyFor(collection, saveSlot), null);

@@ -7,7 +7,7 @@ namespace Archipelago.CultOfTheLamb.Patches;
 
 /// <summary>
 /// Shows the player's Archipelago cards to the two parts of the game that should see them,
-/// the in-run draw pool and the collection screen, while keeping them out of
+/// the in run draw pool and the collection screen, while keeping them out of
 /// PlayerFoundTrinkets everywhere else (see ManagedCollection for why).
 /// </summary>
 /// <remarks>
@@ -17,7 +17,7 @@ namespace Archipelago.CultOfTheLamb.Patches;
 /// re-implementation would drift from the game's.
 ///
 /// Other readers are left alone. Completion percentage, GetTrinketsUnlocked and the
-/// ALL_TAROTS_UNLOCKED achievement under-report while connected and correct themselves on
+/// ALL_TAROTS_UNLOCKED achievement under report while connected and correct themselves on
 /// disconnect. The achievement path writes a permanent unlock, which is the one thing this
 /// class exists to prevent.
 /// </remarks>

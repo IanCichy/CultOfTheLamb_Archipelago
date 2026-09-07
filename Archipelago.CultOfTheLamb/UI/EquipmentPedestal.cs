@@ -131,7 +131,7 @@ internal static class EquipmentPedestal
         return plinth;
     }
 
-    // Re-lights an already-placed podium for a family that arrives mid-session, rather than
+    // Re-lights a placed podium for a family that arrives mid-session, rather than
     // tearing the row down and rebuilding it
     internal static void SetReceived(EquipmentType family, bool received)
     {

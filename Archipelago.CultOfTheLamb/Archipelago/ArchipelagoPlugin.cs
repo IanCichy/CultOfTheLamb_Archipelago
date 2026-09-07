@@ -124,12 +124,12 @@ public class ArchipelagoPlugin : BaseUnityPlugin
 
             // Adds the objective checklist once a save is loaded, then keeps its counters
             // current. Cheap in a steady state, since it re-registers a term only when the
-            // composed line actually changed.
+            // composed line changed.
             AP?.QuestGuideService?.Tick();
 
             // While disconnected instead. This hands back anything a session that ended in a
             // crash or an alt-F4 never got the chance to return. Nothing to find after a clean
-            // disconnect, so this is quiet unless something actually went wrong.
+            // disconnect, so this is quiet unless something went wrong.
             if (AP == null || !AP.IsConnected)
             {
                 ManagedCollection<TarotCards.Card>.SettleIfOwed(
