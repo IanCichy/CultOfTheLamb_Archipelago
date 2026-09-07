@@ -3,29 +3,36 @@ using HarmonyLib;
 namespace Archipelago.CultOfTheLamb.Patches;
 
 /// <summary>
-/// Holds AP-locked region doors shut. Two patches are needed because the vanilla door has
-/// two independent ways to become passable:
-///
-/// 1. OnEnableInteraction() sets Unlocked from DataManager.UnlockedDungeonDoor, and
-///    OpenDoor() disables the blocking collider when Unlocked - so a stale/auto-added entry
-///    would let the player simply walk through.
-/// 2. OnInteract() starts the open ritual based only on HaveFollowers (the follower-count
-///    requirement) - it never consults UnlockedDungeonDoor at all, so meeting the follower
-///    cost opens an AP-locked region.
+/// Holds AP-locked region doors shut.
 /// </summary>
+/// <remarks>
+/// Two patches are needed because the vanilla door has two independent ways to become passable:
+///
+/// 1. OnEnableInteraction() sets Unlocked from DataManager.UnlockedDungeonDoor, and OpenDoor()
+///    disables the blocking collider when Unlocked, so a stale entry lets the player walk through.
+/// 2. OnInteract() starts the open ritual on HaveFollowers alone. It never consults
+///    UnlockedDungeonDoor, so meeting the follower cost opens an AP locked region.
+/// </remarks>
 [HarmonyPatch(typeof(Interaction_BaseDungeonDoor))]
 internal static class BaseDungeonDoorPatch
 {
     /// <summary>
-    /// Strip AP-locked regions out of the save's unlocked-door set before the door reads it,
+    /// Strips AP-locked regions out of the save's unlocked-door set before the door reads it,
     /// so Unlocked evaluates false and the blocking collider stays on.
     /// </summary>
     [HarmonyPatch("OnEnableInteraction")]
     [HarmonyPrefix]
     private static void OnEnableInteraction_Prefix(Interaction_BaseDungeonDoor __instance)
     {
-        if (!RegionLockState.IsLockedByArchipelago(__instance.Location)) return;
-        if (DataManager.Instance == null) return;
+        if (!RegionLockState.IsLockedByArchipelago(__instance.Location))
+        {
+            return;
+        }
+
+        if (DataManager.Instance == null)
+        {
+            return;
+        }
 
         if (DataManager.Instance.UnlockedDungeonDoor.Remove(__instance.Location))
         {
@@ -33,12 +40,16 @@ internal static class BaseDungeonDoorPatch
         }
     }
 
-    /// <summary>Refuse the open-the-door interaction entirely while AP has it locked.</summary>
+    // Refuses the open-the-door interaction entirely while AP has it locked. Returns false to
+    // skip the original, so the open ritual never starts
     [HarmonyPatch("OnInteract")]
     [HarmonyPrefix]
     private static bool OnInteract_Prefix(Interaction_BaseDungeonDoor __instance)
     {
-        if (!RegionLockState.IsLockedByArchipelago(__instance.Location)) return true;
+        if (!RegionLockState.IsLockedByArchipelago(__instance.Location))
+        {
+            return true;
+        }
 
         Log.LogInfo($"[AP] Blocked opening {__instance.Location} - locked by Archipelago.");
         // Same negative-feedback cue vanilla uses when the follower requirement isn't met,

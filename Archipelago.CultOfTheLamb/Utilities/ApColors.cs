@@ -4,31 +4,33 @@ namespace Archipelago.CultOfTheLamb;
 
 /// <summary>
 /// The Archipelago palette, as both <see cref="Color32"/> (for notification glow tints) and hex
-/// strings (for TMP <c>&lt;color=#…&gt;</c> tags in message text). Kept in one place so the two
-/// forms can't drift apart.
-///
-/// The glow tint and the inline tags are independent surfaces - the flair tint recolours the
-/// glow graphics, not the text label - so a popup can carry direction in its glow and item
-/// classification in its wording at the same time.
+/// strings (for TMP <c>&lt;color=#…&gt;</c> tags in message text).
 /// </summary>
+/// <remarks>
+/// Both forms live here so they can't drift apart.
+///
+/// The glow tint and the inline tags are independent surfaces. The flair tint recolours the glow
+/// graphics, not the text label. A popup can therefore carry direction in its glow and item
+/// classification in its wording at the same time.
+/// </remarks>
 internal static class ApColors
 {
-    /// <summary>Traps.</summary>
+    // Traps
     internal const string RedHex = "#c97682";
 
-    /// <summary>Other players' names, warnings, catch-up batches.</summary>
+    // Other players names, warnings, catch-up batches
     internal const string YellowHex = "#eee391";
 
-    /// <summary>Outgoing checks, and 'useful' items.</summary>
+    // Outgoing checks
     internal const string BlueHex = "#767ebd";
 
-    /// <summary>Incoming items, and items destined for you.</summary>
+    // Incoming items
     internal const string GreenHex = "#75c275";
 
-    /// <summary>Progression - the checks that actually move a seed forward.</summary>
+    // Main progression
     internal const string PinkHex = "#ca94c2";
 
-    /// <summary>Filler.</summary>
+    // Filler checks
     internal const string OrangeHex = "#d9a07d";
 
     internal static readonly Color32 Red = new(0xC9, 0x76, 0x82, 0xFF);
@@ -38,6 +40,6 @@ internal static class ApColors
     internal static readonly Color32 Pink = new(0xCA, 0x94, 0xC2, 0xFF);
     internal static readonly Color32 Orange = new(0xD9, 0xA0, 0x7D, 0xFF);
 
-    /// <summary>Wraps <paramref name="text"/> in a TMP colour tag.</summary>
+    // Wraps text in a TMP colour tag, using one of the hex constants on this class
     internal static string Tint(string text, string hex) => $"<color={hex}>{text}</color>";
 }

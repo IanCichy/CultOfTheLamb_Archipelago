@@ -6,10 +6,10 @@ namespace Archipelago.CultOfTheLamb.Patches;
 /// <summary>
 /// Catches miniboss and Witness kills. DataManager.AddKilledBoss(string) is the only write site
 /// for KilledBosses in the whole assembly, so one patch covers all 12 minibosses, all 4
-/// Witnesses and their post-game "_P2" variants (AI_INDEX.md §3a).
+/// Witnesses and their post-game "_P2" variants (DcplIdx 3a).
 /// </summary>
 /// <remarks>
-/// Separate from InteractionMonsterHeartPatch, which covers the four Bishops - those are
+/// Separate from InteractionMonsterHeartPatch, which covers the four Bishops. Those are
 /// FollowerLocation values in BossesCompleted, and the two never overlap.
 ///
 /// The game suppresses AddKilledBoss while DungeonSandboxManager.Active, so Endless-mode kills
@@ -38,7 +38,10 @@ internal static class DataManagerKilledBossPatch
     [HarmonyPostfix]
     private static void AddKilledBoss_Postfix(string BossSkin, bool __state)
     {
-        if (!__state) return;
+        if (!__state)
+        {
+            return;
+        }
 
         Log.LogInfo($"[AP] Boss kill recorded: \"{BossSkin}\"");
         OnBossKillRecorded?.Invoke(BossSkin);

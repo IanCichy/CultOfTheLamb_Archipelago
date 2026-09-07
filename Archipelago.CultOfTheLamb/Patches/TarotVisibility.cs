@@ -6,25 +6,25 @@ using Lamb.UI;
 namespace Archipelago.CultOfTheLamb.Patches;
 
 /// <summary>
-/// Shows the player's Archipelago cards to the two parts of the game that should see them -
-/// the in-run draw pool and the collection screen - while keeping them out of
+/// Shows the player's Archipelago cards to the two parts of the game that should see them,
+/// the in run draw pool and the collection screen, while keeping them out of
 /// PlayerFoundTrinkets everywhere else (see ManagedCollection for why).
 /// </summary>
 /// <remarks>
-/// Both work by lending the cards to the list for one call and taking them straight back out.
-/// Lending rather than adjusting the result matters for the draw pool: GetUnusedFoundTrinkets
-/// filters on fleece, corruption pairing, season, relic scale and the resurrect ability, and a
-/// re-implementation would drift from the game's within a patch or two.
+/// Both lend the cards to the list for one call and take them straight back out. Lending rather
+/// than adjusting the result matters for the draw pool: GetUnusedFoundTrinkets filters on
+/// fleece, corruption pairing, season, relic scale and the resurrect ability, and a
+/// re-implementation would drift from the game's.
 ///
-/// Other readers are left alone - completion percentage, GetTrinketsUnlocked and the
-/// ALL_TAROTS_UNLOCKED achievement under-report while connected and correct themselves on
-/// disconnect. Lending to them isn't worth it, since the achievement path writes a permanent
-/// unlock, which is the one thing this class exists to prevent.
+/// Other readers are left alone. Completion percentage, GetTrinketsUnlocked and the
+/// ALL_TAROTS_UNLOCKED achievement under report while connected and correct themselves on
+/// disconnect. The achievement path writes a permanent unlock, which is the one thing this
+/// class exists to prevent.
 /// </remarks>
 internal static class TarotVisibility
 {
     /// <summary>
-    /// The cards Archipelago has granted. Set by TarotService while connected; null the rest
+    /// The cards Archipelago has granted. Set by TarotService while connected, and null the rest
     /// of the time, which leaves the game entirely alone.
     /// </summary>
     internal static Func<IEnumerable<TarotCards.Card>> GrantedCards;
@@ -36,19 +36,26 @@ internal static class TarotVisibility
     private static List<TarotCards.Card> Lend()
     {
         var granted = GrantedCards?.Invoke();
-        if (granted == null) return null;
+        if (granted == null)
+        {
+            return null;
+        }
 
         var found = DataManager.Instance?.PlayerFoundTrinkets;
-        if (found == null) return null;
+        if (found == null)
+        {
+            return null;
+        }
 
         List<TarotCards.Card> lent = null;
 
         foreach (var card in granted)
         {
             // Already there means it isn't ours to take back out again.
-            if (found.Contains(card)) continue;
-
-            (lent ??= new List<TarotCards.Card>()).Add(card);
+            if (found.Contains(card))
+            {
+                continue;
+            } (lent ??= new List<TarotCards.Card>()).Add(card);
             found.Add(card);
         }
 
@@ -57,29 +64,45 @@ internal static class TarotVisibility
 
     private static void Take(List<TarotCards.Card> lent)
     {
-        if (lent == null) return;
+        if (lent == null)
+        {
+            return;
+        }
 
         var found = DataManager.Instance?.PlayerFoundTrinkets;
-        if (found == null) return;
+        if (found == null)
+        {
+            return;
+        }
 
-        foreach (var card in lent) found.Remove(card);
+        foreach (var card in lent)
+        {
+            found.Remove(card);
+        }
     }
 
     /// <summary>
-    /// The in-run draw pool - what a pedestal or shrine offers mid-crusade. The one place where
-    /// getting this wrong is a gameplay bug: miss it and Archipelago's cards never show up.
+    /// The in-run draw pool, meaning what a pedestal or shrine offers mid-crusade. This is the
+    /// one place where getting it wrong is a gameplay bug. Miss it and Archipelago's cards
+    /// never show up.
     /// </summary>
     [HarmonyPatch(typeof(TarotCards), nameof(TarotCards.GetUnusedFoundTrinkets))]
     internal static class DrawPool
     {
         [HarmonyPrefix]
-        private static void Prefix(out List<TarotCards.Card> __state) => __state = Lend();
+        private static void Prefix(out List<TarotCards.Card> __state)
+        {
+            __state = Lend();
+        }
 
         // A finalizer rather than a postfix, because it runs even if the original throws.
         // Cards left on loan would silently become permanently owned, which is the exact
         // failure this whole class exists to avoid.
         [HarmonyFinalizer]
-        private static void Finalizer(List<TarotCards.Card> __state) => Take(__state);
+        private static void Finalizer(List<TarotCards.Card> __state)
+        {
+            Take(__state);
+        }
     }
 
     /// <summary>
@@ -90,9 +113,15 @@ internal static class TarotVisibility
     internal static class CollectionScreen
     {
         [HarmonyPrefix]
-        private static void Prefix(out List<TarotCards.Card> __state) => __state = Lend();
+        private static void Prefix(out List<TarotCards.Card> __state)
+        {
+            __state = Lend();
+        }
 
         [HarmonyFinalizer]
-        private static void Finalizer(List<TarotCards.Card> __state) => Take(__state);
+        private static void Finalizer(List<TarotCards.Card> __state)
+        {
+            Take(__state);
+        }
     }
 }

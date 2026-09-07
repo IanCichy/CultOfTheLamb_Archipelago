@@ -7,53 +7,47 @@ namespace Archipelago.CultOfTheLamb;
 /// Shows an in-game popup when checks are sent.
 /// </summary>
 /// <remarks>
-/// Half of what makes a multiworld feel alive is watching your checks go out, and the game gives
-/// no feedback of its own for it - receiving items at least produces the game's own pickup
-/// banners, but sending was entirely silent.
+/// The game gives no feedback of its own for an outgoing check. Receiving items at least
+/// produces the game's own pickup banners, but sending was entirely silent.
 ///
-/// The popup leads with the **item and who gets it**, not the location: the location is the thing
-/// the player just did and already knows about, while the item is the part they can't see. It still
-/// gets a second line, since "which check was that" is a fair question.
+/// The popup leads with the item and who gets it, not the location: the location is what the
+/// player just did and already knows. The location still gets a second line.
 ///
-/// Batches deliberately - milestone catch-up can send a dozen checks in one call (and does, on
-/// every reconnect), and a dozen stacked popups would bury the screen.
+/// Batched, because milestone catch-up can send a dozen checks in one call, and does on every
+/// reconnect.
 /// </remarks>
 internal static class CheckNotifier
 {
     private const string Game = "Cult of the Lamb";
 
-    /// <summary>
-    /// What the multiworld put at each location. Set by the client on connect and nulled on
-    /// teardown; when it's null or hasn't landed yet, the popups name the location instead.
-    /// </summary>
+    // What the multiworld put at each location. Null before it lands, and the popups then name
+    // the location instead
     internal static ScoutCache Scouts;
 
     internal static void Announce(ArchipelagoSession session, IReadOnlyList<long> checkIds)
     {
-        if (session == null || checkIds == null || checkIds.Count == 0) return;
+        if (session == null || checkIds == null || checkIds.Count == 0)
+        {
+            return;
+        }
 
         if (checkIds.Count == 1)
         {
-            // Blue glow = outgoing. Direction is the thing worth reading from the corner of the
-            // eye mid-crusade; the wording carries everything else.
+            // A blue glow means outgoing. Direction is the thing worth reading from the corner
+            // of the eye mid-crusade, and the wording carries everything else.
             ApNotification.Show(
                 Describe(session, checkIds[0]), NotificationBase.Flair.Positive, ApColors.Blue);
             return;
         }
 
-        // Yellow for a batch, matching the catch-up/warning slot in the palette - a burst of
+        // Yellow for a batch, matching the catch-up and warning slot in the palette. A burst of
         // checks is almost always a reconnect catching up rather than something you just did.
         ApNotification.Show($"Sent {checkIds.Count} checks to the multiworld",
             NotificationBase.Flair.Positive, ApColors.Yellow);
     }
 
-    /// <summary>
-    /// One check, as two lines: what went where, then which check it was.
-    ///
-    /// Falls back to the location alone whenever the scout hasn't answered - there's a round
-    /// trip between connecting and the cache filling, and a check completed in that window still
-    /// deserves a popup.
-    /// </summary>
+    // One check, as two lines: what went where, then which check it was. Falls back to the
+    // location alone whenever the scout hasn't answered yet
     private static string Describe(ArchipelagoSession session, long checkId)
     {
         var location = LocationName(session, checkId);
@@ -71,13 +65,13 @@ internal static class CheckNotifier
         return $"{headline}\n{location}";
     }
 
-    /// <summary>
-    /// Falls back to the raw id rather than throwing: the name lookup needs the datapackage,
-    /// and a missing name is not a reason to lose the notification entirely.
-    /// </summary>
+    // Falls back to the raw id rather than throwing. The lookup needs the datapackage
     private static string LocationName(ArchipelagoSession session, long checkId)
     {
-        if (Scouts != null) return Scouts.LocationName(checkId);
+        if (Scouts != null)
+        {
+            return Scouts.LocationName(checkId);
+        }
 
         try
         {

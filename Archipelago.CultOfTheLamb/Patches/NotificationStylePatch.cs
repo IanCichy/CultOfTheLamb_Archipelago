@@ -9,30 +9,31 @@ namespace Archipelago.CultOfTheLamb.Patches;
 /// <summary>
 /// Makes Archipelago's own popups hold twice as long and glow Archipelago green, so a check
 /// firing reads as a multiworld event rather than as something the game did.
-///
-/// Both changes land here rather than at the call site because
-/// NotificationCentre.PlayGenericNotification is fire-and-forget - it starts a coroutine that
-/// waits for the HUD to be willing to show anything before spawning the popup, so there is no
-/// instance to configure at the moment we ask for one. Configure is the first point the object
-/// exists, and it is also the only place the loc key and the instance are in scope together.
 /// </summary>
+/// <remarks>
+/// Both changes land here rather than at the call site because
+/// NotificationCentre.PlayGenericNotification is fire-and-forget: it starts a coroutine that
+/// waits for the HUD before spawning the popup, so there is no instance to configure when we
+/// ask. Configure is the first point the object exists, and the only place the loc key and the
+/// instance are in scope together.
+/// </remarks>
 [HarmonyPatch]
 internal static class NotificationStylePatch
 {
     /// <summary>
     /// Vanilla NotificationGeneric._onScreenDuration is 3s, which isn't long enough to read a
-    /// check name mid-crusade. The game itself overrides this the same way for Winter flair,
-    /// at 10s - so this sits comfortably inside what the game already does to itself.
+    /// check name mid-crusade. The game itself overrides this the same way for Winter flair, at
+    /// 10s, so this sits comfortably inside what the game already does to itself.
     /// </summary>
     private const float OnScreenSeconds = 12f;
 
     // What a message glows when it didn't ask for anything specific. The shared palette, so the
-    // glow and any inline <color> tags agree - this used to be its own #64C864, close to the AP
+    // glow and any inline <color> tags agree. This used to be its own #64C864, close to the AP
     // green but not it.
     private static readonly Color DefaultGlow = ApColors.Green;
 
     /// <summary>
-    /// Notifications are pooled - NotificationBase.Hide ends in ObjectPool.Recycle - so the
+    /// Notifications are pooled (NotificationBase.Hide ends in ObjectPool.Recycle), so the
     /// instance we tint gets reused for the game's own popups later. Without the original
     /// colour to put back, a vanilla "building complete" would inherit our green from whichever
     /// Archipelago message used that instance last.
@@ -50,7 +51,7 @@ internal static class NotificationStylePatch
     private static void Configure_Postfix(NotificationGeneric __instance, string locKey)
     {
         // Every Archipelago message is registered under this prefix and nothing else uses it,
-        // so it's an exact test - and the only one available, since Configure is handed the loc
+        // so it's an exact test, and the only one available, since Configure is handed the loc
         // key rather than the display text.
         var mine = locKey != null
             && locKey.StartsWith(ApNotification.TermPrefix, StringComparison.Ordinal);
@@ -58,7 +59,10 @@ internal static class NotificationStylePatch
         // A postfix specifically: NotificationBase.Configure resets _overrideScreenDuration to
         // -1f as its first statement, so setting the override any earlier would be thrown away.
         // Non-AP popups are left on that reset value, which is the vanilla 3s path.
-        if (mine) __instance.SetOverrideShowDuration(OnScreenSeconds);
+        if (mine)
+        {
+            __instance.SetOverrideShowDuration(OnScreenSeconds);
+        }
 
         // The colour the message asked for, or the default AP green when it didn't. Carried on
         // a side table keyed by loc key, because Configure is handed the key and nothing else.
@@ -67,9 +71,11 @@ internal static class NotificationStylePatch
 
     /// <summary>
     /// Recolours the flair behind a Positive notification, or puts the original colours back
-    /// when <paramref name="glow"/> is null. The restore half is the point of the cache - see
-    /// originalColours.
+    /// when <paramref name="glow"/> is null. The restore half is the point of the cache. See
+    /// <see cref="originalColours"/>.
     /// </summary>
+    /// <param name="notification">The popup instance Configure just finished setting up.</param>
+    /// <param name="glow">The colour to tint the flair, or null to restore the original.</param>
     private static void Recolour(NotificationBase notification, Color? glow)
     {
         GameObject flair;
@@ -84,7 +90,10 @@ internal static class NotificationStylePatch
             return;
         }
 
-        if (flair == null) return;
+        if (flair == null)
+        {
+            return;
+        }
 
         // Notifications are spawned with SpawnUI into the notification container, so the glow is
         // uGUI (Image, or a TMP label) rather than a SpriteRenderer. Inactive included because
@@ -104,9 +113,15 @@ internal static class NotificationStylePatch
 
         foreach (var graphic in graphics)
         {
-            if (graphic == null) continue;
+            if (graphic == null)
+            {
+                continue;
+            }
 
-            if (!originalColours.ContainsKey(graphic)) originalColours[graphic] = graphic.color;
+            if (!originalColours.ContainsKey(graphic))
+            {
+                originalColours[graphic] = graphic.color;
+            }
 
             graphic.color = glow ?? originalColours[graphic];
         }

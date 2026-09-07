@@ -12,15 +12,15 @@ namespace Archipelago.CultOfTheLamb.UI;
 /// Opens the game's own sermon upgrade tree as a read-only viewer.
 /// </summary>
 /// <remarks>
-/// Randomizing sermons costs the player the only routine way to see this tree: SermonUpgradePatch
-/// replaces SermonController.PlayerUpgrade, which was the sole call site of
-/// UIManager.ShowPlayerUpgradeTree. This gives it back, with the real art, connectors and - the
-/// reason it isn't an IMGUI panel - the game's own controller cursor.
+/// Randomizing sermons costs the player the only routine way to see this tree.
+/// SermonUpgradePatch replaces SermonController.PlayerUpgrade, the sole call site of
+/// UIManager.ShowPlayerUpgradeTree. This gives it back, with the real art, connectors and the
+/// game's own controller cursor, which is why it isn't an IMGUI panel.
 ///
-/// We instantiate the prefab rather than calling ShowPlayerUpgradeTree, which removes most of the
-/// danger: ShowPlayerUpgradeTree is what sets `revealType` on a Seasons save, and OnShowCompleted
-/// unlocks an upgrade for free when it's set. Going through the inherited Show(bool) leaves
-/// revealType at Count, so that branch is unreachable with no patch at all.
+/// The prefab is instantiated rather than calling ShowPlayerUpgradeTree, which is what sets
+/// `revealType` on a Seasons save, and OnShowCompleted unlocks an upgrade for free when it is
+/// set. The inherited Show(bool) leaves revealType at Count, so that branch is unreachable with
+/// no patch at all.
 /// </remarks>
 internal static class SermonTreeViewer
 {
@@ -39,7 +39,7 @@ internal static class SermonTreeViewer
         && MonoSingleton<UIManager>.Instance.UpgradePlayerTreeMenuTemplate != null;
 
     /// <summary>
-    /// <paramref name="onClosed"/> runs when the viewer is dismissed - and also when it can't be
+    /// <paramref name="onClosed"/> runs when the viewer is dismissed, and also when it can't be
     /// opened at all, so a caller that hid itself to make room always gets to come back.
     /// </summary>
     internal static void Open(Action onClosed)
@@ -48,9 +48,9 @@ internal static class SermonTreeViewer
         {
             Log.LogWarning("[AP] The sermon tree viewer is already open.");
 
-            // Still hand back control. A caller that hid itself to make room - the altar entry -
-            // has no other way to come back, and leaving it hidden strands the player in a paused
-            // scene with no menu.
+            // Still hand back control. A caller that hid itself to make room, such as the altar
+            // entry, has no other way to come back, and leaving it hidden strands the player in a
+            // paused scene with no menu.
             onClosed?.Invoke();
             return;
         }
@@ -76,8 +76,8 @@ internal static class SermonTreeViewer
             return;
         }
 
-        // Before anything that can raise a callback: Awake has already run inside Instantiate, and
-        // the cancel patch needs this set the moment the menu can receive input.
+        // Before anything that can raise a callback. Awake has already run inside Instantiate,
+        // and the cancel patch needs this set the moment the menu can receive input.
         Viewer = viewer;
 
         Neuter(viewer);
@@ -85,21 +85,24 @@ internal static class SermonTreeViewer
 
         // Awake deactivates this so the vanilla flow can't be escaped. We're read-only, so the
         // player must be able to leave.
-        if (viewer.disableBackPrompt != null) viewer.disableBackPrompt.SetActive(true);
+        if (viewer.disableBackPrompt != null)
+        {
+            viewer.disableBackPrompt.SetActive(true);
+        }
 
-        // OnShowStarted re-subscribes every node's confirm handler, after the setup above - so do
+        // OnShowStarted re-subscribes every node's confirm handler, after the setup above, so do
         // it again once the menu is up.
         viewer.OnShow += () => Neuter(viewer);
 
-        // OnHidden rather than OnCancel: the subclass's empty OnCancelButtonInput never sets
-        // _didCancel, so OnCancel never fires. Hide always reaches this.
+        // OnHidden rather than OnCancel, because the subclass's empty OnCancelButtonInput never
+        // sets _didCancel, so OnCancel never fires. Hide always reaches this.
         viewer.OnHidden += () =>
         {
             Viewer = null;
             onClosed?.Invoke();
         };
 
-        // The inherited Show(bool). Never Show(UpgradeSystem.Type) - see the class comment.
+        // The inherited Show(bool). Never Show(UpgradeSystem.Type). See the class comment.
         viewer.Show(false);
 
         // Gives us the vanilla pause and timescale restore. A no-op if something else is still the
@@ -112,26 +115,32 @@ internal static class SermonTreeViewer
     ///
     /// This is not optional. UIPlayerUpgradeUnlockOverlayController.IsAvailable returns true
     /// unconditionally, so unlike the Divine Inspiration tree the sermon tree has no currency gate
-    /// at all - opening it and holding confirm unlocks any available node for free, which would
+    /// at all. Opening it and holding confirm unlocks any available node for free, which would
     /// hand out an upgrade the randomizer never placed.
     /// </summary>
     private static void Neuter(UIUpgradePlayerTreeMenuController viewer)
     {
         foreach (var node in viewer.GetComponentsInChildren<UpgradeTreeNode>(includeInactive: true))
         {
-            if (node == null) continue;
+            if (node == null)
+            {
+                continue;
+            }
 
-            // The real block: the only route from the node's onClick to DoUnlock, and it also
-            // covers Button.OnSubmit, which MMButton doesn't route through Confirmable.
+            // The real block. This is the only route from the node's onClick to DoUnlock, and it
+            // also covers Button.OnSubmit, which MMButton doesn't route through Confirmable.
             node.OnUpgradeNodeSelected = null;
 
-            // Makes it read as a viewer rather than a dead button - both the pad and the mouse
+            // Makes it read as a viewer rather than a dead button. Both the pad and the mouse
             // confirm paths go through MMButton.TryPerformConfirmAction, which this denies.
             //
-            // Deliberately not Interactable: UpgradeMenuCursor only considers interactable nodes
+            // Deliberately not Interactable. UpgradeMenuCursor only considers interactable nodes
             // and dereferences the nearest one unguarded, so a fully non-interactable tree throws
             // on the first stick flick.
-            if (node.Button != null) node.Button.Confirmable = false;
+            if (node.Button != null)
+            {
+                node.Button.Confirmable = false;
+            }
         }
     }
 
@@ -140,18 +149,21 @@ internal static class SermonTreeViewer
     /// Drops the "N / M" tier rules across the tree.
     /// </summary>
     /// <remarks>
-    /// They describe spending upgrades to open the next row, which can't happen here - Archipelago
-    /// grants sermon upgrades outright and ignores tiers entirely, so the thresholds are a
-    /// progression the player can't act on. Same reasoning as DivineInspirationTierReveal.
+    /// They describe spending upgrades to open the next row, which can't happen here. Archipelago
+    /// grants sermon upgrades outright and ignores tiers, so the thresholds are a progression the
+    /// player can't act on.
     ///
-    /// Done on our instance rather than by patching NumRequiredNodesForTier, because that reader
-    /// also decides node state for the *real* sermon tree the Flock ritual and sermon rewards open.
+    /// Done on our instance rather than by patching NumRequiredNodesForTier, since that reader
+    /// also decides node state for the real sermon tree the Flock ritual opens.
     /// </remarks>
     private static void HideTierDividers(UIUpgradePlayerTreeMenuController viewer)
     {
         foreach (var divider in viewer.GetComponentsInChildren<TierLockIcon>(includeInactive: true))
         {
-            if (divider != null) divider.gameObject.SetActive(false);
+            if (divider != null)
+            {
+                divider.gameObject.SetActive(false);
+            }
         }
     }
 }

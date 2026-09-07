@@ -4,8 +4,8 @@ using HarmonyLib;
 namespace Archipelago.CultOfTheLamb.Patches;
 
 /// <summary>
-/// Catches purchases from any hub shop. Interaction_BuyItem is the universal shop-slot class -
-/// tarot, decorations and plain stalls alike - so one patch covers every shop in the game.
+/// Catches purchases from any hub shop. Interaction_BuyItem is the universal shop-slot class,
+/// covering tarot, decorations and plain stalls alike, so one patch covers every shop in the game.
 ///
 /// Activate() is the purchase-completed step, patched rather than subscribing to its own
 /// OnItemBought, which is per-instance and would mean hooking every slot object as it spawns. The
@@ -14,7 +14,7 @@ namespace Archipelago.CultOfTheLamb.Patches;
 [HarmonyPatch(typeof(Interaction_BuyItem))]
 internal static class ShopPurchasePatch
 {
-    /// <summary>Fires with the purchased entry. Decorations and plain items come through too.</summary>
+    // Fires with the purchased entry. Decorations and plain items come through too
     internal static event Action<BuyEntry> OnItemPurchased;
 
     [HarmonyPatch("Activate")]
@@ -22,11 +22,18 @@ internal static class ShopPurchasePatch
     private static void Activate_Postfix(Interaction_BuyItem __instance)
     {
         // customItemForSale entries are built at runtime rather than configured on the prefab,
-        // and Activate() bails out early for them - nothing stable to key a location off.
-        if (__instance == null || __instance.customItemForSale) return;
+        // and Activate() bails out early for them, so there is nothing stable to key a location
+        // off.
+        if (__instance == null || __instance.customItemForSale)
+        {
+            return;
+        }
 
         var entry = __instance.itemForSale;
-        if (entry == null) return;
+        if (entry == null)
+        {
+            return;
+        }
 
         Log.LogInfo($"[AP] Shop purchase: tarot={entry.TarotCard} card={entry.Card} "
             + $"decoration={entry.Decoration} item={entry.itemToBuy} "

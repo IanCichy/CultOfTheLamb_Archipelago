@@ -3,15 +3,19 @@ using System.Collections.Generic;
 namespace Archipelago.CultOfTheLamb;
 
 /// <summary>
-/// Region name (matches worlds/cult_of_the_lamb's REGION_NAMES / slot data "regionOrder"
-/// strings) &lt;-&gt; the game's own FollowerLocation enum values for each region's home-base door
-/// and Bishop-kill completion slot. See DecompiledGamesViaDnSpy/Cotl/AI_INDEX.md section 3 for how
-/// these were confirmed (each Enemy*Boss class's own
-/// BossesCompleted.Contains(FollowerLocation.Dungeon1_N) check).
+/// Ties region names to the game's own FollowerLocation enum values.
 /// </summary>
+/// <remarks>
+/// The region names match worlds/cult_of_the_lamb's REGION_NAMES and the slot data "regionOrder"
+/// strings. The FollowerLocation values are each region's home-base door and Bishop-kill
+/// completion slot.
+///
+/// See DcplIdx 3 for how these were confirmed: each Enemy*Boss class's own
+/// BossesCompleted.Contains(FollowerLocation.Dungeon1_N) check.
+/// </remarks>
 internal static class RegionMapping
 {
-    /// <summary>Region name -> its dungeon. Game knowledge, so it isn't sent in slot data.</summary>
+    // Region name -> its dungeon. Game knowledge, so it isn't sent in slot data
     internal static readonly Dictionary<string, FollowerLocation> RegionToDungeonLocation = new()
     {
         { "Darkwood", FollowerLocation.Dungeon1_1 },
@@ -21,12 +25,13 @@ internal static class RegionMapping
     };
 
     /// <summary>
-    /// Bishop kill slot -> AP location id, filled from slot data at connect.
-    ///
-    /// The ids used to be hardcoded here as `3_051_000 + N`, which made reordering locations.py
-    /// silently repoint the four checks the goal depends on. Empty until Populate runs; every
-    /// reader is on a connected path.
+    /// Bishop kill slot to AP location id, filled from slot data at connect.
     /// </summary>
+    /// <remarks>
+    /// The ids used to be hardcoded here as <c>3_051_000 + N</c>, which made reordering
+    /// locations.py silently repoint the four checks the goal depends on. Empty until
+    /// <see cref="Populate"/> runs, and every reader is on a connected path.
+    /// </remarks>
     internal static Dictionary<FollowerLocation, long> BishopLocationToCheckId { get; private set; }
         = new();
 
@@ -48,5 +53,8 @@ internal static class RegionMapping
         Log.LogInfo($"[AP] Bishop checks: {result.Count} location(s) mapped.");
     }
 
-    internal static void Clear() => BishopLocationToCheckId = new Dictionary<FollowerLocation, long>();
+    internal static void Clear()
+    {
+        BishopLocationToCheckId = new Dictionary<FollowerLocation, long>();
+    }
 }

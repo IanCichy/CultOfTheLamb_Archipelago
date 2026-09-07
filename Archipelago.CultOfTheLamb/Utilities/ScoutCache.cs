@@ -10,15 +10,13 @@ namespace Archipelago.CultOfTheLamb;
 /// rather than only the check that held it.
 /// </summary>
 /// <remarks>
-/// One bulk scout on connect: fetching on demand as each check completes would make the
-/// announcement async and force it back through MainThreadQueue, for a lookup that's wanted within
-/// the same frame. <c>HintCreationPolicy</c> is deliberately left at its default (no hint) - this
-/// is a labelling convenience, and burning the player's hint points to render text, let alone
-/// broadcasting hints to the whole multiworld on connect, would be hostile.
+/// One bulk scout on connect. Fetching on demand as each check completes would make the
+/// announcement async and force it back through MainThreadQueue, for a lookup wanted within the
+/// same frame. <c>HintCreationPolicy</c> stays at its default of no hint: this is a labelling
+/// convenience, and spending the player's hint points on it would be hostile.
 ///
-/// Callers must cope with a miss: there's a round trip between connecting and the scout landing,
-/// so a check completed in that window has no item name yet and every caller falls back to the
-/// location name.
+/// Callers must cope with a miss. There is a round trip between connecting and the scout
+/// landing, and a check completed in that window falls back to the location name.
 /// </remarks>
 internal class ScoutCache
 {
@@ -26,7 +24,7 @@ internal class ScoutCache
     private readonly string game;
 
     // Written from the scout continuation (a background thread) and read from UI and check
-    // paths (the main thread), so it's swapped wholesale rather than mutated in place - a
+    // paths (the main thread), so it's swapped wholesale rather than mutated in place. A
     // reference assignment is atomic, an Add is not.
     private Dictionary<long, ScoutedCheck> scouted = new();
 
@@ -51,7 +49,7 @@ internal class ScoutCache
     /// <summary>
     /// Scouts everything this slot still has outstanding.
     ///
-    /// Already-checked locations are skipped: their items are gone, so naming them would cost a
+    /// Already-checked locations are skipped. Their items are gone, so naming them would cost a
     /// bigger round trip for data nothing reads.
     /// </summary>
     internal void ScoutAll()
@@ -70,10 +68,13 @@ internal class ScoutCache
         Scout(ids);
     }
 
-    /// <summary>Scouts a specific set, merging the result over anything already known.</summary>
+    // Scouts a specific set, merging the result over anything already known
     internal void Scout(IReadOnlyCollection<long> locationIds)
     {
-        if (locationIds == null || locationIds.Count == 0) return;
+        if (locationIds == null || locationIds.Count == 0)
+        {
+            return;
+        }
 
         var ids = locationIds.Distinct().ToArray();
 
@@ -109,8 +110,8 @@ internal class ScoutCache
     }
 
     /// <summary>
-    /// The location's own name. Falls back to the raw id rather than throwing - the lookup needs
-    /// the datapackage, and a missing name is no reason to lose a notification.
+    /// The location's own name. Falls back to the raw id rather than throwing, since the lookup
+    /// needs the datapackage and a missing name is no reason to lose a notification.
     /// </summary>
     internal string LocationName(long locationId)
     {

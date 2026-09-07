@@ -10,7 +10,7 @@ namespace Archipelago.CultOfTheLamb.Patches;
 /// isn't live.
 /// </summary>
 /// <remarks>
-/// BiomeBaseManager.UpgradeBaseRoutine takes control before it validates anything:
+/// BiomeBaseManager.UpgradeBaseRoutine takes control before it validates anything.
 ///
 ///     ForceBlockMenus = true;                          // :915
 ///     foreach (pf in players) pf.SetActive(false);      // :918  the player disappears
@@ -18,45 +18,41 @@ namespace Archipelago.CultOfTheLamb.Patches;
 ///     ... released only at :990 and :1074
 ///
 /// There is no try/finally, so an exception at :920 leaves menus blocked and the player
-/// deactivated for the rest of the process - no character, no input, hard exit the only way out.
+/// deactivated for the rest of the process: no character, no input, hard exit the only way out.
 /// Observed three times in one session.
 ///
-/// It happens because we call UpgradeSystem.UnlockAbility from ItemLogic.ProcessQueue on whatever
-/// frame an item lands, and because the resulting unlock is flushed later, during an altar
-/// interaction, when the base structures aren't enabled and BuildingShrine.Shrines is empty.
-/// Vanilla can't reach it: a base upgrade is bought at a shrine, which is by definition present.
+/// The cause is calling UpgradeSystem.UnlockAbility from ItemLogic.ProcessQueue on whatever
+/// frame an item lands. The unlock is flushed later, during an altar interaction, when the base
+/// structures aren't enabled and BuildingShrine.Shrines is empty. Vanilla can't reach it, since
+/// a base upgrade is bought at a shrine.
 ///
-/// **Deferring rather than skipping is deliberate**: the routine isn't a cutscene, it removes the
-/// old Shrine and Temple and places the next tier, so dropping the call would keep the unlock on
-/// record while the buildings never change - trading a visible lock for silent permanent loss. The
-/// upgrade is held and replayed once the base is live instead.
+/// Deferred rather than skipped: the routine removes the old Shrine and Temple and places the
+/// next tier, so dropping the call would record the unlock while the buildings never changed.
 ///
-/// This guards the symptom. The root cause - granting building upgrades outside the shrine flow at
-/// all - is a dequeue gate in ProcessQueue, tracked separately.
+/// Symptom only. The root cause is granting building upgrades outside the shrine flow, which
+/// wants a dequeue gate in ProcessQueue and is tracked separately.
 /// </remarks>
 [HarmonyPatch]
 internal static class BaseUpgradeGuardPatch
 {
-    /// <summary>
-    /// The upgrade held back because the base wasn't ready, or null. Only ever one: the three
-    /// Temple tiers are sequential, so a second can't legitimately arrive while one is pending.
-    /// </summary>
+    // The upgrade held back because the base wasn't ready, or null. Only ever one, since the
+    // three Temple tiers are sequential
     private static UpgradeSystem.Type? deferred;
 
-    /// <summary>Stops the waiting message repeating every tick.</summary>
+    // Stops the waiting message repeating every tick
     private static bool loggedWaiting;
 
-    /// <summary>Stops RepairIfBehind re-firing a cutscene every tick if the rebuild won't take.</summary>
+    // Stops RepairIfBehind re-firing a cutscene every tick if the rebuild won't take
     private static bool repairAttempted;
 
     private static readonly MethodInfo UpgradeBaseMethod =
         AccessTools.Method(typeof(BiomeBaseManager), "UpgradeBase");
 
-    /// <summary>The three tiers that actually start the coroutine - BiomeBaseManager.cs:904-910.</summary>
+    // The three tiers that start the coroutine. BiomeBaseManager.cs:904-910
     private static bool StartsTheRoutine(UpgradeSystem.Type type) =>
         TierOf(type) > 0;
 
-    /// <summary>Which base tier an upgrade builds, or 0 if it isn't one of the three.</summary>
+    // Which base tier an upgrade builds, or 0 if it isn't one of the three
     private static int TierOf(UpgradeSystem.Type type) => type switch
     {
         UpgradeSystem.Type.Building_Temple2 => 2,
@@ -65,11 +61,14 @@ internal static class BaseUpgradeGuardPatch
         _ => 0,
     };
 
-    /// <summary>The tier the Temple structure is actually built at, or 0 if there isn't one.</summary>
+    // The tier the Temple structure is built at, or 0 if there isn't one
     private static int CurrentTier()
     {
         var temples = StructureManager.GetAllStructuresOfType<Structures_Temple>();
-        if (temples == null || temples.Count == 0) return 0;
+        if (temples == null || temples.Count == 0)
+        {
+            return 0;
+        }
 
         return temples[0]?.Data?.Type switch
         {
@@ -80,42 +79,52 @@ internal static class BaseUpgradeGuardPatch
         };
     }
 
-    /// <summary>
-    /// The highest base tier the save records as unlocked, or null if none of the three are.
-    /// Nullable rather than a sentinel: UpgradeSystem.Type has no None member.
-    /// </summary>
+    // The highest base tier the save records as unlocked, or null if none of the three are.
+    // Nullable rather than a sentinel, because UpgradeSystem.Type has no None member
     private static UpgradeSystem.Type? HighestOwnedTier()
     {
-        if (UpgradeSystem.GetUnlocked(UpgradeSystem.Type.Temple_IV)) return UpgradeSystem.Type.Temple_IV;
-        if (UpgradeSystem.GetUnlocked(UpgradeSystem.Type.Temple_III)) return UpgradeSystem.Type.Temple_III;
-        if (UpgradeSystem.GetUnlocked(UpgradeSystem.Type.Building_Temple2)) return UpgradeSystem.Type.Building_Temple2;
+        if (UpgradeSystem.GetUnlocked(UpgradeSystem.Type.Temple_IV))
+        {
+            return UpgradeSystem.Type.Temple_IV;
+        }
+
+        if (UpgradeSystem.GetUnlocked(UpgradeSystem.Type.Temple_III))
+        {
+            return UpgradeSystem.Type.Temple_III;
+        }
+
+        if (UpgradeSystem.GetUnlocked(UpgradeSystem.Type.Building_Temple2))
+        {
+            return UpgradeSystem.Type.Building_Temple2;
+        }
+
         return null;
     }
 
-    /// <summary>
-    /// Whether the routine can complete.
-    /// </summary>
-    /// <remarks>
-    /// **Both** unguarded index-0 accesses have to be satisfied, because the routine swaps the
-    /// Shrine and the Temple as a pair:
-    ///
-    ///     BuildingShrine.Shrines[0]                              // :920
-    ///     StructureManager.GetAllStructuresOfType&lt;Structures_Temple&gt;()[0]  // :994
-    ///
-    /// An earlier version of this guard checked only the first, which let a fresh cult through -
-    /// a new save has a Shrine but no Temple - and it threw at :994 instead. That is the worse
-    /// throw site: it lands *after* :990-991 have reactivated the player and put it into
-    /// CustomAnimation, so the player exists but cannot move.
-    ///
-    /// The menu flag is included because the routine drives a camera sequence that has no
-    /// business starting underneath an open menu.
-    /// </remarks>
+    // Both unguarded index-0 accesses have to be satisfied, because the routine swaps the
+    // Shrine and the Temple as a pair:
+    //
+    //     BuildingShrine.Shrines[0]                                        // :920
+    //     StructureManager.GetAllStructuresOfType<Structures_Temple>()[0]  // :994
+    //
+    // An earlier version checked only the first, which let a fresh cult through (a new save has
+    // a Shrine but no Temple) and threw at :994 instead. That is the worse site: it lands after
+    // :990-991 have reactivated the player and put it into CustomAnimation, so the player exists
+    // but cannot move.
+    //
+    // The menu flag is included because the routine drives a camera sequence
     private static bool BaseIsReady()
     {
-        if (BuildingShrine.Shrines == null || BuildingShrine.Shrines.Count == 0) return false;
+        if (BuildingShrine.Shrines == null || BuildingShrine.Shrines.Count == 0)
+        {
+            return false;
+        }
 
         var temples = StructureManager.GetAllStructuresOfType<Structures_Temple>();
-        if (temples == null || temples.Count == 0) return false;
+        if (temples == null || temples.Count == 0)
+        {
+            return false;
+        }
 
         var ui = MonoSingleton<UIManager>.Instance;
         return ui == null || !ui.ForceBlockMenus;
@@ -126,23 +135,27 @@ internal static class BaseUpgradeGuardPatch
     private static bool UpgradeBase_Prefix(UpgradeSystem.Type upgradeType)
     {
         // Anything else returns without starting a coroutine, so it can't lock and needn't wait.
-        if (!StartsTheRoutine(upgradeType)) return true;
+        if (!StartsTheRoutine(upgradeType))
+        {
+            return true;
+        }
 
-        // The routine doesn't check what you already have - it removes the current Shrine and
+        // The routine doesn't check what you already have. It removes the current Shrine and
         // Temple and places whichever tier it was handed. Run it with a tier at or below the one
         // standing and it silently *downgrades* the base. Vanilla never does, because tiers are
-        // bought in ascending order at the shrine; we can, because they arrive from the multiworld
+        // bought in ascending order at the shrine. We can, because they arrive from the multiworld
         // and the game defers each reveal into UnlocksToReveal until the next altar visit, by
         // which point a later tier may already have been applied.
         //
-        // Observed: a queued Building_Temple2 flushed onto a tier-IV base and rebuilt it as II.
+        // Observed once. A queued Building_Temple2 flushed onto a tier-IV base and rebuilt it
+        // as II.
         var requested = TierOf(upgradeType);
         var current = CurrentTier();
 
         if (current > 0 && requested <= current)
         {
             // Refusing outright would leave the save stranded whenever the structures have already
-            // fallen behind the record, so re-run the highest tier actually owned instead. That is
+            // fallen behind the record, so re-run the highest tier owned instead. That is
             // a no-op when the base is already correct, and a repair when it isn't.
             var highest = HighestOwnedTier();
 
@@ -160,7 +173,10 @@ internal static class BaseUpgradeGuardPatch
             return false;
         }
 
-        if (BaseIsReady()) return true;
+        if (BaseIsReady())
+        {
+            return true;
+        }
 
         deferred = upgradeType;
         loggedWaiting = false;
@@ -171,11 +187,8 @@ internal static class BaseUpgradeGuardPatch
         return false;
     }
 
-    /// <summary>
-    /// Replays a held-back upgrade once the base is live. Driven from the plugin's once-a-second
-    /// tick - the upgrade is a multi-second animation, so there's nothing to gain from checking
-    /// more often.
-    /// </summary>
+    // Replays a held back upgrade once the base is live. The upgrade is a multi-second
+    // animation, so the once-a-second tick is often enough
     internal static void Tick()
     {
         if (deferred == null)
@@ -196,8 +209,8 @@ internal static class BaseUpgradeGuardPatch
 
         var upgrade = deferred.Value;
 
-        // Cleared before the call, not after: the routine re-enters UnlockAbility for the paired
-        // Shrine tier, so leaving it set risks queueing the same upgrade twice.
+        // Cleared before the call, not after, because the routine re-enters UnlockAbility for the
+        // paired Shrine tier, so leaving it set risks queueing the same upgrade twice.
         deferred = null;
         loggedWaiting = false;
 
@@ -213,29 +226,33 @@ internal static class BaseUpgradeGuardPatch
         UpgradeBaseMethod.Invoke(manager, new object[] { upgrade });
     }
 
-    /// <summary>
-    /// Rebuilds the base when the structures have fallen behind what the save says is unlocked.
-    /// </summary>
-    /// <remarks>
-    /// The prefix's own repair branch only fires when something calls UpgradeBase, and after a
-    /// downgrade there is nothing left in UnlocksToReveal to call it - so that path is correct and
-    /// unreachable, leaving the base stranded. This drives it instead.
-    ///
-    /// Observed state it exists for: Temple and Shrine standing at tier II while UnlockedUpgrades
-    /// holds Temple_IV, after a queued Building_Temple2 flushed onto an already-upgraded base.
-    ///
-    /// Runs at most once per session. A repair that doesn't take would otherwise re-fire a
-    /// multi-second cutscene every tick, which is worse than the drift it fixes.
-    /// </remarks>
+    // Rebuilds the base when the structures have fallen behind what the save says is unlocked.
+    // The prefix's repair branch only fires when something calls UpgradeBase, and after a
+    // downgrade nothing is left in UnlocksToReveal to call it, so that path is unreachable.
+    //
+    // Observed state: Temple and Shrine standing at tier II while UnlockedUpgrades holds
+    // Temple_IV, after a queued Building_Temple2 flushed onto an already-upgraded base.
+    //
+    // Runs at most once per session, or a repair that doesn't take re-fires a multi second
+    // cutscene every tick
     private static void RepairIfBehind()
     {
-        if (repairAttempted || !BaseIsReady()) return;
+        if (repairAttempted || !BaseIsReady())
+        {
+            return;
+        }
 
         var highest = HighestOwnedTier();
-        if (highest == null) return;
+        if (highest == null)
+        {
+            return;
+        }
 
         var current = CurrentTier();
-        if (current <= 0 || TierOf(highest.Value) <= current) return;
+        if (current <= 0 || TierOf(highest.Value) <= current)
+        {
+            return;
+        }
 
         repairAttempted = true;
         Log.LogWarning($"[AP] The base is built at tier {current} but the save records "
@@ -244,14 +261,10 @@ internal static class BaseUpgradeGuardPatch
         loggedWaiting = false;
     }
 
-    /// <summary>
-    /// Last resort: hand back what the routine took if it throws for any reason the prefix didn't
-    /// anticipate.
-    ///
-    /// Patched manually rather than by attribute because the target is a compiler-generated
-    /// iterator - if AccessTools can't resolve it on some future game build, a failed attribute
-    /// patch would take the whole plugin down with it. Here a miss costs a warning.
-    /// </summary>
+    // Hands back what the routine took if it throws for a reason the prefix didn't anticipate.
+    // Patched manually rather than by attribute because the target is a compiler-generated
+    // iterator, and a failed attribute patch would take the whole plugin down. Here a miss
+    // costs a warning
     internal static void ApplyRoutineFinalizer(Harmony harmony)
     {
         try
@@ -276,14 +289,14 @@ internal static class BaseUpgradeGuardPatch
         }
     }
 
-    /// <summary>
-    /// Runs when the routine's MoveNext throws. Restores the two things it takes up front and
-    /// never gives back on a failure - menus and the player object - then swallows the exception,
-    /// since it has already been reported and rethrowing only re-breaks the same coroutine.
-    /// </summary>
+    // Runs when the routine's MoveNext throws. Restores the two things it takes up front and
+    // never gives back on failure, menus and the player object, then swallows the exception
     private static Exception RoutineFinalizer(Exception __exception)
     {
-        if (__exception == null) return null;
+        if (__exception == null)
+        {
+            return null;
+        }
 
         Log.LogError($"[AP] The base upgrade threw: {__exception.GetType().Name}: "
             + $"{__exception.Message}. Restoring control - the upgrade itself did not finish.");
@@ -291,21 +304,33 @@ internal static class BaseUpgradeGuardPatch
         try
         {
             var ui = MonoSingleton<UIManager>.Instance;
-            if (ui != null) ui.ForceBlockMenus = false;
+            if (ui != null)
+            {
+                ui.ForceBlockMenus = false;
+            }
 
             foreach (var player in PlayerFarming.players)
             {
-                if (player?.gameObject == null) continue;
+                if (player?.gameObject == null)
+                {
+                    continue;
+                }
 
                 player.gameObject.SetActive(true);
 
-                // The one that actually strands you at the later throw site. :991 puts the player
+                // The one that strands you at the later throw site. :991 puts the player
                 // into CustomAnimation immediately before the Temple lookup at :994, so by then
-                // it is visible and reactivated but unable to move. Restoring activation alone -
-                // which is all the first version of this did - fixes nothing.
-                if (player.state != null) player.state.CURRENT_STATE = StateMachine.State.Idle;
+                // it is visible and reactivated but unable to move. Restoring activation alone,
+                // which is all the first version of this did, fixes nothing.
+                if (player.state != null)
+                {
+                    player.state.CURRENT_STATE = StateMachine.State.Idle;
+                }
 
-                if (player.indicator != null) player.indicator.SetGameObjectActive(true);
+                if (player.indicator != null)
+                {
+                    player.indicator.SetGameObjectActive(true);
+                }
             }
 
             // :938 pins the camera to the shrine and :939-940 put the game into conversation
@@ -316,7 +341,10 @@ internal static class BaseUpgradeGuardPatch
             {
                 foreach (var shrine in BuildingShrine.Shrines)
                 {
-                    if (shrine != null) camera.RemoveTarget(shrine.gameObject);
+                    if (shrine != null)
+                    {
+                        camera.RemoveTarget(shrine.gameObject);
+                    }
                 }
             }
         }

@@ -6,16 +6,16 @@ using Archipelago.MultiClient.Net;
 namespace Archipelago.CultOfTheLamb.Services;
 
 /// <summary>
-/// Both halves of sermon randomization:
+/// Both halves of sermon randomization.
 /// </summary>
 /// <remarks>
-///  - Location: filling the sermon bar sends "Sermon Upgrade N" (see SermonUpgradePatch).
-///  - Item: a received sermon item calls UpgradeSystem.UnlockAbility for the upgrade it maps to.
+/// As a location, filling the sermon bar sends "Sermon Upgrade N" (see SermonUpgradePatch). As an
+/// item, a received sermon item calls UpgradeSystem.UnlockAbility for the upgrade it maps to.
 ///
-/// The item -> UpgradeSystem.Type mapping arrives in slot data rather than being hardcoded
-/// here, so adding or reordering upgrades on the Python side can't silently desync the two
-/// halves. Each entry is an ordered list: one element is a standalone upgrade, several make a
-/// progressive chain whose Nth copy grants the Nth tier.
+/// The item -> UpgradeSystem.Type mapping arrives in slot data rather than hardcoded here, so
+/// adding or reordering upgrades on the Python side can't silently desync the two halves. Each
+/// entry is an ordered list: one element is a standalone upgrade, several make a progressive
+/// chain whose Nth copy grants the Nth tier.
 /// </remarks>
 internal class SermonService : IService
 {
@@ -24,7 +24,7 @@ internal class SermonService : IService
     private readonly long locationBaseId;
     private readonly int locationCount;
 
-    /// <summary>Which tier of each progressive sermon chain comes next. See ProgressiveGrant.</summary>
+    // Which tier of each progressive sermon chain comes next. See ProgressiveGrant
     private readonly ProgressiveGrant progressive = new();
 
     internal SermonService(
@@ -49,30 +49,29 @@ internal class SermonService : IService
         SendChecksUpTo(EarnedCount());
     }
 
-    /// <summary>
-    /// How many sermon upgrades this save has taken, ever. Monotonic, and vanilla keeps counting
-    /// while we're disconnected - Unregister hands the pick-an-upgrade flow back, and
-    /// SermonController increments this on its own.
-    /// </summary>
+    // How many sermon upgrades this save has taken, ever. Monotonic, and vanilla keeps
+    // counting while disconnected, since Unregister hands the pick-an-upgrade flow back
     private static int EarnedCount() => DataManager.Instance?.Doctrine_PlayerUpgrade_Level ?? 0;
 
-    /// <summary>
-    /// Pays for every sermon the save says was taken, so ones earned while disconnected still
-    /// land. Same shape as DivineInspirationService, and free to repeat because CheckSender
-    /// filters against what the server already has.
-    ///
-    /// One knock-on worth knowing: a sermon taken offline also hands out a real vanilla upgrade,
-    /// since the choice screen isn't suppressed once Unregister runs, and catch-up pays the check on
-    /// top - so the player keeps that upgrade for free. A leaked reward beats a lost check, since
-    /// withholding it would strand an item for someone else.
-    /// </summary>
+    // Pays for every sermon the save says was taken, so ones earned while disconnected still
+    // land.
+    //
+    // A sermon taken offline also hands out a real vanilla upgrade, since the choice screen
+    // isn't suppressed once Unregister runs, and catch-up pays the check on top. The player
+    // keeps that upgrade for free.
     private void SendChecksUpTo(int level)
     {
-        if (level < 1) return;
+        if (level < 1)
+        {
+            return;
+        }
 
         var highest = System.Math.Min(level, locationCount);
         var pending = new List<long>();
-        for (var i = 1; i <= highest; i++) pending.Add(locationBaseId + (i - 1));
+        for (var i = 1; i <= highest; i++)
+        {
+            pending.Add(locationBaseId + (i - 1));
+        }
 
         Log.LogInfo($"[AP] Save records {level} sermon upgrade(s) taken - sending any of the "
             + $"first {highest} check(s) that haven't landed yet.");
@@ -92,7 +91,7 @@ internal class SermonService : IService
         if (level < 1 || level > locationCount)
         {
             // Past the last location the seed has. The vanilla game would be handing out
-            // blue hearts by now; we just stop sending. Not an error.
+            // blue hearts by now, and we just stop sending. Not an error.
             Log.LogInfo($"[AP] Sermon upgrade #{level} is beyond this seed's "
                 + $"{locationCount} sermon location(s) - nothing to send.");
             return;
@@ -103,15 +102,18 @@ internal class SermonService : IService
         CheckSender.Send(session, checkId);
     }
 
-    /// <summary>
-    /// Applies a received sermon item. Returns false if the item isn't a sermon item, so the
-    /// caller can go on trying other handlers.
-    /// </summary>
+    // Returns false if the item isn't a sermon item, so the caller can try other handlers
     internal bool TryApplyItem(string itemName)
     {
-        if (itemName == null || !itemToUpgrades.TryGetValue(itemName, out var upgrades)) return false;
+        if (itemName == null || !itemToUpgrades.TryGetValue(itemName, out var upgrades))
+        {
+            return false;
+        }
 
-        if (!progressive.TryTake(itemName, upgrades.Count, out var tierIndex)) return true;
+        if (!progressive.TryTake(itemName, upgrades.Count, out var tierIndex))
+        {
+            return true;
+        }
 
         if (!SlotData.TryParseEnum<UpgradeSystem.Type>(
                 upgrades[tierIndex], itemName, out var upgrade))
@@ -119,8 +121,8 @@ internal class SermonService : IService
             return true;
         }
 
-        // instant: true plays the game's own unlock-reveal, so an AP grant feels like a
-        // normal unlock. Effects apply live - verified in-game.
+        // instant is true so the game's own unlock-reveal plays and an AP grant feels like a
+        // normal unlock. Effects apply live, verified in-game.
         var granted = UpgradeSystem.UnlockAbility(upgrade, instant: true);
         Log.LogInfo($"[AP] Sermon item '{itemName}' -> {upgrade} "
             + $"(tier {tierIndex + 1}/{upgrades.Count}), UnlockAbility returned {granted}");

@@ -13,19 +13,18 @@ namespace Archipelago.CultOfTheLamb.Patches;
 /// Puts an "Archipelago" entry in the pause menu and the main menu.
 /// </summary>
 /// <remarks>
-/// Both menus wire their buttons the same way in their own Start() - a serialized MMButton per
-/// entry, each given an onClick listener - so the cheapest correct way to add one is to clone a
-/// button that already exists. A clone inherits the prefab's styling, layout and hover
-/// behaviour, none of which we could reproduce by hand without an asset pipeline.
+/// Both menus wire their buttons the same way in their own Start(), a serialized MMButton per
+/// entry with an onClick listener, so a clone of an existing button is the cheapest correct way
+/// to add one. A clone inherits the prefab's styling, layout and hover behaviour.
 ///
 /// The pause menu is the one that matters: it's the only entry point guaranteed to be at a
-/// loaded save, which is the only place connecting can actually finish (see the panel's
-/// CanConnectHere). The main menu one is a convenience for entering details early.
+/// loaded save, which is the only place connecting can finish (see the panel's CanConnectHere).
+/// The main menu one is a convenience for entering details early.
 /// </remarks>
 [HarmonyPatch]
 internal static class MenuButtonPatch
 {
-    /// <summary>Raised when the player picks Archipelago from either menu.</summary>
+    // Raised when the player picks Archipelago from either menu
     internal static event Action OnArchipelagoButtonPressed;
 
     private const string ButtonName = "ArchipelagoButton";
@@ -38,8 +37,8 @@ internal static class MenuButtonPatch
         AccessTools.FieldRefAccess<MainMenu, Button>("_settingsButton");
 
     /// <summary>
-    /// Twitch Settings is the donor on purpose: it's the closest thing the game already has to
-    /// what we're adding - a connection to an outside service - so it both looks right and sits
+    /// Twitch Settings is the donor because it's the closest thing the game already has to
+    /// what we're adding, a connection to an outside service, so it both looks right and sits
     /// in the right part of the list.
     /// </summary>
     [HarmonyPatch(typeof(UIPauseMenuController), "Start")]
@@ -54,12 +53,12 @@ internal static class MenuButtonPatch
     [HarmonyPostfix]
     private static void MainMenu_Start_Postfix(MainMenu __instance)
     {
-        // The main menu is text-only - no button there has a glyph to replace.
+        // The main menu is text-only, so no button there has a glyph to replace.
         TryAddButton(SettingsButtonField(__instance), "main menu", donorHasGlyph: false);
     }
 
     /// <summary>
-    /// Never lets a UI failure take a menu down with it: a thrown exception in a Start postfix
+    /// Never lets a UI failure take a menu down with it. A thrown exception in a Start postfix
     /// leaves the menu half-initialised, which is a far worse outcome than a missing button.
     /// </summary>
     private static void TryAddButton(Button donor, string where, bool donorHasGlyph)
@@ -83,11 +82,17 @@ internal static class MenuButtonPatch
         }
 
         var parent = donor.transform.parent;
-        if (parent == null) return;
+        if (parent == null)
+        {
+            return;
+        }
 
-        // Start can run again on a menu that was rebuilt; a second button would be worse than
-        // none.
-        if (parent.Find(ButtonName) != null) return;
+        // Start can run again on a menu that was rebuilt, and a second button would be worse
+        // than none.
+        if (parent.Find(ButtonName) != null)
+        {
+            return;
+        }
 
         var clone = UnityEngine.Object.Instantiate(donor.gameObject, parent);
         clone.name = ButtonName;
@@ -102,30 +107,43 @@ internal static class MenuButtonPatch
         button.onClick.AddListener(() => OnArchipelagoButtonPressed?.Invoke());
 
         SetLabel(clone, ButtonLabel);
-        if (donorHasGlyph) SetIcon(clone, where);
+        if (donorHasGlyph)
+        {
+            SetIcon(clone, where);
+        }
 
         Log.LogInfo($"[AP] Added the Archipelago button to the {where}.");
     }
 
     /// <summary>
     /// Swaps the donor's glyph for the AP logo. Matched on the existing sprite's *name*, not by
-    /// object name or child index - a menu button is several Images deep and replacing the wrong
-    /// one wipes its background.
+    /// object name or child index, because a menu button is several Images deep and replacing the
+    /// wrong one wipes its background.
     ///
     /// A weaker handle than the FieldRefAccess used elsewhere here, since a sprite name survives
-    /// neither an art pass nor a rename. So finding nothing is a warning: the caller said there
+    /// neither an art pass nor a rename. So finding nothing is a warning. The caller said there
     /// was a glyph, and its absence means this needs revisiting.
     /// </summary>
     private static void SetIcon(GameObject button, string where)
     {
         var icon = ApAssets.IconSprite();
-        if (icon == null) return;
+        if (icon == null)
+        {
+            return;
+        }
 
         var replacedAny = false;
         foreach (var image in button.GetComponentsInChildren<Image>(true))
         {
-            if (image.sprite == null) continue;
-            if (image.sprite.name.IndexOf("twitch", StringComparison.OrdinalIgnoreCase) < 0) continue;
+            if (image.sprite == null)
+            {
+                continue;
+            }
+
+            if (image.sprite.name.IndexOf("twitch", StringComparison.OrdinalIgnoreCase) < 0)
+            {
+                continue;
+            }
 
             image.sprite = icon;
             // The AP logo isn't the same shape as the glyph it replaces, and the slot it sits
@@ -146,7 +164,7 @@ internal static class MenuButtonPatch
     ///
     /// Every menu label carries an I2 Localize component that rewrites its text from a term on
     /// enable and on any language change. Setting .text alone works until the first of those,
-    /// then silently reverts - so the components have to go first.
+    /// then silently reverts, so the components have to go first.
     /// </summary>
     internal static void SetLabel(GameObject button, string label)
     {

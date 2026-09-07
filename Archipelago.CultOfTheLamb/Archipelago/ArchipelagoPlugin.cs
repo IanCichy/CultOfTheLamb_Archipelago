@@ -10,21 +10,20 @@ using UnityEngine;
 namespace Archipelago.CultOfTheLamb;
 
 /// <summary>
-/// BepInEx entry point: owns the Harmony instance, the persisted connection settings, and the
+/// BepInEx entry point. It owns the Harmony instance, the persisted connection settings, and the
 /// single <see cref="ArchipelagoClient"/> every service hangs off.
 ///
-/// Also the mod's only Update loop. Services don't run their own - the client's queues have to be
-/// drained on the Unity main thread, so the per-frame and 1 Hz work is driven from here in one
-/// place rather than scattered across MonoBehaviours with undefined ordering.
+/// Also the mod's only Update loop. Services don't run their own, because the client's queues have
+/// to be drained on the Unity main thread, so the per-frame and 1 Hz work is driven from here in
+/// one place rather than scattered across MonoBehaviours with undefined ordering.
 /// </summary>
 [BepInPlugin(PluginGUID, PluginName, PluginVersion)]
 public class ArchipelagoPlugin : BaseUnityPlugin
 {
     public const string PluginGUID = "io.github.iancichy.archipelago-cultofthelamb";
-    public const string PluginAuthor = "IanCichy";
+    public const string PluginAuthor = "Ian";
     public const string PluginName = "Archipelago.CultOfTheLamb";
-    // Keep in step with manifest.json, the csproj VersionPrefix, and MOD_VERSION in the apworld's
-    // worlds/cult_of_the_lamb/__init__.py - the last of those is what a tester's log compares against.
+    // Keep in step with manifest.json, the csproj VersionPrefix, and MOD_VERSION in the apworlds worlds/cult_of_the_lamb/__init__.py 
     public const string PluginVersion = "0.9.0";
 
     internal static ArchipelagoPlugin Instance { get; private set; }
@@ -46,8 +45,9 @@ public class ArchipelagoPlugin : BaseUnityPlugin
         harmony = new Harmony(PluginGUID);
         harmony.PatchAll();
 
-        // Manual, because its target is a compiler-generated iterator that PatchAll can't reach by
-        // attribute - and because a resolution failure there should cost a warning, not the plugin.
+        // Manual, because its target is a compiler-generated iterator that PatchAll can't reach
+        // by attribute, and because a resolution failure there should cost a warning rather than
+        // the plugin.
         BaseUpgradeGuardPatch.ApplyRoutineFinalizer(harmony);
 
         CreateConfigurations();
@@ -82,24 +82,24 @@ public class ArchipelagoPlugin : BaseUnityPlugin
         DebugCommands.Update();
         AP?.ItemLogic?.ProcessQueue();
 
-        // Work handed over from the websocket thread - teardown reaching into save data.
+        // Work handed over from the websocket thread, such as teardown reaching into save data.
         MainThreadQueue.Drain();
 
-        // Unthrottled, and cheap: it returns immediately unless a shop is waiting to be marked,
+        // Unthrottled, and cheap. It returns immediately unless a shop is waiting to be marked,
         // which only happens for a few frames after walking into one.
         AP?.ShopIconService?.Tick();
 
-        // Notifications raised while the HUD was hidden - during a cutscene or a menu - wait
+        // Notifications raised while the HUD was hidden, during a cutscene or a menu, wait
         // here until the game is willing to show them.
         ApNotification.Flush();
 
         // Re-attaches itself after each scene load, since the HUD is rebuilt with the scene.
         ArchipelagoHudIndicator.EnsureExists();
 
-        // Throttled polling for the two systems derived from save state: Follower counts
-        // (recruit events fire before the data lands) and Snail Shrines (five save booleans
-        // with no event at all). Once a second is far more often than either can change, and
-        // both checks are a handful of field reads.
+        // Throttled polling for the two systems derived from save state. Those are Follower
+        // counts (recruit events fire before the data lands) and Snail Shrines (five save
+        // booleans with no event at all). Once a second is far more often than either can change,
+        // and both checks are a handful of field reads.
         followerPollTimer += Time.unscaledDeltaTime;
         if (followerPollTimer >= FollowerPollIntervalSeconds)
         {
@@ -109,27 +109,27 @@ public class ArchipelagoPlugin : BaseUnityPlugin
             AP?.BroomService?.Tick();
 
             // Runs a Temple upgrade that was held back because the base wasn't live. Not gated on
-            // a session: the upgrade is already in the save by then, so it has to complete whether
-            // or not Archipelago is still connected.
+            // a session, because the upgrade is already in the save by then, so it has to
+            // complete whether or not Archipelago is still connected.
             BaseUpgradeGuardPatch.Tick();
 
             // Re-places the base podiums after a scene load and lights one whose family has just
-            // arrived. Same once-a-second budget: a few dictionary reads in the steady state.
+            // arrived. Same once-a-second budget, and a few dictionary reads in the steady state.
             AP?.EquipmentDisplayService?.Tick();
 
             // Takes back any managed card the game has put into the collection since the last
-            // tick - GameManager.Awake re-seeds fifteen of them whenever it finds the list
-            // empty - and re-revokes from scratch if a different save has been loaded.
+            // tick, since GameManager.Awake re-seeds fifteen of them whenever it finds the list
+            // empty, and re-revokes from scratch if a different save has been loaded.
             AP?.TarotService?.Tick();
 
             // Adds the objective checklist once a save is loaded, then keeps its counters
-            // current. Cheap in a steady state: it re-registers a term only when the composed
-            // line actually changed.
+            // current. Cheap in a steady state, since it re-registers a term only when the
+            // composed line changed.
             AP?.QuestGuideService?.Tick();
 
-            // While disconnected instead: hands back anything a session that ended in a crash
-            // or an alt-F4 never got the chance to return. Nothing to find after a clean
-            // disconnect, so this is quiet unless something actually went wrong.
+            // While disconnected instead. This hands back anything a session that ended in a
+            // crash or an alt-F4 never got the chance to return. Nothing to find after a clean
+            // disconnect, so this is quiet unless something went wrong.
             if (AP == null || !AP.IsConnected)
             {
                 ManagedCollection<TarotCards.Card>.SettleIfOwed(
@@ -150,14 +150,14 @@ public class ArchipelagoPlugin : BaseUnityPlugin
     private float followerPollTimer;
 
     /// <summary>
-    /// The single place a connection starts, whatever asked for it - the panel, a keybind, or a
-    /// console command. ArchipelagoConsoleCommand exists to be exactly this seam.
+    /// The single place a connection starts, whatever asked for it, whether the panel, a keybind,
+    /// or a console command. ArchipelagoConsoleCommand exists to be exactly this seam.
     /// </summary>
     private void ArchipelagoConsoleCommand_OnArchipelagoCommandCalled(string url, int port, string slot, string password)
     {
         Log.LogDebug($"Connecting to {url}:{port} as {slot}");
 
-        // An explicit connect supersedes a pending retry - otherwise the retry loop would keep
+        // An explicit connect supersedes a pending retry. Otherwise the retry loop would keep
         // dialling the *old* details underneath the ones just typed in.
         AP.StopReconnecting();
 
@@ -190,12 +190,12 @@ public class ArchipelagoPlugin : BaseUnityPlugin
 
         // Weapons and curses are the only randomized system the game can't show natively, so the
         // mod puts a row of crusade podiums in the base for them. Position is configurable because
-        // where they look right is a judgement call - Ctrl+F6 prints your current coordinates.
+        // where they look right is a judgement call. Ctrl+F6 prints your current coordinates.
         PedestalsEnabled = Config.Bind("Displays", "EquipmentPedestals", true,
             "Show weapon and curse podiums in the base.");
         // Each display anchors itself, rather than the curses and the book being measured off the
-        // end of the weapon row. Chaining them meant the layout moved with the seed: the curse row
-        // shifted two units just for owning Woolhaven (a seventh weapon), and slid twenty-three
+        // end of the weapon row. Chaining them meant the layout moved with the seed. The curse
+        // row shifted two units just for owning Woolhaven (a seventh weapon), and slid twenty-three
         // units left when weapons weren't randomized at all. Independent origins mean turning any
         // one system off leaves the other two exactly where they were.
         WeaponOriginX = Config.Bind("Displays", "WeaponOriginX", -16.64f,
@@ -214,7 +214,7 @@ public class ArchipelagoPlugin : BaseUnityPlugin
             "Distance between podiums within a row.");
 
         // The hub's relic-and-tarot lectern, stood in the gap between the two podium groups. Its
-        // own toggle rather than riding on EquipmentPedestals: the podiums are a readout of what
+        // own toggle rather than riding on EquipmentPedestals. The podiums are a readout of what
         // Archipelago granted, while this is the game's own collection UI, useful in any seed.
         CollectionBookEnabled = Config.Bind("Displays", "CollectionBook", true,
             "Show the relic and tarot collection book in the base.");

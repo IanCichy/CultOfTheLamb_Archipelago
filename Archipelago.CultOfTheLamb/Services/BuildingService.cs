@@ -11,17 +11,13 @@ namespace Archipelago.CultOfTheLamb.Services;
 /// Sends a check the first time the player builds each of a curated set of structures.
 /// </summary>
 /// <remarks>
-/// Named locations rather than sequential, unlike most blocks here: which building you put up is
-/// a real choice, so "Build - Kitchen" says more than "Building 12".
-///
-/// The set comes from slot data, so the client never needs its own opinion about which of the
-/// game's 332 structures are interesting - and the two sides can't drift.
+/// Named locations rather than sequential. "Build - Kitchen" > "Building 12".
 /// </remarks>
 internal class BuildingService : IService
 {
     private readonly ArchipelagoSession session;
 
-    /// <summary>Structure -> the check its first construction sends.</summary>
+    // Structure list to keep track of which have been built and which haven't. The value is the location id to send.
     private readonly Dictionary<StructureBrain.TYPES, long> structureToCheckId;
 
     internal BuildingService(
@@ -35,43 +31,44 @@ internal class BuildingService : IService
     public void Register()
     {
         StructureBuildPatch.Built = OnBuilt;
-
         SendChecksForExisting();
-
         Log.LogInfo($"[AP] Building checks active: {structureToCheckId.Count} structure(s) mapped.");
     }
 
-    public void Unregister() => StructureBuildPatch.Built = null;
+    public void Unregister()
+    {
+        StructureBuildPatch.Built = null;
+    }
 
     private void OnBuilt(StructureBrain.TYPES type)
     {
-        if (!structureToCheckId.TryGetValue(type, out var checkId)) return;
+        if (!structureToCheckId.TryGetValue(type, out var checkId))
+        {
+            return;
+        }
 
         Log.LogInfo($"[AP] Built {type} - sending check {checkId}.");
         CheckSender.Send(session, checkId);
     }
 
-    /// <summary>
-    /// Sends a check for every managed structure already standing.
-    ///
-    /// The game keeps a first-built record only for *decorations*
-    /// (DataManager.DecorationTypesBuilt), and none of these are decorations - so "have you ever
-    /// built one" has to be answered by looking at what exists right now. That means a building
-    /// demolished before connecting is missed, which is the right way round: CheckSender makes
-    /// re-sends free, so the check lands whenever one is standing at any future connect.
-    /// </summary>
+    // DataManager.DecorationTypesBuilt records first build for decorations only
+    // This reads what is standing right now in base. A building demolished
+    // before connecting is missed until one is standing
     private void SendChecksForExisting()
     {
         var pending = new List<long>();
 
         foreach (var pair in structureToCheckId)
         {
-            // Guarded per structure: this runs during connect, and one bad type shouldn't cost
+            // Guarded per structure. This runs during connect, and one bad type wont tank
             // the rest of the catch-up.
             try
             {
                 var standing = StructureManager.GetAllStructuresOfType(pair.Key);
-                if (standing != null && standing.Count > 0) pending.Add(pair.Value);
+                if (standing != null && standing.Count > 0)
+                {
+                    pending.Add(pair.Value);
+                }
             }
             catch (Exception e)
             {
@@ -82,11 +79,7 @@ internal class BuildingService : IService
         CheckSender.Send(session, pending);
     }
 
-    /// <summary>
-    /// StructureBrain.TYPES name -> location id, from "buildingLocations". Names this build of
-    /// the game doesn't recognise are dropped with a warning - losing one check beats losing the
-    /// connection.
-    /// </summary>
+    // StructureBrain.TYPES name -> location id, from buildingLocations. Unrecognised names are dropped with a warning
     internal static Dictionary<StructureBrain.TYPES, long> ParseLocations(
         IReadOnlyDictionary<string, object> slotData)
     {
@@ -101,8 +94,7 @@ internal class BuildingService : IService
 
         foreach (var entry in mapping)
         {
-            if (!SlotData.TryParseEnum<StructureBrain.TYPES>(
-                    entry.Key, "buildingLocations", out var structure))
+            if (!SlotData.TryParseEnum<StructureBrain.TYPES>(entry.Key, "buildingLocations", out var structure))
             {
                 continue;
             }
@@ -121,7 +113,7 @@ internal class BuildingService : IService
         return result;
     }
 
-    /// <summary>What F9 prints.</summary>
+    // For debugging, F9 prints
     internal string DescribeState()
     {
         var standing = structureToCheckId.Keys

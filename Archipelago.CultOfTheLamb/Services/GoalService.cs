@@ -7,13 +7,14 @@ namespace Archipelago.CultOfTheLamb.Services;
 
 /// <summary>
 /// Watches for the seed's win condition and reports it to the server.
-///
-/// Counting lives in GoalProgress, shared with the objective guide's win-condition line. Both
-/// tracks are read from the game's own save state rather than a session-local tally, and both
-/// are already written by the time our handlers run (Interaction_MonsterHeart adds to
-/// BossesCompleted before raising OnHeartTaken; our AddKilledBoss patch is a postfix) - so the
-/// count is right after a reconnect, or if the player beat bosses before ever connecting.
 /// </summary>
+/// <remarks>
+/// Counting lives in GoalProgress, shared with the objective guide's win-condition line. Both
+/// tracks read the game's own save state rather than a session tally, and both are written by
+/// the time our handlers run: Interaction_MonsterHeart adds to BossesCompleted before raising
+/// OnHeartTaken, and our AddKilledBoss patch is a postfix. So the count is right after a
+/// reconnect, or if the player beat bosses before ever connecting.
+/// </remarks>
 internal class GoalService : IService
 {
     // Matches worlds/cult_of_the_lamb/options.py Goal.
@@ -38,7 +39,7 @@ internal class GoalService : IService
         InteractionMonsterHeartPatch.OnBossDefeated += HandleBossDefeated;
         DataManagerKilledBossPatch.OnBossKillRecorded += HandleBossKillRecorded;
         EnemyDeathCatBossPatch.OnNarinderDefeated += HandleNarinderDefeated;
-        // Re-check immediately: the player may already satisfy the goal from a previous
+        // Re-check immediately. The player may already satisfy the goal from a previous
         // session before this connect.
         CheckGoal();
     }
@@ -50,22 +51,36 @@ internal class GoalService : IService
         EnemyDeathCatBossPatch.OnNarinderDefeated -= HandleNarinderDefeated;
     }
 
-    private void HandleBossDefeated(FollowerLocation location) => CheckGoal();
+    private void HandleBossDefeated(FollowerLocation location)
+    {
+        CheckGoal();
+    }
 
-    private void HandleBossKillRecorded(string bossKey) => CheckGoal();
+    private void HandleBossKillRecorded(string bossKey)
+    {
+        CheckGoal();
+    }
 
-    private void HandleNarinderDefeated() => CheckGoal();
+    private void HandleNarinderDefeated()
+    {
+        CheckGoal();
+    }
 
-    /// <summary>Re-runs the goal check. For debug keys that write save state directly, which
-    /// raises none of the events above.</summary>
-    internal void Recheck() => CheckGoal();
+    // For debug keys that write save state directly, which raises none of the events above
+    internal void Recheck()
+    {
+        CheckGoal();
+    }
 
-    /// <summary>This seed's goal, so a debug key can refuse to run on the wrong one.</summary>
+    // This seed's goal, so a debug key can refuse to run on the wrong one
     internal int Goal => goal;
 
     private void CheckGoal()
     {
-        if (goalSent) return;
+        if (goalSent)
+        {
+            return;
+        }
 
         var defeated = GoalProgress.CountForGoal(goal);
 

@@ -6,29 +6,30 @@ namespace Archipelago.CultOfTheLamb.Patches;
 /// <summary>
 /// Turns "the game just unlocked a tarot card" into an Archipelago check, and stops the game
 /// handing the card over.
-///
+/// </summary>
+/// <remarks>
 /// Every route to a permanent card unlock ends at TarotCards.UnlockTrinket (the reveal menu:
 /// crusade finds, shop purchases, challenge rewards) or DataManager.UnlockTrinket (world-placed
 /// cards). Intercepting the outcome covers all 85 unlock conditions without knowing any of them.
-/// </summary>
+/// </remarks>
 [HarmonyPatch]
 internal static class TarotUnlockPatch
 {
     /// <summary>
     /// Answers what to do about a card the game is trying to unlock. Set by TarotService while
-    /// connected; null the rest of the time, which leaves the game entirely alone.
+    /// connected, and null the rest of the time, which leaves the game entirely alone.
     /// </summary>
     internal static Func<TarotCards.Card, UnlockDecision> Decide;
 
     internal enum UnlockDecision
     {
-        /// <summary>Not ours - vanilla behaviour.</summary>
+        // Not ours, so vanilla behaviour stands
         Allow,
 
-        /// <summary>Ours, and earning it is a check. Send it, and don't grant the card.</summary>
+        // Ours, and earning it is a check. Send it, and don't grant the card
         SendCheck,
 
-        /// <summary>Ours, but already accounted for - swallow it without sending anything.</summary>
+        // Ours, but already accounted for, so swallow it without sending anything
         Swallow,
     }
 
@@ -42,10 +43,14 @@ internal static class TarotUnlockPatch
     private static bool DataManager_UnlockTrinket_Prefix(TarotCards.Card card, ref bool __result)
         => Intercept(card, ref __result);
 
-    /// <summary>Returns false to skip the original, i.e. to withhold the card.</summary>
+    // Applies Decide to one unlock attempt. Returns false to skip the original, which is what
+    // withholds the card
     private static bool Intercept(TarotCards.Card card, ref bool __result)
     {
-        if (Decide == null) return true;
+        if (Decide == null)
+        {
+            return true;
+        }
 
         switch (Decide(card))
         {

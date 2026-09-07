@@ -10,13 +10,13 @@ from .locations import (
 if TYPE_CHECKING:
     from . import CultOfTheLambWorld
 
-# The four base regions. Which one is free at seed start (and the unlock order of the
-# other three) is randomized per-seed in CultOfTheLambWorld.generate_early - this list is
-# just used to build the region graph, not to imply any fixed order.
+# The four base regions. Which one is free at seed start, and the unlock order of the other
+# three, is randomized per seed in CultOfTheLambWorld.generate_early. This list only builds the
+# region graph. It does not imply any fixed order.
 REGION_NAMES = ["Darkwood", "Anura", "Anchordeep", "Silk Cradle"]
 
-# Its home-base door demands sacrificing a Follower to open, so starting a seed here is a
-# rough opening move - the randomized_safe_start option exists to avoid exactly that.
+# Its home-base door demands sacrificing a Follower to open, so starting a seed here is a rough
+# opening move. The randomized_safe_start option exists to avoid exactly that.
 SACRIFICE_GATED_REGION = "Silk Cradle"
 
 
@@ -42,8 +42,8 @@ def create_regions(world: "CultOfTheLambWorld") -> None:
     #
     # Not managed at all: pick_tarot_cards drops the game's 15 default cards (nothing in the game
     # can re-unlock one) and, with shop checks off, the shop cards. Those stay with the game, so
-    # they get no item - and without this they'd still get a location, which is strictly worse
-    # than the bug it replaced: an unreachable check with no item to pair against it.
+    # they get no item. Without this they would still get a location, which is strictly worse
+    # than the bug it replaced. That would be an unreachable check with no item to pair against.
     managed = {card.display for card in world.tarot_cards}
     begins_with = {card.display for card in world.starting_tarot_cards}
     starting = {
@@ -56,7 +56,7 @@ def create_regions(world: "CultOfTheLambWorld") -> None:
 
     # curated_checks shortens the Divine Inspiration block, so the tail of it isn't in this seed.
     # Dropped by name through the same filter rather than by trimming location_table, because
-    # those ids are positional and append-only - removing a name would repoint every id after it.
+    # those ids are positional and append-only. Removing a name would repoint every id after it.
     starting |= {
         f"Divine Inspiration {n}"
         for n in range(world.divine_inspiration_location_count + 1, DIVINE_INSPIRATION_COUNT + 1)
@@ -93,13 +93,13 @@ def create_regions(world: "CultOfTheLambWorld") -> None:
             if name not in starting
         ], player)
 
-    # Boss checks always; Tarot shop checks only when that option is on.
+    # Boss checks are always in. Tarot shop checks only when that option is on.
     region_categories = {"Miniboss", "Bishop", "Witness"}
     if world.options.tarot_shop_checks:
         region_categories.add("TarotShop")
     if world.options.randomize_tarot_cards:
-        # Cards whose earn condition is locked to one region - knucklebones opponents you
-        # have to meet there, Helob's follower shop, the Pilgrim's Passage fisherman. Real
+        # Cards whose earn condition is locked to one region. Knucklebones opponents you have to
+        # meet there, Helob's follower shop, the Pilgrim's Passage fisherman. These have real
         # logic, so they skip the depth bands entirely.
         region_categories.add("TarotCardRegion")
 

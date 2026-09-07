@@ -8,22 +8,22 @@ namespace Archipelago.CultOfTheLamb.Patches;
 /// Turns "the sermon bar filled" into an Archipelago check instead of an upgrade you pick.
 /// </summary>
 /// <remarks>
-/// SermonController.PlayerUpgrade() is the whole reward step - Disciple Point, tree menu, choice,
-/// then the level increment - so replacing it wholesale is what decouples earning an upgrade from
-/// receiving one.
+/// SermonController.PlayerUpgrade() is the whole reward step: Disciple Point, tree menu, choice,
+/// then the level increment. Replacing it wholesale decouples earning an upgrade from receiving
+/// one.
 ///
-/// Suppressing the pick can't hang the sermon: the caller resets xp to 0 immediately after
+/// Suppressing the pick can't hang the sermon. The caller resets xp to 0 immediately after
 /// (SermonController.cs:97-99) rather than looping until an unlock is consumed.
 ///
-/// The level counter doubles as the location index - incremented once per fill and persisted, so
+/// The level counter doubles as the location index, incremented once per fill and persisted, so
 /// it survives reconnects and sermons given while disconnected.
 /// </remarks>
 [HarmonyPatch(typeof(SermonController))]
 internal static class SermonUpgradePatch
 {
     /// <summary>
-    /// Most sermon XP one Temple upgrade may need, in tenths - the unit the game's own bar
-    /// counts in. 0 leaves the curve alone.
+    /// Most sermon XP one Temple upgrade may need, in tenths, which is the unit the game's own
+    /// bar counts in. 0 leaves the curve alone.
     /// </summary>
     internal static int XpCapTenths;
 
@@ -31,13 +31,12 @@ internal static class SermonUpgradePatch
     /// Caps what the next Temple upgrade costs.
     /// </summary>
     /// <remarks>
-    /// Vanilla climbs 0.3, 0.4, 1.1 ... to 10.0 and holds there, so the last 25 of the 38 upgrades
-    /// all sit at the ceiling - roughly 298 XP total, or ~150 sermons at a 20-strong flock, and
-    /// sermons are a once-a-day ritual rather than a trickle.
+    /// Vanilla climbs 0.3, 0.4, 1.1 and on to 10.0 and holds there, so the last 25 of the 38
+    /// upgrades sit at the ceiling: roughly 298 XP total, or ~150 sermons at a 20-strong flock,
+    /// and a sermon is a once-a-day ritual.
     ///
-    /// **PlayerUpgrade only.** The five doctrine categories route through this same method on a
-    /// much steeper curve, and this world doesn't randomize them yet - capping them would speed
-    /// up content the player didn't ask to change.
+    /// PlayerUpgrade only. The five doctrine categories route through this same method on a much
+    /// steeper curve, and this world doesn't randomize them yet.
     /// </remarks>
     [HarmonyPatch(typeof(DoctrineUpgradeSystem),
         nameof(DoctrineUpgradeSystem.GetXPTargetBySermon))]
@@ -46,7 +45,10 @@ internal static class SermonUpgradePatch
         [HarmonyPostfix]
         private static void Postfix(SermonCategory sermonCategory, ref float __result)
         {
-            if (XpCapTenths <= 0 || sermonCategory != SermonCategory.PlayerUpgrade) return;
+            if (XpCapTenths <= 0 || sermonCategory != SermonCategory.PlayerUpgrade)
+            {
+                return;
+            }
 
             __result = UnityEngine.Mathf.Min(__result, XpCapTenths / 10f);
         }
@@ -58,14 +60,17 @@ internal static class SermonUpgradePatch
     /// </summary>
     internal static bool Active { get; set; }
 
-    /// <summary>Fires with the 1-based index of the sermon upgrade just earned.</summary>
+    // Fires with the 1-based index of the sermon upgrade just earned
     internal static event Action<int> OnSermonUpgradeEarned;
 
     [HarmonyPatch(nameof(SermonController.PlayerUpgrade))]
     [HarmonyPrefix]
     private static bool PlayerUpgrade_Prefix(ref IEnumerator __result)
     {
-        if (!Active) return true;
+        if (!Active)
+        {
+            return true;
+        }
 
         __result = SkipUpgradeChoice();
         return false; // skip the original - no tree menu, no Disciple Point, no pick

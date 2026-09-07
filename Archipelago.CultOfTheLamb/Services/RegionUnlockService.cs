@@ -3,12 +3,13 @@ using System.Collections.Generic;
 namespace Archipelago.CultOfTheLamb.Services;
 
 /// <summary>
-/// Force-opens dungeon regions by writing directly to
-/// DataManager.Instance.UnlockedDungeonDoor - see DecompiledGamesViaDnSpy/Cotl/AI_INDEX.md
-/// §3 ("RESOLVED - the region unlock mechanism"). Region 0 in regionOrder is free from
-/// connect; each further region opens as a "Progressive Bishop's Domain" copy arrives
-/// (see worlds/cult_of_the_lamb/rules.py for the matching Python-side logic).
+/// Force-opens dungeon regions by writing directly to DataManager.Instance.UnlockedDungeonDoor.
 /// </summary>
+/// <remarks>
+/// See DcplIdx 3 for the region unlock mechanism. Region 0 in regionOrder is free from connect,
+/// and each further region opens as a "Progressive Bishop's Domain" copy arrives. The matching
+/// Python-side logic is in worlds/cult_of_the_lamb/rules.py.
+/// </remarks>
 internal class RegionUnlockService : IService
 {
     private readonly List<string> regionOrder;
@@ -28,7 +29,7 @@ internal class RegionUnlockService : IService
             Log.LogWarning("[AP] RegionUnlockService: no regionOrder in slot data, nothing to unlock.");
             return;
         }
-        // Enforce locking only once we know the seed's region order - otherwise the door
+        // Enforce locking only once we know the seed's region order. Otherwise the door
         // patches would hold every managed region shut with no way to open them.
         RegionLockState.Active = true;
         Log.LogInfo($"[AP] Region order this seed: {string.Join(" -> ", regionOrder.ToArray())} "
@@ -43,7 +44,7 @@ internal class RegionUnlockService : IService
         RegionLockState.Reset();
     }
 
-    /// <summary>Call when a Progressive Bishop's Domain item is received.</summary>
+    // Call when a Progressive Bishop's Domain item is received
     internal void UnlockNextRegion()
     {
         if (regionOrder == null || unlockedCount >= regionOrder.Count)
@@ -63,8 +64,8 @@ internal class RegionUnlockService : IService
             return;
         }
 
-        // TODO: guard with SaveAndLoad.Loaded (confirmed in AI_INDEX.md §9) once a save can
-        // reliably be assumed loaded at this point - for now this assumes Register()/
+        // TODO: guard with SaveAndLoad.Loaded (confirmed in DcplIdx 9) once a save can
+        // reliably be assumed loaded at this point. For now this assumes Register() and
         // UnlockNextRegion() only get called while a save is active.
         if (DataManager.Instance == null)
         {
@@ -72,7 +73,7 @@ internal class RegionUnlockService : IService
             return;
         }
 
-        // Record it first: the door patches read RegionLockState, and marking it unlocked
+        // Record it first. The door patches read RegionLockState, and marking it unlocked
         // is what stops them from stripping the entry back out again.
         RegionLockState.MarkUnlocked(location);
 

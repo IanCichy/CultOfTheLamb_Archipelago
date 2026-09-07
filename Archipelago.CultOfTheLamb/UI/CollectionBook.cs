@@ -11,57 +11,51 @@ namespace Archipelago.CultOfTheLamb.UI;
 /// The relic-and-tarot lectern, copied out of the game and stood in the base.
 /// </summary>
 /// <remarks>
-/// **The game never spawns one of these, so there is no spawn path to copy.** Every lectern is
-/// placed by hand in a room prefab and held as a serialized reference
-/// (RelicRoomManager.relicBook), which is also why it has no Addressables key of its own. Copying
-/// a real one is therefore the only way to get it correctly wired: Interaction carries ~25 fields
-/// - OutlineTarget, LockPosition, ActivateDistance - and building one by hand would mean guessing
-/// every one of them, plus assembling the art and sizing a collider.
+/// The game never spawns one. Every lectern is placed by hand in a room prefab and held as a
+/// serialized reference (RelicRoomManager.relicBook), so it has no Addressables key of its own
+/// and there is no spawn path to copy. Interaction carries around 25 fields, including
+/// OutlineTarget, LockPosition and ActivateDistance, so copying a real one beats building it.
 ///
-/// Kept whole, unlike the crusade podium: Interaction_RelicBook is the feature rather than
-/// scenery, and it carries none of the dungeon coupling that forces EquipmentPedestal.Strip - no
-/// BiomeGenerator.CurrentRoom read, no self-destruct in Start, and it writes nothing to the save.
+/// The prefab is kept whole, unlike the crusade podium. Interaction_RelicBook never reads
+/// BiomeGenerator.CurrentRoom, never destroys itself in Start, and writes nothing to the save,
+/// so none of EquipmentPedestal.Strip is needed.
 ///
-/// The tarot page shows Archipelago's granted cards with no extra work here, because
-/// TarotVisibility already lends them to UITarotCardsMenuController.OnShowStarted - the menu this
-/// opens.
+/// The tarot page shows Archipelago's granted cards already: TarotVisibility lends them to
+/// UITarotCardsMenuController.OnShowStarted, which is the menu this opens.
 /// </remarks>
 internal static class CollectionBook
 {
-    /// <summary>
-    /// The room we pull a lectern from when none is loaded. **Verified**; the only key here on
-    /// purpose, since an unverified one reads as researched and isn't.
-    /// </summary>
+    // The room we pull a lectern from when none is already loaded. Verified in play, and the
+    // only key here. An unverified key reads as researched when it isn't, which is
+    // how "WeaponPodium" ended up throwing on every launch
     private const string SourceRoomKey = "Assets/_Rooms/Marketplace Relics.prefab";
 
-    /// <summary>Our inactive copy, taken once and kept for the process.</summary>
+    // Our inactive copy, taken once and kept for the process
     private static GameObject template;
 
-    /// <summary>Set once the room load has run, so that blocking load happens at most once.</summary>
+    // Set once the room load has run, so that blocking load happens at most once
     private static bool roomTried;
 
-    /// <summary>How many ticks between memory scans while we still have no template.</summary>
+    // How many ticks between memory scans while we still have no template
     private const int ScanEveryTicks = 5;
 
     private static int sinceLastScan;
 
     private static readonly List<GameObject> spawned = new();
 
-    /// <summary>
-    /// Inactive parent the template and every clone are built under.
-    /// </summary>
-    /// <remarks>
-    /// Instantiate wakes a clone immediately unless it lands inactive, and parenting into an
-    /// inactive object is what makes it land that way - so each book is named and positioned
-    /// before anything on it runs, rather than waking at the origin and teleporting.
-    /// </remarks>
+    // Inactive parent that the template and every clone are built under. Instantiate wakes a
+    // clone immediately unless it lands inactive, and parenting into an inactive object is what
+    // makes it land that way. Each book is named and positioned before anything on it runs
     private static GameObject staging;
 
     internal static int Count => spawned.Count;
 
     internal static GameObject Spawn(Vector3 position)
     {
-        if (!EnsureTemplate()) return null;
+        if (!EnsureTemplate())
+        {
+            return null;
+        }
 
         var book = UnityEngine.Object.Instantiate(template, staging.transform);
 
@@ -85,35 +79,44 @@ internal static class CollectionBook
     {
         foreach (var book in spawned)
         {
-            if (book != null) UnityEngine.Object.Destroy(book);
+            if (book != null)
+            {
+                UnityEngine.Object.Destroy(book);
+            }
         }
 
         spawned.Clear();
     }
 
-    /// <summary>
-    /// Takes a copy of any lectern currently in memory. Cheap, and a no-op once we have one.
-    /// </summary>
-    /// <remarks>
-    /// FindObjectsOfTypeAll rather than FindObjectOfType, because that one sees only *active*
-    /// objects in loaded scenes and the base has no lectern in it. This also sees inactive ones and
-    /// prefabs already loaded in memory, so it finds a book by type rather than by knowing where
-    /// one was parked - which is what keeps this from being a list of hardcoded rooms.
-    /// </remarks>
+    // Takes a copy of any lectern currently in memory. A no-op once we have one.
+    //
+    // FindObjectsOfTypeAll, not FindObjectOfType: the latter sees only active objects in loaded
+    // scenes and the base has no lectern. This one also sees inactive objects and prefabs
+    // already in memory, so it finds a book by type rather than by hardcoded room keys
     internal static bool TryAdoptFromScene()
     {
-        if (template != null) return true;
+        if (template != null)
+        {
+            return true;
+        }
 
-        // Throttled because the caller is a 1 Hz tick and this walks every loaded object. Once the
-        // room harvest has failed there is nothing else to fall back on, so this can't just stop -
-        // but scanning every second forever to catch a lectern that may never load is not worth
-        // paying for either.
-        if (++sinceLastScan < ScanEveryTicks) return false;
+        // Throttled, because the caller ticks at 1 Hz and this walks every loaded object. It
+        // can't stop altogether, because once the room harvest has failed there is nothing else
+        // to fall back on. Scanning every second forever for a lectern that may never load isn't
+        // worth it.
+        if (++sinceLastScan < ScanEveryTicks)
+        {
+            return false;
+        }
+
         sinceLastScan = 0;
 
         foreach (var live in Resources.FindObjectsOfTypeAll<Interaction_RelicBook>())
         {
-            if (live != null) return Adopt(live.gameObject, "one already in memory");
+            if (live != null)
+            {
+                return Adopt(live.gameObject, "one already in memory");
+            }
         }
 
         return false;
@@ -121,29 +124,28 @@ internal static class CollectionBook
 
     private static bool EnsureTemplate()
     {
-        if (TryAdoptFromScene()) return true;
-        if (roomTried) return false;
+        if (TryAdoptFromScene())
+        {
+            return true;
+        }
+
+        if (roomTried)
+        {
+            return false;
+        }
 
         roomTried = true;
         return HarvestFromSourceRoom();
     }
 
-    /// <summary>
-    /// Copies the lectern out of the source room for a player who has loaded nothing containing one.
-    /// </summary>
-    /// <remarks>
-    /// Searches the **loaded asset**, never an instance of it. Addressables hands back the prefab's
-    /// own hierarchy, so GetComponentInChildren walks it in memory and Instantiate clones only the
-    /// lectern's subtree - the room is never built, so there is nothing to wake and nothing to tear
-    /// down. The cost of detaching it is that scale or rotation applied by its parents doesn't come
-    /// with it; position doesn't matter, since the caller sets that.
-    ///
-    /// **The handle is deliberately never released**, which pins the room and its dependencies for
-    /// the process. Releasing would drop the refcount to zero and let the bundle unload - taking
-    /// the sprites and materials our clone still points at with it, leaving a book that renders as
-    /// nothing. Same call as EquipmentPedestal makes for the podium prefab, for the same reason;
-    /// the memory is the price of the art staying valid.
-    /// </remarks>
+    // For a player who has loaded nothing containing a lectern. Searches the loaded asset, never
+    // an instance: Addressables hands back the prefab's own hierarchy, so GetComponentInChildren
+    // walks it in memory and Instantiate clones just the lectern's subtree. The room is never
+    // built. Detaching does lose any scale or rotation its parents applied.
+    //
+    // The Addressables handle is deliberately never released. Releasing it would drop the
+    // refcount to zero and unload the bundle, taking the sprites and materials the clone still
+    // points at, and the book would render as nothing
     private static bool HarvestFromSourceRoom()
     {
         try
@@ -153,7 +155,10 @@ internal static class CollectionBook
                 ? null
                 : asset.GetComponentInChildren<Interaction_RelicBook>(includeInactive: true);
 
-            if (book != null) return Adopt(book.gameObject, SourceRoomKey);
+            if (book != null)
+            {
+                return Adopt(book.gameObject, SourceRoomKey);
+            }
         }
         catch (Exception e)
         {

@@ -17,26 +17,23 @@ namespace Archipelago.CultOfTheLamb.Patches;
 /// Rearranges which tier each Divine Inspiration upgrade sits in.
 /// </summary>
 /// <remarks>
-/// Logic-neutral by construction. The tier gate is a *count* -
-/// <c>NumUnlockedUpgrades() &gt;= NumRequiredNodesForTier(tier)</c> - so moving an upgrade
+/// Logic neutral by construction. The tier gate is a *count*,
+/// <c>NumUnlockedUpgrades() &gt;= NumRequiredNodesForTier(tier)</c>, so moving an upgrade
 /// between tiers changes what the player sees and reaches, but not how many unlocks any tier
 /// costs. Archipelago's rules count items and are untouched.
 ///
-/// Two things have to be rewritten together or the drawn tree silently disagrees with the logic:
-/// the configuration's per-tier membership lists, and each node component's own
-/// <c>_upgrade</c> field, which is what the menu actually draws and compares against
-/// (`TreeMenu.cs:356`). Rewriting only the first shows you one upgrade and sells
-/// you another.
+/// Two things must be rewritten together: the configuration's per tier membership lists, and
+/// each node component's own <c>_upgrade</c> field, which is what the menu draws and compares
+/// against (`TreeMenu.cs:356`). Rewriting only the first shows one upgrade and sells another.
 ///
-/// **Central nodes stay in their tier.** Each tier has a `RequiresCentralTier` node - the Temple
-/// spine, plus the Refinery - that must be bought to open the next tier. Moving one to a
-/// different tier makes that tier unopenable, which is a softlock rather than a shuffle. Pinning
-/// them also keeps the Temple I-IV progression in order, which the structure prerequisites
-/// expect anyway.
+/// Central nodes stay in their tier. Each tier has a `RequiresCentralTier` node, the Temple
+/// spine plus the Refinery, that must be bought to open the next tier, so moving one makes that
+/// tier unopenable. Pinning them also keeps Temple I to IV in the order the structure
+/// prerequisites expect.
 ///
-/// The intra-tree prerequisite graph is empty in this tree - all four `RequiresUpgrade` entries
-/// have parents outside the 69 (PleasureSystem, TailorSystem, DiscipleSystem, System_PlayerTent)
-/// - so there is no ordering constraint left to respect once centrals are pinned.
+/// The intra tree prerequisite graph is empty. All four `RequiresUpgrade` entries have parents
+/// outside the 69 (PleasureSystem, TailorSystem, DiscipleSystem, System_PlayerTent), so nothing
+/// constrains ordering once centrals are pinned.
 /// </remarks>
 internal static class DivineInspirationShuffle
 {
@@ -44,7 +41,7 @@ internal static class DivineInspirationShuffle
     internal const int ModeRandomExceptFirst = 1;
     internal const int ModeTrueRandom = 2;
 
-    /// <summary>Original upgrade -> the one that takes its place. Null when not shuffling.</summary>
+    // Original upgrade -> the one that takes its place. Null when not shuffling
     private static Dictionary<UpgradeSystem.Type, UpgradeSystem.Type> mapping;
 
     /// <summary>
@@ -54,7 +51,7 @@ internal static class DivineInspirationShuffle
     private static readonly Dictionary<UpgradeTreeNode, UpgradeSystem.Type> originalNodeUpgrades =
         new();
 
-    /// <summary>Tier membership as authored, for putting it back on disconnect.</summary>
+    // Tier membership as authored, for putting it back on disconnect
     private static List<List<UpgradeSystem.Type>> originalTiers;
 
     /// <summary>
@@ -63,7 +60,10 @@ internal static class DivineInspirationShuffle
     /// </summary>
     internal static void Apply(int shuffleMode, int seed)
     {
-        if (shuffleMode == ModeDefault) return;
+        if (shuffleMode == ModeDefault)
+        {
+            return;
+        }
 
         var tree = DivineInspirationPatch.Tree;
         if (tree == null)
@@ -75,7 +75,7 @@ internal static class DivineInspirationShuffle
         var tiers = tree.TierConfigurations;
         CaptureOriginalTiers(tiers);
 
-        // Pinned: every tier's central node, and all of tier 1 in random_except_first.
+        // Pinned means every tier's central node, and all of tier 1 in random_except_first.
         var pinned = new HashSet<UpgradeSystem.Type>(tiers.Select(t => t.CentralNode));
         if (shuffleMode == ModeRandomExceptFirst && originalTiers.Count > 0)
         {
@@ -99,7 +99,7 @@ internal static class DivineInspirationShuffle
 
             foreach (var original in originalTiers[i])
             {
-                // A pinned slot keeps its own upgrade; every other slot takes the next one off
+                // A pinned slot keeps its own upgrade. Every other slot takes the next one off
                 // the shuffled list. Tier sizes are therefore preserved exactly.
                 var replacement = pinned.Contains(original) ? original : movable[next++];
                 rebuilt.Add(replacement);
@@ -135,7 +135,11 @@ internal static class DivineInspirationShuffle
 
         foreach (var pair in originalNodeUpgrades)
         {
-            if (pair.Key == null) continue;
+            if (pair.Key == null)
+            {
+                continue;
+            }
+
             UpgradeField(pair.Key) = pair.Value;
             NodeRewrite.RefreshAuthoredVisuals(pair.Key);
         }
@@ -148,14 +152,14 @@ internal static class DivineInspirationShuffle
     private static void CaptureOriginalTiers(
         IReadOnlyList<UpgradeTreeConfiguration.TreeTierConfig> tiers)
     {
-        // Only the first time: a reconnect must shuffle from the authored layout, not from
-        // whatever the previous session left behind.
+        // Only the first time, because a reconnect must shuffle from the authored layout, not
+        // from whatever the previous session left behind.
         originalTiers ??= tiers
             .Select(t => new List<UpgradeSystem.Type>(t.AllUpgradesInTier))
             .ToList();
     }
 
-    /// <summary>Fisher-Yates on a seeded Random, so a reconnect rebuilds the identical tree.</summary>
+    // Fisher-Yates on a seeded Random, so a reconnect rebuilds the identical tree
     private static void Shuffle(IList<UpgradeSystem.Type> values, Random random)
     {
         for (var i = values.Count - 1; i > 0; i--)
@@ -172,7 +176,7 @@ internal static class DivineInspirationShuffle
     /// Points each drawn node at the upgrade the shuffle gave its slot.
     ///
     /// Configure() runs from the menu's Awake and again whenever it reopens, so this is written
-    /// to be repeatable: it always maps from the node's authored value, never its current one.
+    /// to be repeatable. It always maps from the node's authored value, never its current one.
     /// </summary>
     [HarmonyPatch(typeof(TreeMenu), nameof(TreeMenu.Configure))]
     internal static class NodeRewrite
@@ -180,14 +184,23 @@ internal static class DivineInspirationShuffle
         [HarmonyPrefix]
         private static void Prefix(TreeMenu __instance)
         {
-            if (mapping == null) return;
+            if (mapping == null)
+            {
+                return;
+            }
 
             var configuration = ConfigurationField(__instance);
-            if (configuration == null || configuration != DivineInspirationPatch.Tree) return;
+            if (configuration == null || configuration != DivineInspirationPatch.Tree)
+            {
+                return;
+            }
 
             foreach (var node in NodesField(__instance))
             {
-                if (node == null) continue;
+                if (node == null)
+                {
+                    continue;
+                }
 
                 if (!originalNodeUpgrades.TryGetValue(node, out var authored))
                 {
@@ -203,25 +216,24 @@ internal static class DivineInspirationShuffle
             }
         }
 
-        /// <summary>Same refresh, used by Restore to put the authored art back.</summary>
-        internal static void RefreshAuthoredVisuals(UpgradeTreeNode node) => RefreshVisuals(node);
+        // Same refresh, used by Restore to put the authored art back
+        internal static void RefreshAuthoredVisuals(UpgradeTreeNode node)
+        {
+            RefreshVisuals(node);
+        }
 
-        /// <summary>
-        /// Makes the node's art match the upgrade it now holds.
-        /// </summary>
-        /// <remarks>
-        /// Writing `_upgrade` alone moves the *name* - that's resolved from the field at runtime -
-        /// but not the icon or category pip, which are baked onto the prefab, giving a node
-        /// captioned "Demonic Summoning Circle" wearing the Janitor Station's broom.
-        ///
-        /// UpgradeTreeNode.OnValidate() already does exactly this refresh (icon sprite, category
-        /// text and colour, title, localize term) and is pure field assignment with nothing
-        /// editor-only in it, but Unity only calls it in the editor so a build never runs it.
-        /// Calling the game's own routine beats reimplementing four lookups and getting one wrong.
-        /// </remarks>
+        // Makes the node's art match the upgrade it now holds.
+        //
+        // Writing `_upgrade` alone moves the name, resolved from the field at runtime, but not
+        // the icon or category pip, which are baked onto the prefab. UpgradeTreeNode.OnValidate()
+        // already does exactly this refresh (icon sprite, category text and colour, title,
+        // localize term) and is pure field assignment, but Unity calls it only in the editor
         private static void RefreshVisuals(UpgradeTreeNode node)
         {
-            if (OnValidate == null) return;
+            if (OnValidate == null)
+            {
+                return;
+            }
 
             try
             {
@@ -229,7 +241,7 @@ internal static class DivineInspirationShuffle
             }
             catch (Exception e)
             {
-                // Cosmetic only - a stale icon is much better than a throw inside menu setup.
+                // Cosmetic only, and a stale icon is much better than a throw inside menu setup.
                 Log.LogWarning($"[AP] Couldn't refresh a tree node's art: {e.Message}");
             }
         }
