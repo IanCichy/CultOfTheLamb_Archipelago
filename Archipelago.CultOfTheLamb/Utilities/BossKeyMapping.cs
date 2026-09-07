@@ -7,12 +7,12 @@ namespace Archipelago.CultOfTheLamb;
 /// </summary>
 /// <remarks>
 /// The key is what DataManager.KilledBosses stores: MiniBossController.name, which is also the
-/// boss's follower-skin name - the equivalence that makes these strings recoverable from code at
-/// all (see AI_INDEX.md section 3a). These are not the display names players see; those live in
+/// boss's follower-skin name. That equivalence is what makes these strings recoverable from code
+/// at all (see DcplIdx 3a). These are not the display names players see. Those live in
 /// I2 as MiniBossController.DisplayName.
 ///
 /// The ids used to be written out here as `3_051_000 + N`, where N was the row's position in
-/// locations.py's dict - so reordering that dict silently repointed every boss check, and these
+/// locations.py's dict, so reordering that dict silently repointed every boss check, and these
 /// are the goal-critical ones. The world sends them now, like every other block does. The key
 /// strings stay here because they're game knowledge, not seed data.
 /// </remarks>

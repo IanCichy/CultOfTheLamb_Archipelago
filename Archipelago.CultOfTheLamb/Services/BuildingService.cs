@@ -11,11 +11,11 @@ namespace Archipelago.CultOfTheLamb.Services;
 /// Sends a check the first time the player builds each of a curated set of structures.
 /// </summary>
 /// <remarks>
-/// Named locations rather than sequential, unlike most blocks here: which building you put up is
+/// Named locations rather than sequential, unlike most blocks here. Which building you put up is
 /// a real choice, so "Build - Kitchen" says more than "Building 12".
 ///
 /// The set comes from slot data, so the client never needs its own opinion about which of the
-/// game's 332 structures are interesting - and the two sides can't drift.
+/// game's 332 structures are interesting, and the two sides can't drift.
 /// </remarks>
 internal class BuildingService : IService
 {
@@ -55,7 +55,7 @@ internal class BuildingService : IService
     /// Sends a check for every managed structure already standing.
     ///
     /// The game keeps a first-built record only for *decorations*
-    /// (DataManager.DecorationTypesBuilt), and none of these are decorations - so "have you ever
+    /// (DataManager.DecorationTypesBuilt), and none of these are decorations, so "have you ever
     /// built one" has to be answered by looking at what exists right now. That means a building
     /// demolished before connecting is missed, which is the right way round: CheckSender makes
     /// re-sends free, so the check lands whenever one is standing at any future connect.
@@ -66,7 +66,7 @@ internal class BuildingService : IService
 
         foreach (var pair in structureToCheckId)
         {
-            // Guarded per structure: this runs during connect, and one bad type shouldn't cost
+            // Guarded per structure. This runs during connect, and one bad type shouldn't cost
             // the rest of the catch-up.
             try
             {
@@ -84,8 +84,8 @@ internal class BuildingService : IService
 
     /// <summary>
     /// StructureBrain.TYPES name -> location id, from "buildingLocations". Names this build of
-    /// the game doesn't recognise are dropped with a warning - losing one check beats losing the
-    /// connection.
+    /// the game doesn't recognise are dropped with a warning, because losing one check beats
+    /// losing the connection.
     /// </summary>
     internal static Dictionary<StructureBrain.TYPES, long> ParseLocations(
         IReadOnlyDictionary<string, object> slotData)

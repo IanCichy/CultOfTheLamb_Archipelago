@@ -3,18 +3,15 @@ namespace Archipelago.CultOfTheLamb;
 interface IService
 {
     /// <summary>
-    /// Hooks the game up to this system for the duration of a session, and catches up on anything
-    /// that happened while there wasn't one.
+    /// Default interface for all game systems. Attaches the service for the duration of the session, and catches up on anything
+    /// that happened while disconnected if implemented in the service.
     /// </summary>
     /// <remarks>
-    /// **Register runs before a single received item has been applied.** ArchipelagoItemLogicController
-    /// registers alongside everything else, and its own Register only *drains* the server's replayed
-    /// backlog into a queue - the grants happen frames later in ProcessQueue. So catch-up here may
-    /// read the game's own save state, which is complete and is what makes stateless re-derivation
-    /// work, but it must never read multiworld-granted state: at this moment nothing has been
-    /// granted yet, and the answer would be silently wrong rather than obviously empty.
+    /// Catch up may read the games own save, but must not read anything Archipelago has granted.
     ///
-    /// Anything that genuinely needs granted state has to run after the queue drains, not here.
+    /// Services register in sequence on connect, and nothing has been applied by the time they run.
+    /// ArchipelagoItemLogicController registers alongside the others, but its Register only drains
+    /// the server's login replay into a queue. The grants happen later in ProcessQueue.
     /// </remarks>
     public void Register();
 

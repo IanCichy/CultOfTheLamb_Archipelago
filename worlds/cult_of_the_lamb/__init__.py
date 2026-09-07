@@ -31,8 +31,8 @@ from .regions import REGION_NAMES, SACRIFICE_GATED_REGION, create_regions
 from .rules import set_rules
 
 # Sent in slot data and logged by the client next to its own version, so a tester's log says which
-# apworld built the seed. Not enforced - a mismatch is something to notice while reading a log, not
-# a reason to refuse a connection. Keep in step with ArchipelagoPlugin.PluginVersion.
+# apworld built the seed. It is not enforced. A mismatch is something to notice while reading a
+# log, not a reason to refuse a connection. Keep in step with ArchipelagoPlugin.PluginVersion.
 MOD_VERSION = "0.9.0"
 
 
@@ -50,7 +50,7 @@ class CultOfTheLambWeb(WebWorld):
 class CultOfTheLambWorld(World):
     """
     Build a cult, manage your flock, and fight your way through corrupted lands to defeat
-    the four Bishops of the Old Faith - and whatever waits beyond them.
+    the four Bishops of the Old Faith, and whatever waits beyond them.
     """
     game = "Cult of the Lamb"
     options_dataclass = CultOfTheLambOptions
@@ -78,9 +78,9 @@ class CultOfTheLambWorld(World):
     region_order: List[str]
 
     # The Tarot Cards this seed hands out, and the subset the player begins with. Starting
-    # cards get neither a check nor an item - you can't earn a card you already have - so
-    # create_regions, create_items and fill_slot_data all have to agree on the same pick,
-    # which is why it happens once here.
+    # cards get neither a check nor an item, because you can't earn a card you already have.
+    # create_regions, create_items and fill_slot_data all have to agree on the same pick, which
+    # is why it happens once here.
     tarot_cards: List[TarotCardData]
     starting_tarot_cards: List[TarotCardData]
 
@@ -95,7 +95,7 @@ class CultOfTheLambWorld(World):
     def generate_early(self) -> None:
         """Per-seed choices every later step reads: region order, starting equipment and cards."""
         self.region_order = self.build_region_order()
-        # Expand once rather than per filler item - this is sampled dozens of times per seed.
+        # Expand once rather than per filler item. This is sampled dozens of times per seed.
         self.weighted_filler = weighted_filler_names()
         self.tarot_cards, self.starting_tarot_cards = self.pick_tarot_cards()
         self.weapons, self.starting_weapons = self.pick_equipment(
@@ -164,21 +164,22 @@ class CultOfTheLambWorld(World):
         # Every route to a permanent unlock ends at TarotCards.UnlockTrinket, and the only things
         # that reach it are scripted pickups with a CardOverride (Moon, Sun, Lovers2, Joker), the
         # Mystic Shop's own eight MysticCards, and the hub shop slots. None of those is a default
-        # card. The three functions that would hand over an arbitrary unfound card -
-        # GiveNewTrinket, UnlockRandomTrinket, UnlockTrinkets - have no callers at all, and a
-        # crusade card pickup draws from GetUnusedFoundTrinkets, i.e. cards you already own, so it
-        # is a run buff rather than an unlock. The one thing that does re-add a default is
+        # card. The three functions that would hand over an arbitrary unfound card, namely
+        # GiveNewTrinket, UnlockRandomTrinket and UnlockTrinkets, have no callers at all. A
+        # crusade card pickup draws from GetUnusedFoundTrinkets, meaning cards you already own,
+        # so it is a run buff rather than an unlock. The one thing that does re-add a default is
         # GameManager.Awake, which writes straight into PlayerFoundTrinkets when it finds the list
-        # empty - bypassing UnlockTrinket, so no check fires, and the client's sweep removes it
+        # empty. That bypasses UnlockTrinket, so no check fires, and the client's sweep removes it
         # again a second later.
         #
-        # Handed back to the game for the same reasons as the shop cards above: no item, no
-        # location, not revoked, and the player simply keeps them as they would in vanilla.
+        # Handed back to the game for the same reasons as the shop cards above. They get no item
+        # and no location, are not revoked, and the player simply keeps them as they would in
+        # vanilla.
         cards = [c for c in cards if not c.default]
 
         if self.options.starting_tarot_pool == StartingTarotPool.option_vanilla_defaults:
             # Empty by construction now that defaults aren't managed, so this asks for no extra
-            # starting cards - which is the honest answer, since all 15 are already in hand.
+            # starting cards, which is the honest answer, since all 15 are already in hand.
             candidates = [c for c in cards if c.default]
         else:
             candidates = list(cards)
@@ -191,7 +192,7 @@ class CultOfTheLambWorld(World):
         return cards, starting
 
     def build_region_order(self) -> List[str]:
-        """The unlock order for this seed. Index 0 is free; the rest gate behind one more
+        """The unlock order for this seed. Index 0 is free. The rest gate behind one more
         Progressive Bishop's Domain each (see rules.set_rules).
 
         REGION_NAMES is already in the game's own order, so vanilla_order is just a copy.
@@ -229,7 +230,7 @@ class CultOfTheLambWorld(World):
     def divine_inspiration_location_count(self) -> int:
         """How many checks this block creates.
 
-        Only curated_checks makes this an option; every other mode uses all 69, which is what
+        Only curated_checks makes this an option. Every other mode uses all 69, which is what
         keeps the option a pure addition rather than a change to existing seeds.
         """
         if self.divine_inspiration_is_curated:
@@ -240,9 +241,9 @@ class CultOfTheLambWorld(World):
     def divine_inspiration_gives_items(self) -> Optional[List[str]]:
         """The item names that buy Divine Inspiration unlocks, or None if this mode has none.
 
-        A one-element list means many copies of one item (checks_and_points); a longer one is the
-        pool verbatim, one entry per copy - so curated_checks repeats a progressive name once per
-        tier. create_items builds the pool from this same answer so the two can't disagree.
+        A one-element list means many copies of one item, as in checks_and_points. A longer one is
+        the pool verbatim, one entry per copy, so curated_checks repeats a progressive name once
+        per tier. create_items builds the pool from this same answer so the two can't disagree.
         """
         mode = self.options.divine_inspiration_mode
 
@@ -287,8 +288,8 @@ class CultOfTheLambWorld(World):
         item_pool: List[CultOfTheLambItem] = []
 
         if self.regions_are_gated:
-            # One fewer copy than there are regions - the first region in region_order is
-            # always free, so only the remaining N-1 need to be unlocked.
+            # One fewer copy than there are regions. The first region in region_order is always
+            # free, so only the remaining N-1 need to be unlocked.
             for _ in range(len(REGION_NAMES) - 1):
                 item_pool.append(self.create_item(PROGRESSIVE_REGION_ACCESS))
 
@@ -299,8 +300,8 @@ class CultOfTheLambWorld(World):
                     item_pool.append(self.create_item(sermon_item_name(name)))
 
         # One item per card the player doesn't already have. No cap and no competition with
-        # filler: each of these has its own location - unlocking that card in game - so the
-        # pool grows and shrinks with the location count rather than eating into it.
+        # filler, because each of these has its own location, which is unlocking that card in
+        # game. The pool grows and shrinks with the location count rather than eating into it.
         starting = {c.display for c in self.starting_tarot_cards}
         for card in self.tarot_cards:
             if card.display not in starting:
@@ -327,13 +328,13 @@ class CultOfTheLambWorld(World):
                     item_pool.append(self.create_item(name))
 
         # Without passive lumber and stone, and without the only source of planks and bricks, the
-        # base economy has no floor - so these two are pinned to sphere 1 rather than left to land
+        # base economy has no floor. These two are pinned to sphere 1 rather than left to land
         # wherever. distribute_early_items has a non-advancement branch (Fill.py:441), so neither
         # needs to be progression to qualify.
         #
-        # Deliberately not LocationProgressType.PRIORITY: priority locations are filled from the
+        # Deliberately not LocationProgressType.PRIORITY. Priority locations are filled from the
         # progression pool only (Fill.py:524), so marking checks priority would push these out
-        # rather than pull them early. Keep this list short - overfilling sphere 1 logs "Ran out
+        # rather than pull them early. Keep this list short. Overfilling sphere 1 logs "Ran out
         # of early locations" and silently falls back to a normal fill.
         if self.divine_inspiration_is_curated:
             for name in DI_EARLY_ITEM_NAMES:
@@ -357,10 +358,10 @@ class CultOfTheLambWorld(World):
         remaining = len(self.multiworld.get_unfilled_locations(self.player)) - len(item_pool)
 
         # A negative `remaining` means more items than places to put them, and `range()` of a
-        # negative number is simply empty - so without this the over-full pool ships and AP fails
+        # negative number is simply empty. Without this the over-full pool ships and AP fails
         # much later with "Unplaced Items remaining in itempool", naming nothing the player set.
         #
-        # curated_checks is how you get here: it always contributes all 38 of its items while
+        # curated_checks is how you get here. It always contributes all 38 of its items while
         # divine_inspiration_checks decides how many locations the block has, so a low count plus
         # other blocks switched off runs out of room.
         if remaining < 0:
@@ -404,20 +405,21 @@ class CultOfTheLambWorld(World):
             "goal": self.options.goal.value,
             "requiredCount": self.options.required_count.value,
 
-            # Guidance only - no location, no item, no rule. The client renders these as an
+            # Guidance only. No location, no item, no rule. The client renders these as an
             # objective group in the game's own quest log, reading each line's progress back
             # out of the keys already in this dict. Deliberately independent of the trim
-            # below: wanting a quieter game and wanting a checklist aren't the same wish.
+            # below, because wanting a quieter game and wanting a checklist aren't the same wish.
             "objectiveGuide": bool(self.options.archipelago_objective_guide.value),
             "objectiveGuidePinning": self.options.objective_guide_pinning.value,
             # How much of the game's own follower-quest table the client leaves in rotation.
             # Vanilla quests are the main follower-loyalty-XP source, so the default trims
-            # rather than wipes - see options.py.
+            # rather than wipes. See options.py.
             "vanillaFollowerQuests": self.options.vanilla_follower_quests.value,
 
             # Boss check ids, so the client stops hardcoding them. Keyed by the game's own
-            # identifier: MiniBossController.name for minibosses and Witnesses, the FollowerLocation
-            # member name for Bishops - which is what the client reads off each kill.
+            # identifier. That is MiniBossController.name for minibosses and Witnesses, and the
+            # FollowerLocation member name for Bishops, which is what the client reads off each
+            # kill.
             "bossKeyLocations": {
                 key: location_name_to_id[name]
                 for name, key in MINIBOSS_AND_WITNESS_KEYS.items()
@@ -498,12 +500,12 @@ class CultOfTheLambWorld(World):
 
             "divineInspirationMode": self.options.divine_inspiration_mode.value,
             "divineInspirationShuffle": self.options.divine_inspiration_shuffle.value,
-            # Most Devotion one ability point may cost; 0 leaves the game's curve alone. The
+            # Most Devotion one ability point may cost. 0 leaves the game's curve alone. The
             # client clamps DataManager.GetTargetXP to this.
             "divineInspirationDevotionCap":
                 self.options.divine_inspiration_devotion_cap.value,
             # "Divine Inspiration N" ids are contiguous from here, so the client turns a count
-            # of tree unlocks straight into a check id - same shape as the sermon block.
+            # of tree unlocks straight into a check id. Same shape as the sermon block.
             "divineInspirationLocationBaseId": location_name_to_id["Divine Inspiration 1"],
             "divineInspirationLocationCount": self.divine_inspiration_location_count,
             # AP item name -> UpgradeSystem.Type, for checks_and_techs and for curated_checks'
@@ -539,16 +541,16 @@ class CultOfTheLambWorld(World):
             # Deterministic per seed so a reconnect rebuilds the identical tree.
             "divineInspirationShuffleSeed": self.random.getrandbits(31),
 
-            # Pacing caps. Independent of whether the matching block is randomized - they're
-            # quality of life, not randomizer settings, so a seed with sermons off still gets
-            # the sermon cap. All three are the same shape client-side: one postfix clamping a
-            # single public static.
+            # Pacing caps. Independent of whether the matching block is randomized, because
+            # they're quality of life rather than randomizer settings, so a seed with sermons off
+            # still gets the sermon cap. All three are the same shape client-side. Each is one
+            # postfix clamping a single public static.
             "sermonXpCap": self.options.sermon_xp_cap.value,
             "buildTimeCap": self.options.build_time_cap.value,
 
             "buildingChecks": bool(self.options.building_checks.value),
             # StructureBrain.TYPES name -> location id. Keyed by enum name because that's what
-            # the client reads off Structures_BuildSite.Data.ToBuildType; display names are ours,
+            # the client reads off Structures_BuildSite.Data.ToBuildType. Display names are ours,
             # not the game's.
             "buildingLocations": {
                 b.internal: location_name_to_id[f"Build - {b.display}"] for b in BUILDINGS
@@ -567,15 +569,15 @@ class CultOfTheLambWorld(World):
 
             "tarotShopChecks": bool(self.options.tarot_shop_checks.value),
             # TarotCards.Card enum name -> location id. Keyed by enum name because that's
-            # what the client can read off a BuyEntry; display names differ completely
-            # ("The Burning Dead" is Skull) and would be useless to match on.
+            # what the client can read off a BuyEntry. Display names differ completely, since
+            # "The Burning Dead" is Skull, and would be useless to match on.
             "tarotShopLocations": {
                 internal: location_name_to_id[f"{TAROT_SHOP_HUBS[region]} - {display}"]
                 for region, cards in TAROT_SHOP_CARDS.items()
                 for display, internal in cards
             },
             # Sermon item name -> the UpgradeSystem.Type names it unlocks, in order. A
-            # single-entry list is a standalone upgrade; a longer one is a progressive chain
+            # single-entry list is a standalone upgrade. A longer one is a progressive chain
             # where the Nth copy received unlocks the Nth entry. Sending the mapping instead
             # of hardcoding it client-side means adding or reordering upgrades can't
             # silently desync the two sides the way the hardcoded location ids in

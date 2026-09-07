@@ -7,12 +7,12 @@ namespace Archipelago.CultOfTheLamb.Services;
 /// </summary>
 /// <remarks>
 /// FollowerManager.OnFollowerAdded is the single funnel and a public static event, so no Harmony
-/// patch is needed. (FollowerRecruit.OnRecruitFinalised is the wrong hook - it fires
+/// patch is needed. (FollowerRecruit.OnRecruitFinalised is the wrong hook, because it fires
 /// mid-animation, before the Follower is in the list, so the count sticks one behind.)
 ///
 /// The count is derived from save state rather than tallied in-session, so it survives reconnects
 /// and catches up recruits made while disconnected, and it counts Followers *ever* recruited
-/// rather than the current flock - so a plague or a sacrifice spree can't make a milestone already
+/// rather than the current flock, so a plague or a sacrifice spree can't make a milestone already
 /// passed unreachable again. Every check up to the current count is re-sent each time, so a missed
 /// event or a save edited outside the mod self-corrects on the next recruitment.
 /// </remarks>
@@ -48,7 +48,7 @@ internal class FollowerMilestoneService : IService
     /// <summary>
     /// Backstop re-check, called on a throttle from the plugin's Update.
     ///
-    /// OnFollowerAdded should catch everything - it fires straight after Followers.Add - but a
+    /// OnFollowerAdded should catch everything, since it fires straight after Followers.Add, but a
     /// few paths write the list directly without going through AddFollower (CheatConsole does,
     /// and save migration might). The poll is three list-count reads and stays silent unless
     /// the number actually moved, so it's cheap insurance against a silently-missed milestone.
@@ -60,9 +60,9 @@ internal class FollowerMilestoneService : IService
     }
 
     /// <summary>
-    /// Counts Followers ever *indoctrinated* - the living flock plus the dead.
+    /// Counts Followers ever *indoctrinated*, meaning the living flock plus the dead.
     ///
-    /// Deliberately excludes Followers_Recruit: however you acquire a Follower, they must be
+    /// Deliberately excludes Followers_Recruit. However you acquire a Follower, they must be
     /// indoctrinated at the base to actually join, and that list is the queue of ones who
     /// haven't been yet. Including the dead is what stops a plague or a sacrifice spree from
     /// making an already-passed milestone unreachable.

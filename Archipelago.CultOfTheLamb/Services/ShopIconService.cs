@@ -9,16 +9,16 @@ using UnityEngine;
 namespace Archipelago.CultOfTheLamb.Services;
 
 /// <summary>
-/// Marks shop slots that are Archipelago checks: the AP logo in place of the item's own art, and
-/// the scouted item name appended to the buy prompt. Without it, a slot looks identical whether or
-/// not buying it sends a check.
+/// Marks shop slots that are Archipelago checks, with the AP logo in place of the item's own art
+/// and the scouted item name appended to the buy prompt. Without it, a slot looks identical
+/// whether or not buying it sends a check.
 ///
-/// Two entry points, because a shop and a connection can happen in either order:
+/// Two entry points, because a shop and a connection can happen in either order. Those are
 /// ShopSlotDisplayPatch.OnShopInitialised (walked into a shop while connected) and the sweep in
 /// Register() (connected while already standing in one). Both enqueue the shop and Tick() does the
 /// work over following frames, since InitTarotShop runs inside shopKeeperManager.Start() before
-/// any card art exists. Item names come from a single pre-scout on connect: scouting is async and
-/// the buy prompt is rebuilt every frame, so there's no chance to fetch on demand.
+/// any card art exists. Item names come from a single pre-scout on connect, because scouting is
+/// async and the buy prompt is rebuilt every frame, so there's no chance to fetch on demand.
 /// </summary>
 internal class ShopIconService : IService
 {
@@ -26,7 +26,7 @@ internal class ShopIconService : IService
     private readonly Dictionary<string, long> cardToCheckId;
 
     // What the multiworld put at each location. Shared with CheckNotifier rather than scouted
-    // twice - see ScoutCache.
+    // twice. See ScoutCache.
     private readonly ScoutCache scouts;
 
     // Everything we've changed about a shop, so a disconnect can put it back rather than
@@ -41,11 +41,11 @@ internal class ShopIconService : IService
     // enough that a genuinely artless slot doesn't get retried all session.
     private const int MaxDecorateAttempts = 30;
 
-    // The buy prompt names the card, not its contents: the item is already spelled out on the
+    // The buy prompt names the card, not its contents. The item is already spelled out on the
     // panel floating above the slot, and repeating it makes for a very long one-line prompt.
     private const string CardName = "AP Tarot";
 
-    // Shown until the scout lands, and only until then - once we know what a slot holds, the
+    // Shown until the scout lands, and only until then. Once we know what a slot holds, the
     // item's own name is the card's name. Doubles as the loading state, which is why it reads
     // like flavour rather than like an error.
     private const string PendingTitle = "The Multiworld's Binding";
@@ -85,7 +85,7 @@ internal class ShopIconService : IService
         RestoreSwappedSprites();
     }
 
-    /// <summary>Called every frame from the plugin's Update; does nothing once shops settle.</summary>
+    /// <summary>Called every frame from the plugin's Update. Does nothing once shops settle.</summary>
     internal void Tick()
     {
         if (pending.Count == 0) return;
@@ -172,9 +172,9 @@ internal class ShopIconService : IService
 
     /// <summary>
     /// Turns one slot into the Archipelago tarot card. Returns false if there's nothing to mark
-    /// *yet* - the caller retries for a few frames before giving up.
+    /// *yet*, and the caller retries for a few frames before giving up.
     ///
-    /// Two steps, because a slot draws its card in two layers: swap the sprite underneath, and
+    /// Two steps, because a slot draws its card in two layers. Swap the sprite underneath, and
     /// switch off the Spine skeleton painting a specific card's face over it. Doing only the
     /// first leaves the vanilla face covering our card entirely.
     /// </summary>
@@ -204,12 +204,12 @@ internal class ShopIconService : IService
     /// Turns off the Spine skeletons under a slot, and reports how many.
     /// </summary>
     /// <remarks>
-    /// A tarot slot draws in two layers: a plain SpriteRenderer holding the card back, and a
-    /// Spine skeleton on top painting the card's face. Replacing only the sprite leaves the
+    /// A tarot slot draws in two layers. A plain SpriteRenderer holds the card back, and a
+    /// Spine skeleton on top paints the card's face. Replacing only the sprite leaves the
     /// face covering the logo, so the skeleton has to go too.
     ///
-    /// Only ever runs on slots that are open AP checks, which are always tarot cards, so this can't
-    /// strip an animation off an ordinary stall - and buying a card destroys its slot outright
+    /// Only ever runs on slots that are open AP checks, which are always tarot cards, so this
+    /// can't strip an animation off an ordinary stall. Buying a card destroys its slot outright
     /// (Interaction_BuyItem.Activate), so nothing has to turn these back on mid-session.
     /// </remarks>
     private int HideSpineArt(GameObject slot)
@@ -229,11 +229,11 @@ internal class ShopIconService : IService
     }
 
     /// <summary>
-    /// The renderer actually drawing the thing for sale. `enabled` is the whole trick: a tarot
-    /// slot's own SpriteRenderer - the obvious one, that InventoryItemDisplay.SetImage writes to
-    /// - is *disabled* and draws nothing, so writing to it fails silently. Among what's left the
-    /// biggest sprite is the item; shadows, highlights and price pips are smaller. F1 in a shop
-    /// dumps the field.
+    /// The renderer actually drawing the thing for sale. `enabled` is the whole trick. A tarot
+    /// slot's own SpriteRenderer, the obvious one that InventoryItemDisplay.SetImage writes to,
+    /// is *disabled* and draws nothing, so writing to it fails silently. Among what's left the
+    /// biggest sprite is the item, while shadows, highlights and price pips are smaller. F1 in a
+    /// shop dumps the field.
     /// </summary>
     private static SpriteRenderer FindArtRenderer(GameObject slot)
     {
@@ -276,9 +276,9 @@ internal class ShopIconService : IService
     /// Rewrites the buy prompt to name the Archipelago item rather than the tarot card.
     /// </summary>
     /// <remarks>
-    /// Replacing rather than appending, because the card name is actively misleading: the slot is a
-    /// location, and what buying it produces is whatever the multiworld put there - the card itself
-    /// comes from the item pool on its own schedule.
+    /// Replacing rather than appending, because the card name is actively misleading. The slot is
+    /// a location, and what buying it produces is whatever the multiworld put there. The card
+    /// itself comes from the item pool on its own schedule.
     ///
     /// Rebuilt through the game's own format string and cost formatter so it stays localised and
     /// keeps the vanilla "for &lt;icon&gt; N" shape. Runs from the Label getter, which the game polls
@@ -297,23 +297,24 @@ internal class ShopIconService : IService
     }
 
     /// <summary>
-    /// Rewrites the panel that floats over a slot, which otherwise describes the tarot card -
-    /// its name, its lore, and the effect it grants - none of which is what buying the slot
+    /// Rewrites the panel that floats over a slot, which otherwise describes the tarot card,
+    /// meaning its name, its lore, and the effect it grants. None of that is what buying the slot
     /// does any more.
     /// </summary>
     /// <remarks>
-    /// This panel, not the buy prompt, is where the check's details belong: it's the surface with
+    /// This panel, not the buy prompt, is where the check's details belong. It's the surface with
     /// room for them, and it's already the thing a player reads before deciding to spend.
     ///
     /// The item takes the card's name slot, because it's the biggest text on the panel and it's
     /// what the player is deciding about. Who it's for goes in the flavour line, and the location
-    /// goes in the body - it's the slot they're standing on, so it's the least surprising there.
+    /// goes in the body, since it's the slot they're standing on and so the least surprising
+    /// there.
     /// </remarks>
     private void HandleTarotDisplayBuilt(UITarotDisplay display, TarotCards.Card card)
     {
         if (!cardToCheckId.TryGetValue(card.ToString(), out var checkId)) return;
 
-        // Before the scout lands - one server round trip after connecting - there's nothing to
+        // Before the scout lands, one server round trip after connecting, there's nothing to
         // name. The vanilla-styled header stands in rather than an empty card.
         if (scouts == null || !scouts.TryGet(checkId, out var scouted))
         {
@@ -332,9 +333,9 @@ internal class ShopIconService : IService
     }
 
     /// <summary>
-    /// Whether a card's shop slot has been spent, for the TrinketUnlocked override: true once
+    /// Whether a card's shop slot has been spent, for the TrinketUnlocked override. True once
     /// its check is sent, false while it's still there to buy, and null for cards this seed
-    /// doesn't map at all - those are left entirely to the game.
+    /// doesn't map at all, which are left entirely to the game.
     /// </summary>
     private bool? SlotIsSpent(TarotCards.Card card)
     {
@@ -348,7 +349,7 @@ internal class ShopIconService : IService
         checkId = 0;
 
         // customItemForSale slots are built at runtime and Activate() bails on them, so they
-        // can never send a check - marking one would be a lie. Matches ShopPurchasePatch.
+        // can never send a check, and marking one would be a lie. Matches ShopPurchasePatch.
         if (buyItem.customItemForSale) return false;
 
         var entry = buyItem.itemForSale;
@@ -358,7 +359,8 @@ internal class ShopIconService : IService
     }
 
     /// <summary>
-    /// One change to undo on disconnect: a sprite we replaced, or a renderer we switched off.
+    /// One change to undo on disconnect. Either a sprite we replaced, or a renderer we switched
+    /// off.
     /// </summary>
     private class SlotEdit
     {

@@ -6,15 +6,16 @@ using TMPro;
 namespace Archipelago.CultOfTheLamb.Patches;
 
 /// <summary>
-/// Lets the sermon tree be dismissed - but only the copy SermonTreeViewer opened.
+/// Lets the sermon tree be dismissed, but only the copy SermonTreeViewer opened.
 ///
-/// UIUpgradePlayerTreeMenuController.OnCancelButtonInput is an empty override, deliberately: the
+/// UIUpgradePlayerTreeMenuController.OnCancelButtonInput is an empty override on purpose. The
 /// vanilla flows that open this tree hand out a reward and must not be escaped. Restoring cancel
-/// for everyone would let a player back out of the Hearts of the Faithful ritual and forfeit it,
-/// or - since RitualFlockOfTheFaithful blocks on the menu closing - soft-lock waiting for a pick
-/// that can no longer happen. So the scope is the viewer instance itself, by reference, rather
-/// than an "AP is browsing" flag: a flag left set by an exception or a scene change would reopen
-/// exactly that hole, while a stale instance reference simply never matches again.
+/// for everyone would let a player back out of the Hearts of the Faithful ritual and forfeit it.
+/// It could also soft-lock the game waiting for a pick that can no longer happen, since
+/// RitualFlockOfTheFaithful blocks on the menu closing. So the scope is the viewer instance
+/// itself, by reference, rather than an "AP is browsing" flag. A flag left set by an exception or
+/// a scene change would reopen exactly that hole, while a stale instance reference simply never
+/// matches again.
 /// </summary>
 [HarmonyPatch(typeof(UIUpgradePlayerTreeMenuController))]
 internal static class SermonTreeViewerPatch
@@ -41,12 +42,12 @@ internal static class SermonTreeViewerPatch
     /// Adds the upgrade's description under its name on the focused node.
     /// </summary>
     /// <remarks>
-    /// The card is the label the player actually sees: UpgradeTreeNodeInfoCard.Configure writes
+    /// The card is the label the player actually sees. UpgradeTreeNodeInfoCard.Configure writes
     /// GetLocalizedName into it on every selection. UpgradeTreeNode's own `_title` is a different
     /// object that isn't what renders here, which is why setting that one changed nothing.
     ///
     /// A postfix rather than pre-setting the text, because Configure re-writes it on every
-    /// selection - appending afterwards is the only thing that survives. Vanilla puts the
+    /// selection, so appending afterwards is the only thing that survives. Vanilla puts the
     /// description in the hold-to-confirm overlay, which a read-only viewer never opens, so
     /// without this there is nowhere to learn what an upgrade does.
     /// </remarks>
@@ -72,7 +73,7 @@ internal static class SermonTreeViewerPatch
         }
         catch (System.Exception)
         {
-            // I2 throws for a term it doesn't have; the name alone is still correct.
+            // I2 throws for a term it doesn't have. The name alone is still correct.
             return;
         }
 

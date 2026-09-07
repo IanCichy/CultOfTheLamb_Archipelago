@@ -4,12 +4,12 @@ namespace Archipelago.CultOfTheLamb.Services;
 
 /// <summary>
 /// Applies filler and trap items. These are roughly half of a seed's items, so "received an
-/// item and nothing happened" is the most common way the mod can feel broken - every entry in
+/// item and nothing happened" is the most common way the mod can feel broken. Every entry in
 /// items.py's filler pool needs a real effect here.
 ///
 /// Item names must match worlds/cult_of_the_lamb/items.py exactly. Matching by name rather
 /// than id keeps this readable and survives id changes, at the cost of breaking silently if a
-/// name is edited on one side only - so anything unmatched is logged loudly rather than
+/// name is edited on one side only. That is why anything unmatched is logged loudly rather than
 /// ignored.
 /// </summary>
 internal static class FillerService
@@ -18,9 +18,9 @@ internal static class FillerService
     /// Resource bundles, keyed by AP item name. Each grants several stacks at once.
     /// </summary>
     /// <remarks>
-    /// Themed mixes rather than one resource each: filler is about half of a seed, and a single
+    /// Themed mixes rather than one resource each. Filler is about half of a seed, and a single
     /// small pile of something you already hold stops registering as a reward early on. The
-    /// grouping also fixes two names that used to lie - raw ore now sits with the ritual costs
+    /// grouping also fixes two names that used to lie. Raw ore now sits with the ritual costs
     /// it pays, and coins with the rest of the treasury.
     ///
     /// Quantities are deliberately generous. The per-stack cap is 9999 (Inventory.cs:266) and
@@ -75,9 +75,9 @@ internal static class FillerService
             var granted = new List<string>();
             foreach (var (type, quantity) in bundle)
             {
-                // forceNormalInventory: true because Inventory.AddItem otherwise routes into the
-                // *dungeon* inventory whenever BiomeGenerator.Instance exists (Inventory.cs:251),
-                // which would silently lose the items when the crusade ends.
+                // forceNormalInventory is true because Inventory.AddItem otherwise routes into
+                // the *dungeon* inventory whenever BiomeGenerator.Instance exists
+                // (Inventory.cs:251), which would silently lose the items when the crusade ends.
                 Inventory.AddItem(type, quantity, forceNormalInventory: true);
                 granted.Add($"+{quantity} {type}");
             }
@@ -103,12 +103,12 @@ internal static class FillerService
 
     /// <summary>
     /// Levels up Followers three times. Each Follower contributes sermon points equal to their
-    /// level (capped at 10 - FollowerInfo.cs:653), so this compounds into faster sermons, which
-    /// is what makes it worth more than a resource drop. One level was barely perceptible.
+    /// level (capped at 10, see FollowerInfo.cs:653), so this compounds into faster sermons,
+    /// which is what makes it worth more than a resource drop. One level was barely perceptible.
     ///
     /// Re-picks between each level rather than pushing one Follower up three times, so it
     /// spreads across the flock once the current best hits the cap. Each pick targets the
-    /// highest Follower still under the cap: levels above 10 contribute nothing.
+    /// highest Follower still under the cap, because levels above 10 contribute nothing.
     /// </summary>
     private static void ApplyFollowerLevelUp()
     {
@@ -147,7 +147,7 @@ internal static class FillerService
 
         Log.LogInfo($"[AP] Filler 'Follower Level Up': {string.Join(", ", levelled)}.");
 
-        // Names someone rather than just counting: "Aya reached level 5" is the part that lands,
+        // Names someone rather than just counting. "Aya reached level 5" is the part that lands,
         // and a bare count reads like a receipt. The log above still has every pick.
         ApNotification.Show(
             levelled.Count == 1

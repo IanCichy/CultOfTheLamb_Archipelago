@@ -10,14 +10,14 @@ namespace Archipelago.CultOfTheLamb;
 /// <remarks>
 /// NotificationCentre.PlayGenericNotification(locKey, flair) takes an **I2 localization key, not
 /// display text**, and I2 returns null for an unregistered term with no fallback
-/// (LocalizationManager.cs:1019) - so passing raw English produces a *blank* popup.
+/// (LocalizationManager.cs:1019), so passing raw English produces a *blank* popup.
 ///
-/// So the term is registered at runtime first - see I2Terms, which does the same job for the
-/// objective guide's quest lines.
+/// The term is therefore registered at runtime first. See I2Terms, which does the same job for
+/// the objective guide's quest lines.
 /// </remarks>
 internal static class ApNotification
 {
-    // Internal because it is also how NotificationStylePatch tells our popups from the game's:
+    // Internal because it is also how NotificationStylePatch tells our popups from the game's.
     // Configure only ever sees the loc key, never the display text.
     internal const string TermPrefix = "Archipelago/Runtime/";
 
@@ -32,16 +32,16 @@ internal static class ApNotification
     /// <param name="text">The line the player reads.</param>
     /// <param name="flair">The game's own notification styling to use.</param>
     /// <param name="glow">
-    /// What the popup's flair should glow. Null keeps the default AP green. See ApColors - the
+    /// What the popup's flair should glow. Null keeps the default AP green. See ApColors. The
     /// glow carries the *direction* of the event, which is what's readable from the corner of
     /// the eye mid-crusade, while the wording carries the detail.
     /// </param>
     /// <remarks>
-    /// Holding matters more than it sounds: the game suppresses notifications outright while the
-    /// HUD is hidden or NotificationsEnabled is off - cutscenes, full-screen menus, the follower
-    /// recruitment flow - and PlayGenericNotification just returns silently. Those are exactly the
-    /// moments checks fire, so showing immediately meant the player saw nothing for most of the
-    /// checks that matter, with nothing in the log to say so.
+    /// Holding matters more than it sounds. The game suppresses notifications outright while the
+    /// HUD is hidden or NotificationsEnabled is off, which covers cutscenes, full-screen menus
+    /// and the follower recruitment flow, and PlayGenericNotification just returns silently.
+    /// Those are exactly the moments checks fire, so showing immediately meant the player saw
+    /// nothing for most of the checks that matter, with nothing in the log to say so.
     /// </remarks>
     internal static void Show(
         string text,
@@ -59,7 +59,7 @@ internal static class ApNotification
     /// the key, so this is how the colour reaches the patch.
     ///
     /// Bounded by the number of distinct messages a session produces, and each entry is a key
-    /// and a colour - so it's left to grow rather than evicted, the same as registeredTerms.
+    /// and a colour, so it's left to grow rather than evicted, the same as registeredTerms.
     /// </summary>
     private static readonly Dictionary<string, Color32> keyGlows = new();
 
@@ -68,11 +68,11 @@ internal static class ApNotification
         key != null && keyGlows.TryGetValue(key, out var colour) ? colour : null;
 
     /// <summary>
-    /// Called each frame from the plugin; does nothing once the queue drains.
+    /// Called each frame from the plugin. Does nothing once the queue drains.
     ///
-    /// **One per frame**, not a drain loop. Several messages routinely queue together - a check
+    /// **One per frame**, not a drain loop. Several messages routinely queue together. A check
     /// sent and the item it paid out arrive within a frame of each other, and the HUD is hidden
-    /// through cutscenes like follower recruitment so a backlog builds - and firing them all
+    /// through cutscenes like follower recruitment so a backlog builds. Firing them all
     /// into NotificationCentre in the same frame means they collide instead of queueing on
     /// screen.
     /// </summary>
@@ -91,8 +91,8 @@ internal static class ApNotification
         var key = RegisterTerm(next.Text);
         if (key == null)
         {
-            // Localization isn't up yet. Leave it queued rather than dropping it - this is a
-            // "not yet", the same as a hidden HUD.
+            // Localization isn't up yet. Leave it queued rather than dropping it, because this
+            // is a "not yet", the same as a hidden HUD.
             return;
         }
 
@@ -118,7 +118,7 @@ internal static class ApNotification
     private static bool deferralLogged;
 
     /// <summary>
-    /// Says why the queue is stuck, once per stall rather than once per frame - all three of
+    /// Says why the queue is stuck, once per stall rather than once per frame. All three of
     /// these conditions make PlayGenericNotification a silent no-op, and the game reports none
     /// of them.
     /// </summary>
@@ -164,7 +164,7 @@ internal static class ApNotification
 
     /// <summary>
     /// The key for a message, registering it with I2 the first time it's seen. Null means
-    /// localization isn't up yet - a "not yet", not a failure.
+    /// localization isn't up yet, which is a "not yet" rather than a failure.
     ///
     /// The key is derived from the text so the same message reuses one term, and lives under
     /// TermPrefix so NotificationStylePatch can tell our popups from the game's.

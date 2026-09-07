@@ -5,19 +5,20 @@ using UnityEngine;
 namespace Archipelago.CultOfTheLamb.UI;
 
 /// <summary>
-/// The connection form: server, port, slot, password, and a Connect button.
-///
-/// Drawn with IMGUI rather than the game's own UI, so it looks like a mod - deliberately for
-/// now, since a native form means repurposing a prefab's private serialized fields and doing
-/// that badly takes the game's UI down with it. The pause- and main-menu entry points *are*
-/// native, so the form behind them can be upgraded later without moving where players look.
+/// The connection form, meaning server, port, slot, password, and a Connect button.
 /// </summary>
+/// <remarks>
+/// Drawn with IMGUI rather than the game's own UI, so it looks like a mod. That is deliberate for
+/// now, since a native form means repurposing a prefab's private serialized fields and doing that
+/// badly takes the game's UI down with it. The pause- and main-menu entry points are themselves
+/// native, so the form behind them can be upgraded later without moving where players look.
+/// </remarks>
 internal class ArchipelagoConnectPanel : ApPanelBase
 {
     private readonly ArchipelagoClient client;
 
     // The panel is the only thing that reads or writes these, so the form *is* the persistence
-    // layer - there's no third copy of the values to keep in step, and the defaults live once,
+    // layer. There's no third copy of the values to keep in step, and the defaults live once,
     // in CreateConfigurations.
     private readonly ConfigEntry<string> serverEntry;
     private readonly ConfigEntry<int> portEntry;
@@ -29,7 +30,7 @@ internal class ArchipelagoConnectPanel : ApPanelBase
     private string slot;
     private string password;
 
-    // Anything stable and unlikely to collide will do; GetHashCode varies per run and per
+    // Anything stable and unlikely to collide will do. GetHashCode varies per run and per
     // instance for no benefit.
     protected override int WindowId => 0x0AA7E1;
 
@@ -72,12 +73,12 @@ internal class ArchipelagoConnectPanel : ApPanelBase
 
         GUILayout.Space(10f);
 
-        // Read once: the button's enabled state and the line explaining it must agree, and IMGUI
-        // needs the Layout and Repaint passes to agree with each other too.
+        // Read once, because the button's enabled state and the line explaining it must agree,
+        // and IMGUI needs the Layout and Repaint passes to agree with each other too.
         var canConnectHere = HasLoadedSave();
 
-        // Deliberately not "is a retry pending": the retry loop is unbounded, so gating Connect on
-        // it would disable the button for as long as the server stayed down. Only an attempt
+        // Deliberately not "is a retry pending". The retry loop is unbounded, so gating Connect
+        // on it would disable the button for as long as the server stayed down. Only an attempt
         // actually in flight blocks a new one, and connecting manually cancels the loop.
         var connecting = client.Connecting;
         var canConnect = !connecting && canConnectHere && slot.Trim().Length > 0;
@@ -91,8 +92,8 @@ internal class ArchipelagoConnectPanel : ApPanelBase
             ArchipelagoConsoleCommand.Connect(server.Trim(), ParsePort(), slot.Trim(), password);
         }
 
-        // Enabled while retrying too, where it means "stop retrying" - the only way to end an
-        // unbounded loop from the UI.
+        // Enabled while retrying too, where it means "stop retrying". That is the only way to
+        // end an unbounded loop from the UI.
         GUI.enabled = client.IsConnected || client.Reconnecting;
         if (GUILayout.Button("Disconnect", GUILayout.Height(34f)))
         {
@@ -136,11 +137,14 @@ internal class ArchipelagoConnectPanel : ApPanelBase
     }
 
     /// <summary>
+    /// The connection status line drawn above the form.
+    /// </summary>
+    /// <remarks>
     /// Both in-flight states are reported ahead of LastError, so a retry reads as "still trying"
     /// rather than flickering the previous failure between attempts. The retry line names the
-    /// attempt number because the loop never ends on its own - without a number, a thirty-second
+    /// attempt number because the loop never ends on its own. Without a number, a thirty-second
     /// backoff looks the same as a wedged client.
-    /// </summary>
+    /// </remarks>
     private string StatusText()
     {
         if (client.IsConnected) return $"Connected as {ArchipelagoClient.ConnectedPlayerName}.";
@@ -156,10 +160,13 @@ internal class ArchipelagoConnectPanel : ApPanelBase
     }
 
     /// <summary>
-    /// Remembers what was typed, so a returning player doesn't retype it - and so a typo worth
-    /// correcting is still there when the panel is reopened. Saved on the attempt rather than on
-    /// success for exactly that reason.
+    /// Writes what was typed back into the config entries.
     /// </summary>
+    /// <remarks>
+    /// A returning player doesn't have to retype it, and a typo worth correcting is still there
+    /// when the panel is reopened. Saved on the attempt rather than on success for exactly that
+    /// reason.
+    /// </remarks>
     private void Save()
     {
         serverEntry.Value = server.Trim();
@@ -168,7 +175,10 @@ internal class ArchipelagoConnectPanel : ApPanelBase
         passwordEntry.Value = password;
     }
 
-    /// <summary>Falls back to the last saved port rather than a literal, so the default lives once.</summary>
+    /// <summary>The port as typed.</summary>
+    /// <remarks>
+    /// Falls back to the last saved port rather than a literal, so the default lives once.
+    /// </remarks>
     private int ParsePort() => int.TryParse(port, out var parsed) ? parsed : portEntry.Value;
 
     private void EnsureStyles()

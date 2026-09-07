@@ -9,14 +9,14 @@ namespace Archipelago.CultOfTheLamb.Services;
 /// <typeparam name="T">The game enum stored in the collection, such as TarotCards.Card.</typeparam>
 /// <remarks>
 /// Three operations is all the state machine needs, which is what lets the game's very different
-/// storage shapes - a List of enums, a List of ints, a system with its own methods - plug in as
-/// small adapters.
+/// storage shapes plug in as small adapters. Those are a List of enums, a List of ints, and a
+/// system with its own methods.
 /// </remarks>
 internal interface IManagedBacking<T> where T : struct, Enum
 {
     /// <summary>
-    /// False when there's no save to read. Callers treat it as "try again next tick" - writing
-    /// into a save that isn't loaded is how debt lands on the wrong file.
+    /// False when there's no save to read. Callers treat it as "try again next tick", because
+    /// writing into a save that isn't loaded is how debt lands on the wrong file.
     /// </summary>
     bool IsAvailable { get; }
 
@@ -37,13 +37,13 @@ internal interface IManagedBacking<T> where T : struct, Enum
 /// **The gate problem.** Every route the game has to offer you something first checks you don't
 /// already own it, so unlocking an Archipelago grant *for real* closes that gate and strands the
 /// check riding on it. Grants therefore live in <see cref="granted"/> and are never written to
-/// the game's collection; anything that genuinely needs to see them gets them lent back.
+/// the game's collection. Anything that genuinely needs to see them gets them lent back.
 ///
 /// **The symmetry problem.** Emptying the collection edits real save data, so everything taken
 /// is put back on disconnect.
 ///
-/// Where a system has a single reward method to intercept - as sermons do - prefer a Harmony
-/// prefix there; this class is for collections that can only be managed after the fact.
+/// Where a system has a single reward method to intercept, as sermons do, prefer a Harmony
+/// prefix there. This class is for collections that can only be managed after the fact.
 /// </remarks>
 internal class ManagedCollection<T> where T : struct, Enum
 {
@@ -63,7 +63,7 @@ internal class ManagedCollection<T> where T : struct, Enum
 
     /// <summary>
     /// What Archipelago has handed over this session. The game's own collection deliberately
-    /// never learns about it - see the class summary.
+    /// never learns about it. See the class summary.
     /// </summary>
     private readonly HashSet<T> granted = new();
 
@@ -107,7 +107,7 @@ internal class ManagedCollection<T> where T : struct, Enum
     /// <summary>
     /// Takes every managed entry out of the save and starts the session's bookkeeping.
     ///
-    /// Only managed entries are touched: co-op cards, and DLC entries in a non-DLC seed, are
+    /// Only managed entries are touched. Co-op cards, and DLC entries in a non-DLC seed, are
     /// left exactly as the player had them.
     /// </summary>
     internal void Begin()
@@ -122,17 +122,17 @@ internal class ManagedCollection<T> where T : struct, Enum
     }
 
     /// <summary>
-    /// Hands everything back. The caller queues this onto the main thread: teardown arrives on
-    /// the websocket thread, and the game's collections are plain Lists the main thread
+    /// Hands everything back. The caller queues this onto the main thread, because teardown
+    /// arrives on the websocket thread and the game's collections are plain Lists the main thread
     /// iterates.
     /// </summary>
     internal void End() => Restore();
 
     /// <summary>
-    /// Hands an entry to the player - into our own set rather than the game's collection, so
+    /// Hands an entry to the player, into our own set rather than the game's collection, so
     /// the game keeps offering it and the check riding on it stays reachable.
     ///
-    /// Safe to replay: granting is a set Add, so granting twice is a no-op. That matters
+    /// Safe to replay, since granting is a set Add and granting twice is a no-op. That matters
     /// because the collection is rebuilt from the item history on every connect.
     /// </summary>
     internal void Grant(T value)
@@ -141,11 +141,12 @@ internal class ManagedCollection<T> where T : struct, Enum
     }
 
     /// <summary>
-    /// Keeps the invariant true: no entry this seed manages is ever in the game's collection.
+    /// Keeps the invariant true, so no entry this seed manages is ever in the game's collection.
     ///
     /// <see cref="Begin"/> establishes it once, but GameManager.Awake re-seeds fifteen default
-    /// tarot cards whenever the collection is empty (GameManager.cs:175) - exactly the state we
-    /// leave a fresh save in. A sweep rather than a hook on Awake or OnLoadComplete, because
+    /// tarot cards whenever the collection is empty (GameManager.cs:175), which is exactly the
+    /// state we leave a fresh save in. A sweep rather than a hook on Awake or OnLoadComplete,
+    /// because
     /// those are ordering-sensitive and neither covers anything else that writes to the
     /// collection.
     /// </summary>
@@ -165,7 +166,7 @@ internal class ManagedCollection<T> where T : struct, Enum
         {
             if (!backing.Remove(value)) continue;
 
-            // Already accounted for - the game handed back something we'd taken, or something
+            // Already accounted for. The game handed back something we'd taken, or something
             // Archipelago had granted. Owed either way, just not newly.
             if (revoked.Contains(value) || granted.Contains(value)) continue;
 
@@ -209,9 +210,9 @@ internal class ManagedCollection<T> where T : struct, Enum
     }
 
     /// <summary>
-    /// Records everything the loaded save is owed: what we took off it, and what Archipelago
-    /// granted. Both, because grants only ever live in memory - quitting to the desktop runs no
-    /// teardown, so without this the player loses everything the multiworld gave them.
+    /// Records everything the loaded save is owed, meaning what we took off it and what
+    /// Archipelago granted. Both, because grants only ever live in memory. Quitting to the desktop
+    /// runs no teardown, so without this the player loses everything the multiworld gave them.
     /// </summary>
     private void PersistDebt()
     {
@@ -224,7 +225,7 @@ internal class ManagedCollection<T> where T : struct, Enum
 
     /// <summary>
     /// A different save is loaded than the one we took from. That save is no longer in memory,
-    /// so its debt can only be handed to the store; the new one then gets the same treatment
+    /// so its debt can only be handed to the store. The new one then gets the same treatment
     /// the old one got at connect.
     /// </summary>
     private void SwitchToLoadedSave()
@@ -236,18 +237,19 @@ internal class ManagedCollection<T> where T : struct, Enum
         ManagedCollectionStore.Owe(collectionKey, saveSlot, revoked);
         revoked.Clear();
 
-        // `granted` deliberately survives: it's connection state, and the item replay that would
+        // `granted` deliberately survives. It's connection state, and the item replay that would
         // rebuild it runs only on connect, not on a save load. That's also why the seed's
-        // starting entries aren't re-granted here - they're still in it.
+        // starting entries aren't re-granted here, because they're still in it.
         saveSlot = SaveSlot.Current;
         revoked.UnionWith(ManagedCollectionStore.Owed<T>(collectionKey, saveSlot, legacyKey));
         RevokeManaged();
     }
 
     /// <summary>
-    /// Puts the player's entries back: both the ones taken at connect and the ones Archipelago
-    /// granted. Grants have to be included - they only ever lived in memory, so leaving them out
-    /// would mean disconnecting silently took away everything the multiworld handed over.
+    /// Puts the player's entries back, both the ones taken at connect and the ones Archipelago
+    /// granted. Grants have to be included, because they only ever lived in memory, so leaving
+    /// them out would mean disconnecting silently took away everything the multiworld handed
+    /// over.
     /// </summary>
     private void Restore()
     {
@@ -264,8 +266,8 @@ internal class ManagedCollection<T> where T : struct, Enum
         }
 
         // Either no save is loaded (quit to the menu before disconnecting) or a different one
-        // is. Writing into it would be worse than waiting: the store keeps the debt, and the
-        // next connect on the right save pays it.
+        // is. Writing into it would be worse than waiting, because the store keeps the debt and
+        // the next connect on the right save pays it.
         if (!backing.IsAvailable || SaveSlot.Current != saveSlot)
         {
             ManagedCollectionStore.Owe(collectionKey, saveSlot, owed);
@@ -285,7 +287,7 @@ internal class ManagedCollection<T> where T : struct, Enum
 
     /// <summary>
     /// Pays back whatever the loaded save is owed, for the player who crashes and then
-    /// uninstalls - nothing else would ever repay them. Runs from the plugin's poll while
+    /// uninstalls, since nothing else would ever repay them. Runs from the plugin's poll while
     /// *disconnected*, so it only fires on the interrupted paths. Static because no session,
     /// and so no collection instance, exists then.
     /// </summary>

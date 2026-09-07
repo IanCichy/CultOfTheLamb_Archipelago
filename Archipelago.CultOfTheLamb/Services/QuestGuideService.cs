@@ -19,24 +19,24 @@ internal enum GuideHudMode
 }
 
 /// <summary>
-/// One line of the Archipelago checklist: what it says, and how to work out its progress.
+/// One line of the Archipelago checklist. What it says, and how to work out its progress.
 ///
-/// Pure data plus two funcs - all the ObjectiveManager and I2 mechanics live on the service, so
+/// Pure data plus two funcs. All the ObjectiveManager and I2 mechanics live on the service, so
 /// adding a line is only ever a matter of writing a probe and a sentence.
 /// </summary>
 internal sealed class QuestGuideEntry
 {
     /// <summary>
     /// Objectives.CustomQuestTypes value, cast from an int well past the enum's 148 real
-    /// members. Stable per entry forever: it is the identity written into the player's save and
-    /// the tail of the I2 term key.
+    /// members. Stable per entry forever, because it is the identity written into the player's
+    /// save and the tail of the I2 term key.
     /// </summary>
     internal Objectives.CustomQuestTypes QuestType { get; }
 
     /// <summary>
     /// The term Objectives_Custom.Text will look up. Derived rather than passed in, because it
-    /// has to match exactly what the game computes - $"Objectives/Custom/{CustomQuestType}",
-    /// where an unnamed enum value ToString()s to its number - or the line renders blank.
+    /// has to match exactly what the game computes, $"Objectives/Custom/{CustomQuestType}",
+    /// where an unnamed enum value ToString()s to its number. Otherwise the line renders blank.
     /// </summary>
     internal string TermKey => "Objectives/Custom/" + (int)QuestType;
 
@@ -46,7 +46,7 @@ internal sealed class QuestGuideEntry
     /// <summary>Short name for logs. Never shown to the player.</summary>
     internal string DebugName { get; }
 
-    /// <summary>Re-derived on every refresh. Current may exceed Target; the service clamps.</summary>
+    /// <summary>Re-derived on every refresh. Current may exceed Target, and the service clamps.</summary>
     internal Func<(int Current, int Target)> Progress { get; }
 
     /// <summary>(current, target) -> the line the player reads. Must contain no braces.</summary>
@@ -68,20 +68,20 @@ internal sealed class QuestGuideEntry
 }
 
 /// <summary>
-/// Puts an Archipelago checklist into the game's own quest log: the win condition, region
-/// access, and one live-progress line per check block this seed switched on.
+/// Puts an Archipelago checklist into the game's own quest log. That means the win condition,
+/// region access, and one live-progress line per check block this seed switched on.
 /// </summary>
 /// <remarks>
 /// The game tells a player nothing about the seed they're in. The vanilla quest log fills with
 /// follower errands and never mentions the win condition, how many followers the multiworld
-/// wants, or which blocks are even active - so a new player has no way to tell what to aim for.
+/// wants, or which blocks are even active, so a new player has no way to tell what to aim for.
 ///
 /// **Guidance only.** Every line is a read-only view over check state the mod already derives.
 /// Nothing here creates a location, sends a check, or affects generation.
 ///
-/// The mechanism is Objectives_Custom, added straight to ObjectiveManager (AI_INDEX.md §5a).
-/// A brand-new ObjectivesData subclass would not serialize - the [Union] list is closed and the
-/// save would break - but Objectives_Custom is union member 8 and its CustomQuestType is an
+/// The mechanism is Objectives_Custom, added straight to ObjectiveManager (DcplIdx 5a).
+/// A brand-new ObjectivesData subclass would not serialize, because the [Union] list is closed
+/// and the save would break. Objectives_Custom is union member 8 and its CustomQuestType is an
 /// int-backed enum, so an out-of-range cast round-trips fine and gives us free identity.
 /// </remarks>
 internal class QuestGuideService : IService
@@ -98,8 +98,8 @@ internal class QuestGuideService : IService
     private const string GoalGroupTitle = "Archipelago - Win Condition";
     private const string ChecklistGroupTitle = "Archipelago - Seed Checklist";
 
-    // Entry ids. Append only: an id is the save-persisted identity of a line, so reusing one
-    // for a different meaning would relabel a line in an existing save.
+    // Entry ids. Append only, because an id is the save-persisted identity of a line, so reusing
+    // one for a different meaning would relabel a line in an existing save.
     private const int IdGoal = 9001;
     private const int IdRegions = 9002;
     private const int IdFollowers = 9003;
@@ -180,7 +180,7 @@ internal class QuestGuideService : IService
             ForgetSave();
         }
 
-        // I2 comes up after the plugin does; treat this as "not yet" and retry next tick.
+        // I2 comes up after the plugin does, so treat this as "not yet" and retry next tick.
         if (!I2Terms.Ready) return;
 
         RefreshCheckedSnapshot();
@@ -201,7 +201,7 @@ internal class QuestGuideService : IService
                 (satisfied ??= new List<QuestGuideEntry>()).Add(entry);
             }
 
-            // Compare the numbers before composing the string: in a steady state a tick is then
+            // Compare the numbers before composing the string. In a steady state a tick is then
             // a couple of int comparisons per line rather than ten string builds.
             if (lastProgress.TryGetValue(entry.TermKey, out var seen)
                 && seen.Current == current && seen.Target == target)
@@ -228,7 +228,7 @@ internal class QuestGuideService : IService
     ///
     /// AllLocationsChecked is a linear-scan collection, and the checklist asks about ~200 ids
     /// across its blocks. Doing that against a few hundred checked locations every second is
-    /// pure waste; hashing it once is not.
+    /// pure waste, and hashing it once is not.
     /// </summary>
     private readonly HashSet<long> checkedSnapshot = new();
 
@@ -253,7 +253,7 @@ internal class QuestGuideService : IService
         if (alreadyChecked != null) checkedSnapshot.UnionWith(alreadyChecked);
     }
 
-    /// <summary>A probe that throws must not take the tick - and therefore the guide - with it.</summary>
+    /// <summary>A probe that throws must not take the tick, and therefore the guide, with it.</summary>
     private (int Current, int Target) Probe(QuestGuideEntry entry)
     {
         try
@@ -291,7 +291,7 @@ internal class QuestGuideService : IService
         added = true;
 
         // Add's free auto-track is not the tracking we want past the first group, so state it
-        // explicitly. Done once, at add time: if the player later pins three other things and
+        // explicitly. Done once, at add time. If the player later pins three other things and
         // evicts ours, that is their call, and they can re-pin from the quest log.
         if (hudMode != GuideHudMode.Everything) Untrack(dataManager, ChecklistGroupId);
         if (hudMode == GuideHudMode.Off) Untrack(dataManager, GoalGroupId);
@@ -306,7 +306,7 @@ internal class QuestGuideService : IService
             entry.GroupId, entry.QuestType, targetFollowerID: -1, questExpireDuration: -1f);
 
         // Index, Follower and TargetFollowerID all stay at their -1 defaults, and all three
-        // matter (AI_INDEX.md §5a):
+        // matter (DcplIdx 5a):
         //   Index    - TailorMenu_Assign.cs:152 compares Index == 53 against every live objective.
         //   Follower - ObjectivesData.Complete() spawns a follower turn-in when it isn't -1.
         //   TargetFollowerID - Objectives_Custom.Text runs the string through string.Format when
@@ -344,10 +344,10 @@ internal class QuestGuideService : IService
         AccessTools.Field(typeof(ObjectiveManager), "OnObjectiveUpdated");
 
     /// <summary>
-    /// Repaints the on-screen tracker after a counter moved. Only the HUD needs this; the
+    /// Repaints the on-screen tracker after a counter moved. Only the HUD needs this, since the
     /// pause-menu log rebuilds from DataManager on every open.
     ///
-    /// Deliberately **not** ObjectiveManager.UpdateObjective, the obvious API: it runs
+    /// Deliberately **not** ObjectiveManager.UpdateObjective, the obvious API. That one runs
     /// TryComplete(), and Objectives_Custom.CheckComplete() passes instantly while
     /// ResultFollowerID == TargetFollowerID == -1, so every line would tick itself off the
     /// moment its text changed.
@@ -370,7 +370,7 @@ internal class QuestGuideService : IService
         }
 
         // A null handler means no UIObjective is enabled, so there is nothing on screen to
-        // repaint - it subscribes in OnEnable and drops out in OnDisable. The I2 term is already
+        // repaint. It subscribes in OnEnable and drops out in OnDisable. The I2 term is already
         // current by now, and Objectives_Custom.Text reads it live, so the next one to show is
         // right without help.
         var handler = ObjectiveUpdatedEvent.GetValue(null) as ObjectiveManager.ObjectiveUpdated;
@@ -408,13 +408,13 @@ internal class QuestGuideService : IService
     /// SweepAll is several full-list scans, one of them over CompletedObjectivesHistory, which
     /// grows without bound. A player who never connects would otherwise pay that every second
     /// forever to keep finding nothing. Once per save still covers the case the sweep exists
-    /// for - a crash mid-session is cleaned when that save is next loaded.
+    /// for, since a crash mid-session is cleaned when that save is next loaded.
     /// </summary>
     internal static void SweepLoadedSaveOnce()
     {
         if (DataManager.Instance == null || GameManager.GetInstance() == null)
         {
-            // Between saves; sweep again when one is loaded.
+            // Between saves, so sweep again when one is loaded.
             lastSweptSlot = -1;
             return;
         }
@@ -429,7 +429,7 @@ internal class QuestGuideService : IService
     /// Removes every trace of the guide from the loaded save.
     ///
     /// DataManager.Objectives and friends are save-persisted, so without this a player who
-    /// disconnects - or crashes - is left with Archipelago lines in a vanilla quest log forever.
+    /// disconnects, or crashes, is left with Archipelago lines in a vanilla quest log forever.
     /// Static and self-contained so the plugin can also run it while disconnected, the same way
     /// ManagedCollection.SettleIfOwed cleans up after a session that never got to end cleanly.
     /// </summary>
@@ -478,7 +478,7 @@ internal class QuestGuideService : IService
     private static int RemoveOursFinalized(List<ObjectivesDataFinalized> list) =>
         list?.RemoveAll(o => o != null && IsOurs(o.GroupId)) ?? 0;
 
-    /// <summary>Live and completed guide objectives; history lists hold a different type.</summary>
+    /// <summary>Live and completed guide objectives. History lists hold a different type.</summary>
     private static IEnumerable<ObjectivesData> AllOurObjectives(DataManager dataManager) =>
         (dataManager.Objectives ?? Enumerable.Empty<ObjectivesData>())
         .Concat(dataManager.CompletedObjectives ?? Enumerable.Empty<ObjectivesData>())
@@ -535,7 +535,7 @@ internal class QuestGuideService : IService
             "randomizeSermonUpgrades", "sermonLocationBaseId", "sermonLocationCount",
             (current, target) => $"Earn sermon upgrades at the Temple - {current} of {target}");
 
-        // Divine Inspiration is a Choice, not a Toggle: mode 0 is off.
+        // Divine Inspiration is a Choice, not a Toggle, and mode 0 is off.
         if ((int)SlotData.GetLong(slotData, "divineInspirationMode") != DivineInspirationService.ModeOff)
         {
             AddSequentialBlock(result, slotData, IdDivineInspiration, "divine inspiration",
@@ -545,9 +545,9 @@ internal class QuestGuideService : IService
 
         if (SlotData.GetBool(slotData, "buildingChecks"))
         {
-            // Check-derived rather than save-derived on purpose: the save has no record of a
+            // Check-derived rather than save-derived on purpose. The save has no record of a
             // non-decoration building, and asking the scene costs ~25 GetAllStructuresOfType
-            // queries - far too much at 1 Hz. See BuildingService.DescribeState.
+            // queries, far too much at 1 Hz. See BuildingService.DescribeState.
             var buildingIds = SlotData.ParseIdValues(slotData, "buildingLocations");
             AddIdList(result, IdBuildings, "buildings", buildingIds,
                 (current, target) => $"Construct the buildings Archipelago is watching - {current} of {target}");
@@ -563,7 +563,7 @@ internal class QuestGuideService : IService
 
         if (SlotData.GetBool(slotData, "randomizeTarotCards"))
         {
-            // Save state is unusable here by design - TarotService empties PlayerFoundTrinkets
+            // Save state is unusable here by design. TarotService empties PlayerFoundTrinkets
             // of every managed card, so the game's collection is the inverse of the answer.
             AddIdList(result, IdTarotCards, "tarot cards",
                 SlotData.ParseIdValues(slotData, "tarotCardLocations"),
@@ -572,14 +572,14 @@ internal class QuestGuideService : IService
 
         if (SlotData.GetBool(slotData, "tarotShopChecks"))
         {
-            // Not save-derivable at all: the record is BuyEntry.Bought on the shop prefab,
+            // Not save-derivable at all. The record is BuyEntry.Bought on the shop prefab,
             // unreachable unless the player is standing in that hub.
             AddIdList(result, IdTarotShop, "tarot shop",
                 SlotData.ParseIdValues(slotData, "tarotShopLocations"),
                 (current, target) => $"Buy tarot cards from the hub shops - {current} of {target}");
         }
 
-        // Weapons and curses are deliberately absent: their check fires on whatever the player
+        // Weapons and curses are deliberately absent. Their check fires on whatever the player
         // happened to pick up, which is not something anyone can aim at.
 
         AssertTextIsSafe(result);
@@ -662,8 +662,8 @@ internal class QuestGuideService : IService
     /// How many of a block's locations the server has recorded.
     ///
     /// Counting the server's record rather than the save means a player running two saves
-    /// against one slot sees the slot's progress, not that save's - the right answer to "how
-    /// much of this seed is done".
+    /// against one slot sees the slot's progress rather than that save's, which is the right
+    /// answer to "how much of this seed is done".
     /// </summary>
     private (int Current, int Target) CountChecked(IReadOnlyList<long> ids)
     {
@@ -697,7 +697,7 @@ internal class QuestGuideService : IService
     /// <summary>
     /// Included in the F9 state dump, and the whole of the Ctrl+F9 dump.
     ///
-    /// The I2 read-back per line is the point: a term that never registered and a UI fault look
+    /// The I2 read-back per line is the point. A term that never registered and a UI fault look
     /// identical in game (a blank line), and only this tells them apart.
     /// </summary>
     internal string DescribeState()
@@ -747,7 +747,7 @@ internal class QuestGuideService : IService
         return string.Join("\n", lines);
     }
 
-    /// <summary>Sweeps, then forces a rebuild on the next tick - so one session can exercise
+    /// <summary>Sweeps, then forces a rebuild on the next tick, so one session can exercise
     /// add, sweep and re-add without reconnecting.</summary>
     internal void ForceRebuild()
     {

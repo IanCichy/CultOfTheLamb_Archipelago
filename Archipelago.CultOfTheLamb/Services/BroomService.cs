@@ -7,8 +7,8 @@ namespace Archipelago.CultOfTheLamb.Services;
 /// Sends a check for each broom level earned by sweeping.
 /// </summary>
 /// <remarks>
-/// <c>DataManager.ChoreXPLevel</c> is monotonic and save-persisted - the same shape as the sermon
-/// and Divine Inspiration counters - so the Nth level is the Nth check.
+/// <c>DataManager.ChoreXPLevel</c> is monotonic and save-persisted, the same shape as the sermon
+/// and Divine Inspiration counters, so the Nth level is the Nth check.
 ///
 /// Polled rather than patched. The counter is incremented in two places
 /// (PlayerChoreXPBarController:62 and :234, the solo and co-op paths), but it's save state, so
@@ -48,7 +48,7 @@ internal class BroomService : IService
         var level = Math.Min(CurrentLevel(), locationCount);
         if (level <= sentUpTo) return;
 
-        // Everything up to the current level, not just the newest - idempotent via CheckSender,
+        // Everything up to the current level, not just the newest. This is idempotent via CheckSender,
         // so a missed poll or a reload self-corrects.
         var ids = new long[level];
         for (var i = 0; i < level; i++) ids[i] = locationBaseId + i;

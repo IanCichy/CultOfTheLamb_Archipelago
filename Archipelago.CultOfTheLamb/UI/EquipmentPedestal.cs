@@ -11,16 +11,17 @@ namespace Archipelago.CultOfTheLamb.UI;
 /// Weapons and curses are the only randomized system with no native screen anywhere in the game
 /// (see EquipmentDisplayService), so the display has to be built rather than unhidden.
 ///
-/// The art is the game's own crusade podium, loaded through Addressables. It isn't in Resources -
-/// only 525 GameObjects are, and none is a plinth - but it is one of ~33,600 addressable keys.
+/// The art is the game's own crusade podium, loaded through Addressables. It isn't in Resources,
+/// where only 525 GameObjects live and none is a plinth, but it is one of ~33,600 addressable
+/// keys.
 ///
-/// Purely visual: no StructureBrain, no StructureManager entry, nothing written to save data.
+/// Purely visual. No StructureBrain, no StructureManager entry, nothing written to save data.
 /// </remarks>
 internal static class EquipmentPedestal
 {
     /// <summary>
-    /// The crusade weapon podium. Two keys point at it; the short one is tried first because a
-    /// path key is the more likely of the two to be renamed by a game update.
+    /// The crusade weapon podium. Two keys point at it, and the short one is tried first because
+    /// a path key is the more likely of the two to be renamed by a game update.
     /// </summary>
     private static readonly string[] PodiumKeys =
     {
@@ -28,12 +29,13 @@ internal static class EquipmentPedestal
         "Assets/Prefabs/Weapon Selection Podium.prefab",
     };
 
-    /// <summary>The game's own "you don't have this" treatment - see Interaction_SelectWeapon.</summary>
+    /// <summary>The game's own "you don't have this" treatment. See Interaction_SelectWeapon.</summary>
     private static readonly Color NotReceivedTint = new(0f, 0f, 0f, 0.75f);
 
     /// <summary>
-    /// The loaded podium. Its Addressables handle is deliberately not retained or released: one
-    /// prefab held by a static for the process is cheaper to keep than to reload per base entry.
+    /// The loaded podium. Its Addressables handle is deliberately not retained or released,
+    /// because one prefab held by a static for the process is cheaper to keep than to reload per
+    /// base entry.
     /// </summary>
     private static GameObject prefab;
 
@@ -48,7 +50,7 @@ internal static class EquipmentPedestal
     /// <summary>
     /// Parent for freshly cloned podiums, kept inactive so their Awake never runs.
     ///
-    /// This matters: the podium carries Interaction_WeaponSelectionPodium, which reaches into
+    /// This matters. The podium carries Interaction_WeaponSelectionPodium, which reaches into
     /// BiomeGenerator.Instance.CurrentRoom and destroys itself off the dungeon floor number. In
     /// the base that would either throw or delete the display. Instantiating under an inactive
     /// parent lets us strip those components before anything on them can run.
@@ -66,7 +68,7 @@ internal static class EquipmentPedestal
         if (prefab != null) return true;
 
         // Failure is cached as well as success. Spawn calls this once per pedestal, and Tick
-        // rebuilds the row on every base entry - so without this a renamed key would mean a dozen
+        // rebuilds the row on every base entry, so without this a renamed key would mean a dozen
         // blocking loads and two dozen warnings, every time, for the whole session.
         if (prefabUnavailable) return false;
 
@@ -123,7 +125,7 @@ internal static class EquipmentPedestal
 
 #if AP_DEBUG_KEYS
         // Scaffolding from the placement pass. Fifty-odd lines per base entry is far too much for
-        // a normal build; DebugActions.DumpPodiumsInScene is the on-demand version.
+        // a normal build, and DebugActions.DumpPodiumsInScene is the on-demand version.
         Describe(plinth, family);
 #endif
 
@@ -150,15 +152,15 @@ internal static class EquipmentPedestal
     /// stone and an ungranted one the dead stone. Must run before Strip, since these references
     /// live on the component it destroys.
     ///
-    /// Lighting deliberately stays off: it's a large radial glow sized for a dark dungeon room, and
-    /// in the base it washes several metres of ground so the pedestals read as blobs rather than
-    /// objects.
+    /// Lighting deliberately stays off. It's a large radial glow sized for a dark dungeon room,
+    /// and in the base it washes several metres of ground so the pedestals read as blobs rather
+    /// than objects.
     /// </remarks>
     private static void ApplyLitState(GameObject plinth, bool received)
     {
-        // By child name rather than through Interaction_WeaponSelectionPodium's fields: Strip
-        // destroys that component, so this has to keep working after the podium is already placed
-        // and a family arrives mid-session.
+        // By child name rather than through Interaction_WeaponSelectionPodium's fields, because
+        // Strip destroys that component, so this has to keep working after the podium is already
+        // placed and a family arrives mid-session.
         foreach (var child in plinth.GetComponentsInChildren<Transform>(includeInactive: true))
         {
             switch (child.name)
@@ -181,8 +183,8 @@ internal static class EquipmentPedestal
     }
 
     /// <summary>
-    /// Removes everything that would make the clone behave like a real podium: it must not offer a
-    /// weapon, react to the player, or delete itself.
+    /// Removes everything that would make the clone behave like a real podium. It must not offer
+    /// a weapon, react to the player, or delete itself.
     /// </summary>
     private static void Strip(GameObject plinth)
     {
@@ -200,9 +202,9 @@ internal static class EquipmentPedestal
     /// <summary>
     /// Points the podium's own floating icon at this family, and sets the lock to match.
     ///
-    /// Driving the prefab's children rather than adding a sprite of our own: the podium already
+    /// Driving the prefab's children rather than adding a sprite of our own. The podium already
     /// has an InventoryItemIcon (authored as Icon_Weapon_Sword) drawn above the plinth, so an
-    /// extra renderer just hides behind it - which is why every pedestal read as a sword.
+    /// extra renderer just hides behind it, which is why every pedestal read as a sword.
     /// </summary>
     private static void ConfigureIcon(GameObject plinth, EquipmentType family, bool received)
     {
@@ -211,8 +213,9 @@ internal static class EquipmentPedestal
         {
             var data = EquipmentManager.GetEquipmentData(family);
 
-            // WorldSprite is what the game itself puts here - Interaction_WeaponSelectionPodium's
-            // GetIcon() returns exactly this. The prefab ships a UI-style placeholder
+            // WorldSprite is what the game itself puts here, and
+            // Interaction_WeaponSelectionPodium's GetIcon() returns exactly this. The prefab
+            // ships a UI-style placeholder
             // (Icon_Weapon_Sword) that gets overwritten at runtime, so matching the placeholder
             // rather than the runtime value gives art that doesn't match the weapon shop.
             sprite = data?.WorldSprite ?? data?.UISprite;
@@ -246,8 +249,8 @@ internal static class EquipmentPedestal
 
 #if AP_DEBUG_KEYS
     /// <summary>
-    /// Size, sorting and child layout - none of it derivable from the decompile, and all of it
-    /// needed to place these. Kept for the next time the podium prefab changes shape.
+    /// Size, sorting and child layout. None of it is derivable from the decompile, and all of it
+    /// was needed to place these. Kept for the next time the podium prefab changes shape.
     /// </summary>
     private static void Describe(GameObject plinth, EquipmentType family)
     {

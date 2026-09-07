@@ -8,16 +8,17 @@ using Newtonsoft.Json.Linq;
 namespace Archipelago.CultOfTheLamb.Services;
 
 /// <summary>
-/// Makes the Divine Inspiration tree - the buildings-and-rituals tree at the Shrine - an
+/// Makes the Divine Inspiration tree, the buildings-and-rituals tree at the Shrine, an
 /// Archipelago system.
 ///
-/// Checks are **sequential**: the Nth upgrade unlocked in that tree is the Nth check. That's the
-/// only shape that works in all three active modes, because in checks_and_techs the player never
-/// picks anything and a per-upgrade location would fire for whatever the multiworld handed over
-/// rather than for something the player did. It also sidesteps the tree's prerequisites - 11 of the
-/// 69 sit behind external systems - since the player unlocks things in whatever order the game
-/// allows. The count comes from the tree's own <c>NumUnlockedUpgrades()</c> rather than a tally
-/// kept here, so it survives reconnects and catches up unlocks made while disconnected.
+/// Checks are **sequential**, so the Nth upgrade unlocked in that tree is the Nth check. That's
+/// the only shape that works in all three active modes, because in checks_and_techs the player
+/// never picks anything and a per-upgrade location would fire for whatever the multiworld handed
+/// over rather than for something the player did. It also sidesteps the tree's prerequisites,
+/// 11 of the 69 of which sit behind external systems, since the player unlocks things in whatever
+/// order the game allows. The count comes from the tree's own <c>NumUnlockedUpgrades()</c> rather
+/// than a tally kept here, so it survives reconnects and catches up unlocks made while
+/// disconnected.
 /// </summary>
 internal class DivineInspirationService : IService
 {
@@ -35,14 +36,14 @@ internal class DivineInspirationService : IService
     /// <summary>
     /// AP item name -> every upgrade it grants at once.
     ///
-    /// One entry per item in checks_and_techs, where each list holds a single upgrade; in
+    /// One entry per item in checks_and_techs, where each list holds a single upgrade. In
     /// curated_checks the same map carries both the single-upgrade items and the bundles, since
     /// "grant all of these" covers both.
     /// </summary>
     private readonly Dictionary<string, List<UpgradeSystem.Type>> itemNameToUpgrades;
 
     /// <summary>
-    /// curated_checks only: AP item name -> upgrades in tier order, where the Nth copy received
+    /// curated_checks only. AP item name -> upgrades in tier order, where the Nth copy received
     /// grants the Nth entry rather than all of them.
     /// </summary>
     private readonly Dictionary<string, List<UpgradeSystem.Type>> progressiveUpgrades;
@@ -58,7 +59,7 @@ internal class DivineInspirationService : IService
     private readonly int shuffleSeed;
 
     /// <summary>
-    /// Most Devotion one point may cost, for reporting only - EconomyService owns the value, so
+    /// Most Devotion one point may cost, for reporting only. EconomyService owns the value, so
     /// this reads it back off the patch rather than keeping a second copy that could disagree.
     /// </summary>
     private static int DevotionCap => DivineInspirationPatch.DevotionCap;
@@ -92,12 +93,12 @@ internal class DivineInspirationService : IService
     /// <summary>Per-connection tier counter for the progressive families. See ProgressiveGrant.</summary>
     private readonly ProgressiveGrant progressive = new();
 
-    /// <summary>Applies one copy of a progressive item: the Nth copy grants the Nth tier.</summary>
+    /// <summary>Applies one copy of a progressive item. The Nth copy grants the Nth tier.</summary>
     private void ApplyProgressive(string itemName, List<UpgradeSystem.Type> tiers)
     {
         if (!progressive.TryTake(itemName, tiers.Count, out var tierIndex)) return;
 
-        // Already-unlocked is the normal case on a replay: UnlockAbility is a set Add, so it
+        // Already-unlocked is the normal case on a replay. UnlockAbility is a set Add, so it
         // no-ops and only the count matters.
         var tier = tiers[tierIndex];
         UpgradeSystem.UnlockAbility(tier);
@@ -110,8 +111,8 @@ internal class DivineInspirationService : IService
         DivineInspirationPatch.PointEarned = OnPointEarned;
         DivineInspirationPatch.ResetWithholdLog();
 
-        // Every granting mode takes the point away: in checks_and_points it comes back as an
-        // item, in the two tech modes it never exists because Archipelago grants the upgrade.
+        // Every granting mode takes the point away. In checks_and_points it comes back as an
+        // item, and in the two tech modes it never exists because Archipelago grants the upgrade.
         DivineInspirationPatch.WithholdPoints =
             mode == ModeChecksAndPoints || mode == ModeChecksAndTechs || mode == ModeCurated;
 
@@ -134,7 +135,7 @@ internal class DivineInspirationService : IService
         DivineInspirationPatch.PointEarned = null;
         DivineInspirationPatch.WithholdPoints = false;
 
-        // The shuffle edits a ScriptableObject, which lives for the whole process - without
+        // The shuffle edits a ScriptableObject, which lives for the whole process. Without
         // this, disconnecting would leave the tree rearranged until the game restarts.
         // Queued because teardown arrives on the websocket thread and this touches Unity
         // objects, the same reason TarotService queues its restore.
@@ -156,14 +157,14 @@ internal class DivineInspirationService : IService
     /// Unlocks the upgrades this seed hands over for free, in curated_checks.
     ///
     /// Without them a fresh save can't unlock a bed, a farm plot or the Temple, so the cult can't
-    /// function at all - there is no first move. Idempotent, since UnlockAbility is a set Add, so
-    /// reconnecting simply re-asserts them.
+    /// function at all, because there is no first move. Idempotent, since UnlockAbility is a set
+    /// Add, so reconnecting simply re-asserts them.
     /// </summary>
     private void GrantFreeUpgrades()
     {
         if (freeUpgrades.Count == 0) return;
 
-        // Same guard as RegionUnlockService: at the main menu there is no save to write into.
+        // Same guard as RegionUnlockService. At the main menu there is no save to write into.
         // Warned rather than thrown, because the connection itself is still perfectly good.
         if (DataManager.Instance == null)
         {
@@ -187,12 +188,12 @@ internal class DivineInspirationService : IService
     /// </summary>
     /// <remarks>
     /// <c>DataManager.Level</c> is incremented once per fill in PlayerFarming.GetXP and is never
-    /// decremented - spending points moves <c>AbilityPoints</c>, not this. That makes it a
-    /// monotonic, save-backed count, the same shape as the sermon system's
+    /// decremented, because spending points moves <c>AbilityPoints</c> rather than this. That
+    /// makes it a monotonic, save-backed count, the same shape as the sermon system's
     /// Doctrine_PlayerUpgrade_Level, so a reconnect or a session played offline catches up
     /// without tracking anything ourselves.
     ///
-    /// It counts *meter fills only*: points the multiworld hands over go straight into
+    /// It counts *meter fills only*. Points the multiworld hands over go straight into
     /// AbilityPoints without touching Level, which is exactly right, since a received point isn't
     /// something the player earned.
     /// </remarks>
@@ -203,7 +204,7 @@ internal class DivineInspirationService : IService
     /// <summary>
     /// Sends every check up to <paramref name="count"/>, not just the newest.
     ///
-    /// Deliberately idempotent - CheckSender drops anything the server already has - so a
+    /// Deliberately idempotent, since CheckSender drops anything the server already has, so a
     /// missed event, a save edited outside the mod, or fills made while disconnected all
     /// self-correct on the next fill.
     /// </summary>
@@ -222,8 +223,8 @@ internal class DivineInspirationService : IService
     /// Applies a Divine Inspiration item. Returns false so the caller can keep looking.
     ///
     /// Both granting modes are idempotent in the way that matters. A tech is a set Add, so
-    /// replaying it is a no-op. A *point* is not - it's a counter - so points are only granted
-    /// for genuinely new items, which is why this reports whether it consumed a replay.
+    /// replaying it is a no-op. A *point* is not, because it's a counter, so points are only
+    /// granted for genuinely new items, which is why this reports whether it consumed a replay.
     /// </summary>
     internal bool TryApplyItem(string itemName, bool isReplay)
     {
@@ -234,7 +235,7 @@ internal class DivineInspirationService : IService
         if (grantsTechs && itemNameToUpgrades.TryGetValue(itemName, out var upgrades))
         {
             // Prerequisites are not enforced by UnlockAbility (a bare Contains-then-Add), so
-            // out-of-order grants are safe - which they have to be, since the multiworld hands
+            // out-of-order grants are safe, which they have to be, since the multiworld hands
             // these over in whatever order it likes. That is also what lets a bundle unlock a
             // building and all of its tiers in one go.
             var unlocked = new List<UpgradeSystem.Type>();
@@ -276,7 +277,7 @@ internal class DivineInspirationService : IService
     /// AP item name -> the upgrades it grants, from "divineInspirationUpgrades" (one each) merged
     /// with "divineInspirationBundles" (several each).
     ///
-    /// Merged into one map because both mean the same thing to the caller - "grant all of these" -
+    /// Merged into one map because both mean the same thing to the caller, "grant all of these",
     /// and a single-upgrade item is just a bundle of one.
     /// </summary>
     internal static Dictionary<string, List<UpgradeSystem.Type>> ParseUpgrades(

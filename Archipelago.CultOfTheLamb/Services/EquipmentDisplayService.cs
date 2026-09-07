@@ -6,18 +6,18 @@ using UnityEngine;
 namespace Archipelago.CultOfTheLamb.Services;
 
 /// <summary>
-/// The base displays: a row of podiums per equipment pool showing which families Archipelago has
+/// The base displays. A row of podiums per equipment pool showing which families Archipelago has
 /// granted, and the collection book between them.
 /// </summary>
 /// <remarks>
-/// These are the only randomized system with no native screen anywhere in the game: the weapon and
-/// curse wheels are in-run only and read the transient pool, and there is no PlayerFoundWeapons to
-/// mirror how PlayerFoundTrinkets backs the tarot collection. So unlike sermons or tarot there is
-/// nothing to unhide, and the display has to be built.
+/// These are the only randomized system with no native screen anywhere in the game. The weapon
+/// and curse wheels are in-run only and read the transient pool, and there is no
+/// PlayerFoundWeapons to mirror how PlayerFoundTrinkets backs the tarot collection. So unlike
+/// sermons or tarot there is nothing to unhide, and the display has to be built.
 ///
-/// Nothing is written to save data - no StructureBrain, no StructureManager entry. The podiums are
-/// respawned per scene load and destroyed on disconnect, so a save that stops using this mod is
-/// unchanged.
+/// Nothing is written to save data, meaning no StructureBrain and no StructureManager entry. The
+/// podiums are respawned per scene load and destroyed on disconnect, so a save that stops using
+/// this mod is unchanged.
 /// </remarks>
 internal class EquipmentDisplayService : IService
 {
@@ -32,10 +32,11 @@ internal class EquipmentDisplayService : IService
     /// Where each display starts, independently of the others.
     /// </summary>
     /// <remarks>
-    /// Three anchors rather than one origin the rest are measured from. Chained, the curse row and
-    /// the book moved whenever the weapon row changed length - two units for a Woolhaven seventh
-    /// weapon, twenty-three when weapons weren't randomized at all - so the same base laid itself
-    /// out differently per seed. Anchored, switching any system off leaves the other two put.
+    /// Three anchors, rather than one origin that the rest are measured from. Chained, the curse
+    /// row and the book moved whenever the weapon row changed length. That was two units for a
+    /// Woolhaven seventh weapon, and twenty-three when weapons weren't randomized at all, so the
+    /// same base laid itself out differently per seed. With separate anchors, switching any one
+    /// system off leaves the other two where they were.
     /// </remarks>
     private readonly ConfigEntry<float> weaponX;
     private readonly ConfigEntry<float> weaponY;
@@ -46,15 +47,16 @@ internal class EquipmentDisplayService : IService
 
     /// <summary>
     /// Whether to show a podium for the Teleport curses.
-    ///
-    /// They're the one curse family with no default variant - all three arrive with the
+    /// </summary>
+    /// <remarks>
+    /// They are the one curse family with no default variant. All three arrive with the
     /// Curses_Teleport sermon upgrade, which is Woolhaven-only. That still reaches the player
     /// through Archipelago, just as a sermon item rather than a curse-pool item, so leaving it off
     /// the row would hide a family they can genuinely earn.
-    /// </summary>
+    /// </remarks>
     private readonly bool showTeleport;
 
-    /// <summary>Last known state of the Teleport podium; it isn't in either pool.</summary>
+    /// <summary>Last known state of the Teleport podium, which isn't in either pool.</summary>
     private bool teleportShown;
 
     /// <summary>What each podium is showing, so a re-tint only happens when something changed.</summary>
@@ -112,12 +114,12 @@ internal class EquipmentDisplayService : IService
 
     /// <summary>
     /// Polled rather than driven by a scene-load event, for the same reason
-    /// ArchipelagoHudIndicator.EnsureExists is: the base is rebuilt on every load and this
+    /// ArchipelagoHudIndicator.EnsureExists is. The base is rebuilt on every load and this
     /// re-places itself afterwards without needing to know which path rebuilt it.
     /// </summary>
     internal void Tick()
     {
-        // Either display alone is reason enough to run: the book is useful in a seed that
+        // Either display alone is reason enough to run. The book is useful in a seed that
         // randomizes no equipment at all, so it isn't gated on the podiums being on.
         if (!enabled.Value && !bookEnabled.Value)
         {
@@ -127,18 +129,18 @@ internal class EquipmentDisplayService : IService
 
         if (!InBase())
         {
-            // The podiums belong to the base scene and are gone with it; drop our references so
-            // the next visit rebuilds rather than re-tinting destroyed objects.
+            // The podiums belong to the base scene and are gone with it, so drop our references
+            // and the next visit rebuilds rather than re-tinting destroyed objects.
             if (placed) Unregister();
 
-            // Out here is the only place a lectern exists to copy - one stands beside every tarot
+            // Out here is the only place a lectern exists to copy. One stands beside every tarot
             // shop and vendor, and the base has none.
             if (bookEnabled.Value) CollectionBook.TryAdoptFromScene();
             return;
         }
 
         // A toggle flipped since we placed. Tearing down here rather than letting Refresh() run is
-        // what makes turning one display off actually remove it: the early-out above only fires
+        // what makes turning one display off actually remove it. The early-out above only fires
         // when *both* are off, so without this, unticking the podiums while the book is on left
         // them standing with no way to place them again.
         if (placed && (pedestalsPlaced != enabled.Value || bookPlaced != bookEnabled.Value))
@@ -165,9 +167,9 @@ internal class EquipmentDisplayService : IService
     }
 
     /// <summary>
-    /// Puts each display at its own anchor: the weapon row, the curse row, and the book between
-    /// them. Only a pool the seed actually randomizes is placed at all, since an empty one would
-    /// just be a line of locked podiums for something never in play.
+    /// Puts each display at its own anchor, meaning the weapon row, the curse row, and the book
+    /// between them. Only a pool the seed actually randomizes is placed at all, since an empty one
+    /// would just be a line of locked podiums for something never in play.
     /// </summary>
     private void Place()
     {
@@ -178,11 +180,11 @@ internal class EquipmentDisplayService : IService
         var curseCount = enabled.Value ? PlaceGroup(curses, curseOrigin) : 0;
 
         // The pool check keeps a seed that randomizes no equipment from getting a lone Teleport
-        // podium: this service registers unconditionally for the book's sake, where it used to
+        // podium. This service registers unconditionally for the book's sake, where it used to
         // exist only when a pool did.
         if (enabled.Value && showTeleport && (weapons != null || curses != null))
         {
-            // On the end of the curse row rather than in its own cluster - it is a curse family,
+            // On the end of the curse row rather than in its own cluster. It is a curse family,
             // it just doesn't arrive through the curse pool.
             teleportShown = TeleportReceived();
             EquipmentPedestal.Spawn(
@@ -205,8 +207,8 @@ internal class EquipmentDisplayService : IService
     /// </summary>
     /// <remarks>
     /// Its own coordinates rather than a position derived from the podium rows. Derived, it moved
-    /// whenever the weapon row changed length, and a weapons-off seed left it marooned off the side
-    /// of the base - an independent anchor is also what keeps it present when no equipment is
+    /// whenever the weapon row changed length, and a weapons-off seed left it marooned off the
+    /// side of the base. An independent anchor is also what keeps it present when no equipment is
     /// randomized at all.
     /// </remarks>
     private void PlaceBook()

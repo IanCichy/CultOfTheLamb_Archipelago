@@ -17,13 +17,13 @@ namespace Archipelago.CultOfTheLamb;
 ///
 /// Two callers with different key schemes: ApNotification hashes the message text into a key
 /// under its own prefix, while QuestGuideService uses fixed keys the game computes for itself.
-/// Hence the explicit-key API - the key is the caller's business, the registration isn't.
+/// Hence the explicit-key API. The key is the caller's business, the registration isn't.
 /// </remarks>
 internal static class I2Terms
 {
     /// <summary>
     /// Whether I2 is far enough up to accept a term. False early in startup and briefly during
-    /// some scene loads; callers should treat it as "not yet" and retry rather than giving up.
+    /// some scene loads. Callers should treat it as "not yet" and retry rather than giving up.
     /// </summary>
     internal static bool Ready =>
         LocalizationManager.Sources != null
@@ -42,11 +42,11 @@ internal static class I2Terms
 
         var source = LocalizationManager.Sources[0];
 
-        // SaveSource: false - don't write our terms into the game's shipped localization asset.
+        // SaveSource is false so we don't write our terms into the game's shipped localization asset.
         var termData = source.GetTermData(key) ?? source.AddTerm(key, eTermType.Text, SaveSource: false);
         if (termData == null) return false;
 
-        // Every slot gets the same string: we have no translations, and leaving the other
+        // Every slot gets the same string. We have no translations, and leaving the other
         // languages null would render blank for anyone not playing in English.
         for (var i = 0; i < termData.Languages.Length; i++)
         {
@@ -57,7 +57,7 @@ internal static class I2Terms
     }
 
     /// <summary>
-    /// Reads a term straight back out of I2. Only used for diagnostics: comparing this against
+    /// Reads a term straight back out of I2. Only used for diagnostics, comparing this against
     /// what was registered is the one thing that distinguishes "the term never landed" from a
     /// UI fault, and both look identical in game (blank text).
     /// </summary>

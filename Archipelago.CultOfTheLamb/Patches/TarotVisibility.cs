@@ -6,8 +6,8 @@ using Lamb.UI;
 namespace Archipelago.CultOfTheLamb.Patches;
 
 /// <summary>
-/// Shows the player's Archipelago cards to the two parts of the game that should see them -
-/// the in-run draw pool and the collection screen - while keeping them out of
+/// Shows the player's Archipelago cards to the two parts of the game that should see them,
+/// the in-run draw pool and the collection screen, while keeping them out of
 /// PlayerFoundTrinkets everywhere else (see ManagedCollection for why).
 /// </summary>
 /// <remarks>
@@ -16,7 +16,7 @@ namespace Archipelago.CultOfTheLamb.Patches;
 /// filters on fleece, corruption pairing, season, relic scale and the resurrect ability, and a
 /// re-implementation would drift from the game's within a patch or two.
 ///
-/// Other readers are left alone - completion percentage, GetTrinketsUnlocked and the
+/// Other readers are left alone. Completion percentage, GetTrinketsUnlocked and the
 /// ALL_TAROTS_UNLOCKED achievement under-report while connected and correct themselves on
 /// disconnect. Lending to them isn't worth it, since the achievement path writes a permanent
 /// unlock, which is the one thing this class exists to prevent.
@@ -24,7 +24,7 @@ namespace Archipelago.CultOfTheLamb.Patches;
 internal static class TarotVisibility
 {
     /// <summary>
-    /// The cards Archipelago has granted. Set by TarotService while connected; null the rest
+    /// The cards Archipelago has granted. Set by TarotService while connected, and null the rest
     /// of the time, which leaves the game entirely alone.
     /// </summary>
     internal static Func<IEnumerable<TarotCards.Card>> GrantedCards;
@@ -66,8 +66,9 @@ internal static class TarotVisibility
     }
 
     /// <summary>
-    /// The in-run draw pool - what a pedestal or shrine offers mid-crusade. The one place where
-    /// getting this wrong is a gameplay bug: miss it and Archipelago's cards never show up.
+    /// The in-run draw pool, meaning what a pedestal or shrine offers mid-crusade. This is the
+    /// one place where getting it wrong is a gameplay bug. Miss it and Archipelago's cards
+    /// never show up.
     /// </summary>
     [HarmonyPatch(typeof(TarotCards), nameof(TarotCards.GetUnusedFoundTrinkets))]
     internal static class DrawPool

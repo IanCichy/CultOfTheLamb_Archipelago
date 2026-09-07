@@ -7,9 +7,9 @@ namespace Archipelago.CultOfTheLamb.Patches;
 /// Restricts what weapons and curses the game may offer, and reports what the player equipped.
 /// </summary>
 /// <remarks>
-/// The save data is never touched - the opposite of TarotService, because emptying WeaponPool
+/// The save data is never touched, which is the opposite of TarotService. Emptying WeaponPool
 /// doesn't withhold anything: GetRandomWeaponInPool opens with a ladder that hands over the
-/// first weapon you *don't* own on the first floor of every run, so a revoked weapon is
+/// first weapon you don't own on the first floor of every run, so a revoked weapon is
 /// force-fed straight back. Leaving the pool alone also keeps three count-sensitive checks
 /// honest (Interaction_Chest's second podium, BiomeGenerator's weapon room,
 /// AccessibilitySettings' Force Weapon control), and means an established save works.
@@ -36,11 +36,12 @@ internal static class EquipmentPoolPatch
 
     /// <summary>
     /// Every weapon podium, chest and choice room in the game.
-    ///
-    /// A postfix rather than a prefix because the original carries a lot worth keeping -
-    /// legendary gating, the Fervour lockout, ForcedStartingWeapon, the Cowboy fleece branch,
-    /// the accessibility Force Weapon setting.
     /// </summary>
+    /// <remarks>
+    /// A postfix rather than a prefix because the original carries a lot worth keeping. That
+    /// includes legendary gating, the Fervour lockout, ForcedStartingWeapon, the Cowboy fleece
+    /// branch, and the accessibility Force Weapon setting.
+    /// </remarks>
     [HarmonyPatch(typeof(DataManager), nameof(DataManager.GetRandomWeaponInPool))]
     internal static class WeaponSelection
     {
@@ -113,7 +114,7 @@ internal static class EquipmentPoolPatch
     }
 
     /// <summary>
-    /// Swallows a missing sprite rather than throwing - GetEquipmentData reads a
+    /// Swallows a missing sprite rather than throwing: GetEquipmentData reads a
     /// ScriptableObject, and a wrong icon beats an exception inside a pickup's setup.
     /// </summary>
     private static void RefreshSprite(FoundItemPickUp pickup, EquipmentType type)
@@ -130,13 +131,14 @@ internal static class EquipmentPoolPatch
     }
 
     /// <summary>
-    /// Equipping a weapon - the funnel every route ends at, including FoundItemPickUp.
-    ///
+    /// Equipping a weapon. This is the funnel every route ends at, including FoundItemPickUp.
+    /// </summary>
+    /// <remarks>
     /// This sends the check rather than the four sites that add to WeaponPool, which are wrong
-    /// twice over: they bypass DataManager.AddWeapon so OnWeaponUnlocked never fires for them,
+    /// twice over. They bypass DataManager.AddWeapon so OnWeaponUnlocked never fires for them,
     /// and on an established save the pool already holds every weapon, so "first added to the
     /// pool" can never happen again.
-    /// </summary>
+    /// </remarks>
     [HarmonyPatch(typeof(PlayerWeapon), nameof(PlayerWeapon.SetWeapon))]
     internal static class WeaponEquip
     {

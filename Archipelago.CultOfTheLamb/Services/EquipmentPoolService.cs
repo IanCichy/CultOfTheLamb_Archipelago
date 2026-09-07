@@ -8,20 +8,21 @@ using Newtonsoft.Json.Linq;
 namespace Archipelago.CultOfTheLamb.Services;
 
 /// <summary>
-/// Makes the weapon and curse families an Archipelago system: the game may only offer a family
+/// Makes the weapon and curse families an Archipelago system. The game may only offer a family
 /// the multiworld has granted, and equipping one for the first time sends a check.
 /// </summary>
 /// <remarks>
-/// Vanilla already treats these as progression, just invisibly - see EquipmentPoolPatch for the
-/// ladder that hands out the Axe, then the Dagger, then the rest on a fixed schedule. One instance
-/// handles weapons or curses, not both, since the two are independent YAML options and either can
-/// be on alone. Nothing here touches save data.
+/// Vanilla already treats these as progression, just invisibly. See EquipmentPoolPatch for the
+/// ladder that hands out the Axe, then the Dagger, then the rest on a fixed schedule.
 ///
-/// No catch-up pass, and it doesn't need one: the check fires on first *equip* and the game
-/// records which families you own rather than which you've ever equipped, so there is nothing to
-/// re-derive. It self-heals instead - players re-equip every run, so an equip missed while
-/// disconnected pays on the next one, which is what GrantedNotInPool keeps true by making sure a
-/// granted family stays offerable.
+/// One instance handles weapons or curses, never both. They are independent YAML options and
+/// either can be on alone. Nothing here touches save data.
+///
+/// There is no catch-up pass and none is needed. The check fires on first equip, and the game
+/// records which families you own rather than which you have ever equipped, so there is nothing to
+/// re-derive. It self-heals instead, because players re-equip every run, so an equip missed
+/// while disconnected pays on the next one. GrantedNotInPool is what keeps that true, by making
+/// sure a granted family stays offerable.
 /// </remarks>
 internal class EquipmentPoolService : IService
 {
@@ -42,8 +43,8 @@ internal class EquipmentPoolService : IService
         EquipmentType.Tentacles,      // 500
         EquipmentType.Chain,          // 470
         // Conviction's Guard was cut before release, so nothing should ever be a Shield. Listed
-        // anyway: without it a Shield value falls through to Blunderbuss and would send that
-        // family's check, where resolving to an unmanaged family sends nothing.
+        // anyway, because without it a Shield value falls through to Blunderbuss and would send
+        // that family's check, where resolving to an unmanaged family sends nothing.
         EquipmentType.Shield,         // 460
         EquipmentType.Blunderbuss,    // 450
         EquipmentType.Gauntlet,       // 400
@@ -70,7 +71,7 @@ internal class EquipmentPoolService : IService
 
     /// <summary>
     /// Our own stream, so rolling a Legendary or a substitute doesn't advance the sequence the
-    /// game draws from - which would shift its own rolls depending on how many offers we saw.
+    /// game draws from, which would shift its own rolls depending on how many offers we saw.
     /// </summary>
     private static readonly System.Random Rng = new();
 
@@ -87,7 +88,7 @@ internal class EquipmentPoolService : IService
 
     /// <summary>
     /// False when the seed isn't randomizing this pool, which makes every family count as
-    /// available - the Legendary option works on its own, without randomize_weapons.
+    /// available. The Legendary option works on its own, without randomize_weapons.
     /// </summary>
     private readonly bool randomizing;
 
@@ -105,7 +106,7 @@ internal class EquipmentPoolService : IService
 
     /// <summary>
     /// Checks sent this session. CheckSender already filters what the server has from previous
-    /// sessions; this only stops the resend every time the player re-equips in a run.
+    /// sessions, and this only stops the resend every time the player re-equips in a run.
     /// </summary>
     private readonly HashSet<EquipmentType> sent = new();
 
@@ -215,23 +216,23 @@ internal class EquipmentPoolService : IService
             return legendary;
         }
 
-        // Granted, so keep the pick exactly - including its variant. A Bane Axe rides along
+        // Granted, so keep the pick exactly, including its variant. A Bane Axe rides along
         // with the Axe, since the affixes are the sermon system's to gate, not ours.
         if (granted.Contains(family)) return chosen;
 
-        // Not ours at all: Sword_Ratau, the Teleport and Barrier curses, or any family when
-        // this pool isn't being randomized. Left alone.
+        // Not ours at all, meaning Sword_Ratau, the Teleport and Barrier curses, or any family
+        // when this pool isn't being randomized. Left alone.
         if (!managed.Contains(family)) return chosen;
 
         // Prefer a granted family the player doesn't own yet. This preserves the game's own
-        // unlock ceremony - the ladder was already about to hand over a new weapon here, so
+        // unlock ceremony. The ladder was already about to hand over a new weapon here, so
         // redirecting it means the player gets the full first-pickup animation.
         var unowned = FirstGrantedNotInPool();
         if (unowned != EquipmentType.None) return unowned;
 
         // Ordinary mid-run variety. Pool entries carry the variants (a Bane Axe rides along
         // with the Axe), and the granted-but-uncollected families are added as their base type
-        // because they are not in the pool to be drawn from - see GrantedNotInPool.
+        // because they are not in the pool to be drawn from. See GrantedNotInPool.
         var candidates = GrantedInPool();
         candidates.AddRange(GrantedNotInPool());
         if (candidates.Count > 0) return candidates[Rng.Next(candidates.Count)];
@@ -266,16 +267,16 @@ internal class EquipmentPoolService : IService
     /// Granted families the player's pool doesn't contain, as their base type.
     /// </summary>
     /// <remarks>
-    /// In practice this is the Flail and nothing else: vanilla's ladder seeds every other family
-    /// into WeaponPool within the first few runs, but it only ever offers the Chain inside
-    /// Woolhaven (GetRandomWeaponInPool checks PlayerFarming.Location == Dungeon1_5), and a
-    /// Bishops-goal seed never goes there.
+    /// In practice this is the Flail and nothing else. Vanilla's ladder seeds every other family
+    /// into WeaponPool within the first few runs, but it only offers the Chain inside Woolhaven
+    /// (GetRandomWeaponInPool checks PlayerFarming.Location == Dungeon1_5), and a Bishops-goal seed
+    /// never goes there.
     ///
-    /// Without this, a granted Flail is reachable only through the FirstGrantedNotInPool branch
-    /// above, which needs the game's own pick to be a family the player hasn't been granted.
-    /// Once every family has been granted that branch is unreachable, and a Flail the player
-    /// never happened to collect can never be offered again - stranding its check, and any
-    /// progression the fill put there.
+    /// Without this, a granted Flail is only reachable through the FirstGrantedNotInPool branch
+    /// above, which needs the game's own pick to be a family the player hasn't been granted. Once
+    /// every family has been granted, that branch can never fire. A Flail the player never happened
+    /// to collect could then never be offered again, stranding its check and any progression the
+    /// fill put there.
     /// </remarks>
     private List<EquipmentType> GrantedNotInPool()
     {
@@ -286,7 +287,7 @@ internal class EquipmentPoolService : IService
     }
 
     /// <summary>
-    /// The game's real pool, read fresh every call - DataManager.Instance changes when a
+    /// The game's real pool, read fresh every call, because DataManager.Instance changes when a
     /// different save is loaded.
     /// </summary>
     private List<EquipmentType> Pool()
@@ -301,8 +302,8 @@ internal class EquipmentPoolService : IService
     {
         var family = FamilyOf(equipped);
 
-        // Check id first: a starting family has no location by design, and neither does None
-        // (a cleared spell). Adding those to `sent` would be harmless for de-duplication but
+        // Check id first, because a starting family has no location by design, and neither does
+        // None (a cleared spell). Adding those to `sent` would be harmless for de-duplication but
         // makes DescribeState's "checks sent" count families that never sent anything, which is
         // exactly the noise that would hide a broken equip path during testing.
         if (!familyToCheckId.TryGetValue(family, out var checkId)) return;
@@ -331,8 +332,8 @@ internal class EquipmentPoolService : IService
     }
 
     /// <summary>
-    /// AP item name -> family, from "weaponItems"/"curseItems". Names this build of the game
-    /// doesn't recognise are dropped with a warning - losing one weapon beats losing the
+    /// AP item name -> family, from "weaponItems" and "curseItems". Names this build of the game
+    /// doesn't recognise are dropped with a warning, because losing one weapon beats losing the
     /// connection.
     /// </summary>
     internal static Dictionary<string, EquipmentType> ParseFamilies(
@@ -365,7 +366,7 @@ internal class EquipmentPoolService : IService
         {
             if (!TryParse(entry.Key, entry.Key, out var family)) continue;
 
-            // Skipped rather than thrown: this runs during connect, so an exception costs the
+            // Skipped rather than thrown. This runs during connect, so an exception costs the
             // whole session instead of the one check we couldn't read.
             try
             {

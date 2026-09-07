@@ -11,16 +11,16 @@ namespace Archipelago.CultOfTheLamb;
 /// <remarks>
 /// The server replays a slot's entire item history on every connect, and the client must drain
 /// it or lose items received while disconnected. Re-applying it is only harmless for idempotent
-/// grants - Inventory.AddItem stacks, so before this existed spamming F5 was an infinite
-/// resource generator.
+/// grants: Inventory.AddItem stacks, so before this existed spamming F5 was an infinite resource
+/// generator.
 ///
-/// Keyed by **save slot** as well as AP seed and slot, because "already applied" is a property of
-/// the save file, not of the client install. Sidecar file rather than the game save, because
-/// DataManager is MessagePack-serialized with fixed [Key(N)] attributes.
+/// The key includes the save slot as well as the AP seed and slot, because "already applied" is a
+/// property of the save file, not of the client install. It lives in a sidecar file rather than
+/// the game save, because DataManager is MessagePack-serialized with fixed [Key(N)] attributes.
 ///
-/// Known limitation: reloading an earlier autosave of the same slot leaves the count ahead of what
-/// that save received, so those items are skipped - better than unbounded duplication, and it
-/// matches how most AP clients behave.
+/// One known limitation. Reloading an earlier autosave of the same slot leaves the count ahead
+/// of what that save received, so those items are skipped. That is better than unbounded
+/// duplication, and it matches how most AP clients behave.
 /// </remarks>
 internal static class AppliedItemStore
 {
@@ -45,20 +45,24 @@ internal static class AppliedItemStore
         }
         catch (Exception e)
         {
-            // Losing the count means duplicate grants next reconnect - bad, but never worth
-            // taking the session down for.
+            // Losing the count means duplicate grants on the next reconnect. That is bad, but it
+            // is never worth taking the session down for.
             Log.LogWarning($"[AP] Could not write {StorePath}: {e.Message}");
         }
     }
 
     /// <summary>
     /// Identity of "this playthrough": which save, on which seed, as which slot.
-    ///
-    /// SaveSlot.Current rather than the raw SAVE_SLOT: the game parks a Woolhaven save at slot+10
-    /// and moves SAVE_SLOT between the two while writing, so the raw value can key the same save
-    /// two different ways within one session - and a key that misses reads the count as 0 and
-    /// re-applies the entire item history.
     /// </summary>
+    /// <remarks>
+    /// Built from <see cref="SaveSlot.Current"/> rather than the raw SAVE_SLOT: the game parks a
+    /// Woolhaven save at slot+10 and moves SAVE_SLOT between the two while writing, so the raw
+    /// value can key the same save two different ways within one session. A key that misses reads
+    /// the count as 0 and re-applies the entire item history.
+    /// </remarks>
+    /// <param name="seed">The multiworld's seed name, or "noseed" when there isn't one.</param>
+    /// <param name="apSlot">The Archipelago slot this client is playing.</param>
+    /// <returns>The store key for the loaded save on this seed and slot.</returns>
     internal static string BuildKey(string seed, int apSlot)
     {
         return $"save{SaveSlot.Current}:{seed ?? "noseed"}:{apSlot}";

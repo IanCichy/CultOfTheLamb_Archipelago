@@ -4,12 +4,13 @@ namespace Archipelago.CultOfTheLamb.Services;
 
 /// <summary>
 /// Sends a check for each Snail Shrine given a Shell offering.
-///
-/// The game records these as five plain save booleans, DataManager.ShellsGifted_0 through _4.
-/// No event and no single write site worth patching, so this polls them - which is the better
-/// shape anyway: they're save state, so polling also catches offerings made while disconnected
-/// and re-derives correctly after a reload.
 /// </summary>
+/// <remarks>
+/// The game records these as five plain save booleans, DataManager.ShellsGifted_0 through _4.
+/// There is no event and no single write site worth patching, so this polls them, which is the
+/// better shape anyway. They are save state, so polling also catches offerings made while
+/// disconnected and re-derives correctly after a reload.
+/// </remarks>
 internal class SnailShrineService : IService
 {
     private readonly ArchipelagoSession session;
@@ -57,8 +58,11 @@ internal class SnailShrineService : IService
     }
 
     /// <summary>
-    /// Five separately-named booleans rather than an array, so this is an explicit switch.
+    /// Whether the shrine at <paramref name="index"/> has been given its Shell.
     /// </summary>
+    /// <remarks>
+    /// Five separately-named booleans rather than an array, so this is an explicit switch.
+    /// </remarks>
     private static bool IsGifted(DataManager dataManager, int index)
     {
         switch (index)

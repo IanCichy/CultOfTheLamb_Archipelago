@@ -6,15 +6,15 @@ using Archipelago.MultiClient.Net;
 namespace Archipelago.CultOfTheLamb.Services;
 
 /// <summary>
-/// Both halves of sermon randomization:
+/// Both halves of sermon randomization.
 /// </summary>
 /// <remarks>
-///  - Location: filling the sermon bar sends "Sermon Upgrade N" (see SermonUpgradePatch).
-///  - Item: a received sermon item calls UpgradeSystem.UnlockAbility for the upgrade it maps to.
+/// As a location, filling the sermon bar sends "Sermon Upgrade N" (see SermonUpgradePatch). As an
+/// item, a received sermon item calls UpgradeSystem.UnlockAbility for the upgrade it maps to.
 ///
 /// The item -> UpgradeSystem.Type mapping arrives in slot data rather than being hardcoded
 /// here, so adding or reordering upgrades on the Python side can't silently desync the two
-/// halves. Each entry is an ordered list: one element is a standalone upgrade, several make a
+/// halves. Each entry is an ordered list. One element is a standalone upgrade, several make a
 /// progressive chain whose Nth copy grants the Nth tier.
 /// </remarks>
 internal class SermonService : IService
@@ -51,7 +51,7 @@ internal class SermonService : IService
 
     /// <summary>
     /// How many sermon upgrades this save has taken, ever. Monotonic, and vanilla keeps counting
-    /// while we're disconnected - Unregister hands the pick-an-upgrade flow back, and
+    /// while we're disconnected, since Unregister hands the pick-an-upgrade flow back and
     /// SermonController increments this on its own.
     /// </summary>
     private static int EarnedCount() => DataManager.Instance?.Doctrine_PlayerUpgrade_Level ?? 0;
@@ -61,10 +61,10 @@ internal class SermonService : IService
     /// land. Same shape as DivineInspirationService, and free to repeat because CheckSender
     /// filters against what the server already has.
     ///
-    /// One knock-on worth knowing: a sermon taken offline also hands out a real vanilla upgrade,
-    /// since the choice screen isn't suppressed once Unregister runs, and catch-up pays the check on
-    /// top - so the player keeps that upgrade for free. A leaked reward beats a lost check, since
-    /// withholding it would strand an item for someone else.
+    /// One knock-on is worth knowing. A sermon taken offline also hands out a real vanilla
+    /// upgrade, since the choice screen isn't suppressed once Unregister runs, and catch-up pays
+    /// the check on top, so the player keeps that upgrade for free. A leaked reward beats a lost
+    /// check, since withholding it would strand an item for someone else.
     /// </summary>
     private void SendChecksUpTo(int level)
     {
@@ -92,7 +92,7 @@ internal class SermonService : IService
         if (level < 1 || level > locationCount)
         {
             // Past the last location the seed has. The vanilla game would be handing out
-            // blue hearts by now; we just stop sending. Not an error.
+            // blue hearts by now, and we just stop sending. Not an error.
             Log.LogInfo($"[AP] Sermon upgrade #{level} is beyond this seed's "
                 + $"{locationCount} sermon location(s) - nothing to send.");
             return;
@@ -119,8 +119,8 @@ internal class SermonService : IService
             return true;
         }
 
-        // instant: true plays the game's own unlock-reveal, so an AP grant feels like a
-        // normal unlock. Effects apply live - verified in-game.
+        // instant is true so the game's own unlock-reveal plays and an AP grant feels like a
+        // normal unlock. Effects apply live, verified in-game.
         var granted = UpgradeSystem.UnlockAbility(upgrade, instant: true);
         Log.LogInfo($"[AP] Sermon item '{itemName}' -> {upgrade} "
             + $"(tier {tierIndex + 1}/{upgrades.Count}), UnlockAbility returned {granted}");

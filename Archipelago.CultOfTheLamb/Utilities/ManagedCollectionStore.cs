@@ -7,7 +7,7 @@ namespace Archipelago.CultOfTheLamb;
 
 /// <summary>
 /// Remembers what Archipelago has taken out of a given save and not yet given back. Holding
-/// that promise in memory alone isn't enough: the game autosaves constantly, so the file on disk
+/// that promise in memory alone isn't enough. The game autosaves constantly, so the file on disk
 /// is missing those entries for the whole session, and a crash or an alt-F4 would lose real
 /// player data permanently.
 /// </summary>
@@ -39,11 +39,11 @@ internal static class ManagedCollectionStore
 
     /// <summary>
     /// What this save is still owed from an earlier session. Entries whose names this build of
-    /// the game doesn't recognise are dropped with a warning rather than throwing - the store
+    /// the game doesn't recognise are dropped with a warning rather than throwing, because the store
     /// outlives game updates, and losing one card beats failing to return the other fifty-nine.
     ///
     /// <paramref name="legacyKey"/> is an older, un-namespaced key to fall back to when the
-    /// namespaced one is absent: tarot shipped before this store was generalised and wrote a bare
+    /// namespaced one is absent. Tarot shipped before this store was generalised and wrote a bare
     /// "saveN", so without the fallback a player who updated mid-session would be owed cards under
     /// a key nothing reads any more. Safe to delete once no such file can exist.
     /// </summary>
@@ -100,7 +100,7 @@ internal static class ManagedCollectionStore
         }
         catch (Exception e)
         {
-            // Losing the record means a crash could cost the player their cards - bad, but
+            // Losing the record means a crash could cost the player their cards. That is bad, but
             // never worth taking the session down for. Same call as AppliedItemStore makes.
             Log.LogWarning($"[AP] Could not write {StorePath}: {e.Message}");
         }

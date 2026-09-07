@@ -8,16 +8,16 @@ namespace Archipelago.CultOfTheLamb.Services;
 /// Takes most of the game's built-in follower quests out of rotation, leaving a curated slice.
 /// </summary>
 /// <remarks>
-/// Followers periodically walk over and offer one of ~87 hardcoded quests - cook three great
+/// Followers periodically walk over and offer one of ~87 hardcoded quests, such as cook three great
 /// meals, dress someone in a fancy suit, murder a specific follower at night. Most are busywork
 /// that pulls against whatever the multiworld actually wants, and a new player can't tell the
 /// two apart. But turning a quest in is also the game's main source of follower loyalty XP
 /// (FollowerBrain.AddAdoration(AdorationActions.Quest)), so wiping them all starves follower
 /// levelling. Hence a trim with modes rather than a switch.
 ///
-/// The lever is Quests.RemovedQuests - the developers' own kill switch, a private static
+/// The lever is Quests.RemovedQuests, the developers' own kill switch. It is a private static
 /// List&lt;int&gt; of indices into Quests.QuestsAll, and the very first filter inside
-/// Quests.GetQuest's eligibility loop. See AI_INDEX.md §5a.
+/// Quests.GetQuest's eligibility loop. See DcplIdx 5a.
 /// </remarks>
 internal class QuestTrimService : IService
 {
@@ -62,7 +62,7 @@ internal class QuestTrimService : IService
         var keep = BuildKeepSet(questsAll, storyQuests);
         keptCount = keep.Count;
 
-        // Mutate the existing list rather than replacing it: cheaper, and it can't be defeated
+        // Mutate the existing list rather than replacing it. That is cheaper, and it can't be defeated
         // by anything holding a cached reference to the old list.
         for (var i = 0; i < questsAll.Count; i++)
         {
@@ -78,7 +78,7 @@ internal class QuestTrimService : IService
     {
         if (originalRemoved == null) return;
 
-        // Mandatory, not tidiness: Quests is a static class living for the whole process, so
+        // Mandatory, not tidiness. Quests is a static class living for the whole process, so
         // without this a disconnected session keeps playing with a trimmed quest table until
         // the game is restarted.
         var removed = Traverse.Create(typeof(Quests)).Field("RemovedQuests").GetValue<List<int>>();
@@ -96,7 +96,7 @@ internal class QuestTrimService : IService
     /// <summary>
     /// Which quest indices survive.
     ///
-    /// Predicate-based, never a hardcoded index list: QuestsAll is a literal inline table, so a
+    /// Predicate-based, never a hardcoded index list. QuestsAll is a literal inline table, so a
     /// game patch inserting one entry would shift every index after it and silently start
     /// keeping the wrong quests. Types and the game's own StoryQuests list both survive that.
     /// </summary>
@@ -106,7 +106,7 @@ internal class QuestTrimService : IService
         if (mode == None) return keep;
 
         // Story chains (Sozo, the lovers, the rivalries) survive everything but `none`. They
-        // have to be kept explicitly: a new chain spawns through GetNewStory -> GetQuest with
+        // have to be kept explicitly. A new chain spawns through GetNewStory -> GetQuest with
         // the story entry as targetQuest, and that path checks list.Contains(targetQuest) -
         // exactly what RemovedQuests nulls out.
         if (storyQuests != null) keep.UnionWith(storyQuests);

@@ -7,7 +7,7 @@ namespace Archipelago.CultOfTheLamb.Patches;
 /// Reports every finished building.
 /// </summary>
 /// <remarks>
-/// <c>Structures_BuildSite.OnBuildComplete</c> looks like the hook and isn't: it's a
+/// <c>Structures_BuildSite.OnBuildComplete</c> looks like the hook and isn't. It is a
 /// per-instance <c>Action</c> with no arguments, so it says *that* something finished, not
 /// *what*. <c>Build()</c> has <c>Data.ToBuildType</c> right there.
 ///
@@ -22,7 +22,7 @@ namespace Archipelago.CultOfTheLamb.Patches;
 /// </remarks>
 internal static class StructureBuildPatch
 {
-    /// <summary>Set by BuildingService while connected; null leaves the game untouched.</summary>
+    /// <summary>Set by BuildingService while connected. Null leaves the game untouched.</summary>
     internal static Action<StructureBrain.TYPES> Built;
 
     [HarmonyPatch(typeof(Structures_BuildSite), nameof(Structures_BuildSite.Build))]
@@ -53,8 +53,9 @@ internal static class StructureBuildPatch
     /// Caps how long a structure takes.
     ///
     /// Vanilla runs from 10 game-minutes to 9000 for the late Temple tiers, with most buildings
-    /// at 30, 300 or 600. Capping at 30 - a Sleeping Bag - makes everything quick. Pure quality
-    /// of life, and it matters more here than in vanilla because building is now a check.
+    /// at 30, 300 or 600. Capping at 30, the cost of a Sleeping Bag, makes everything quick.
+    /// Pure quality of life, and it matters more here than in vanilla because building is now a
+    /// check.
     /// </summary>
     [HarmonyPatch(typeof(StructuresData), nameof(StructuresData.BuildDurationGameMinutes))]
     internal static class BuildDuration

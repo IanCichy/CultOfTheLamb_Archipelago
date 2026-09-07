@@ -7,20 +7,20 @@ namespace Archipelago.CultOfTheLamb.Console;
 
 /// <summary>
 /// Keybind-driven debug helpers. Cult of the Lamb has no dev console, so these are BepInEx
-/// keybinds; the bodies live in DebugActions and ArchipelagoPlugin does the wiring.
+/// keybinds. The bodies live in DebugActions and ArchipelagoPlugin does the wiring.
 /// </summary>
 /// <remarks>
-/// **A normal build has exactly one key: F9, which dumps state to the log.** Every other binding
+/// **A normal build has exactly one key. F9 dumps state to the log.** Every other binding
 /// is behind the AP_DEBUG_KEYS compile constant, set only in the gitignored
 /// Directory.Build.props.user, so a clean checkout, a tester's build and any release build can't
-/// press them. The DebugActions bodies still compile in - it's the bindings that are gated, so
+/// press them. The DebugActions bodies still compile in. It's the bindings that are gated, so
 /// the accurate claim is "unreachable", not "absent".
 ///
-/// One key on purpose: the entire instruction a tester needs is "press F9 and send the log", every
+/// One key on purpose. The entire instruction a tester needs is "press F9 and send the log", every
 /// extra binding is something to press by accident and report as a bug, and connecting doesn't need
 /// a key at all since the panel is on both menus.
 ///
-/// That matters because six of the gated keys write real state and three reach the server: Ctrl+F2
+/// That matters because six of the gated keys write real state and three reach the server. Ctrl+F2
 /// could report a false victory on a Bishops seed, F3 pays out a sermon check, and F8 unlocks a
 /// tarot card that TarotService then sends. In a shared multiworld those corrupt other people's
 /// games, and testers press keys without reading what they do.
@@ -50,15 +50,15 @@ internal static class DebugCommands
 #if AP_DEBUG_KEYS
         // ---- developer only, compiled out of every other build ----
 
-        // A shortcut, not the only way in - the panel is on the main menu and the pause menu, so
+        // A shortcut, not the only way in. The panel is on the main menu and the pause menu, so
         // players never need this. Kept on its original config name so existing setups don't lose
         // their binding.
         connectKey = Bind(config, "ConnectKey", KeyCode.F5,
             "Opens (or closes) the Archipelago connection panel.");
 
-        // Ctrl+F9 rather than a spare function key: F1-F11 are taken and F12 is Steam's
-        // screenshot binding. BepInEx's KeyboardShortcut requires unlisted modifiers to be up,
-        // so this doesn't also fire the plain-F9 dump above.
+        // Ctrl+F9 rather than a spare function key, because F1 through F11 are taken and F12 is
+        // Steam's screenshot binding. BepInEx's KeyboardShortcut requires unlisted modifiers to
+        // be up, so this doesn't also fire the plain-F9 dump above.
         questGuideKey = Bind(config, "DumpQuestGuideKey", KeyCode.F9,
             "Dumps the Archipelago objective guide - each line's I2 term, intended text and "
             + "read-back, plus every Archipelago objective sitting in the save - then sweeps "
@@ -82,7 +82,7 @@ internal static class DebugCommands
             + "(tests sermon checks without grinding real sermons).",
             DebugActions.FillSermonBar);
 
-        // A shortcut, not the only way in - the viewer is on the Temple Altar menu. Useful because
+        // A shortcut, not the only way in. The viewer is on the Temple Altar menu. Useful because
         // this reaches it from anywhere, including away from the Temple.
         BindFeatureKey(config, "SermonTreeViewerKey", KeyCode.F3,
             "Opens the game's own sermon upgrade tree as a read-only viewer.",
@@ -174,8 +174,9 @@ internal static class DebugCommands
     /// <summary>
     /// Runs a keybind's handler if it was pressed.
     ///
-    /// A debug keybind must never take the game down with it - these call into game APIs that
-    /// may not be initialized depending on where the player is (main menu, mid-crusade, etc).
+    /// A debug keybind must never take the game down with it. These call into game APIs that
+    /// may not be initialized depending on where the player is, such as the main menu or
+    /// mid-crusade.
     /// </summary>
     private static void Fire(ConfigEntry<KeyboardShortcut> key, Action handler)
     {

@@ -3,21 +3,23 @@ using HarmonyLib;
 namespace Archipelago.CultOfTheLamb.Patches;
 
 /// <summary>
-/// Holds AP-locked region doors shut. Two patches are needed because the vanilla door has
-/// two independent ways to become passable:
+/// Holds AP-locked region doors shut.
+/// </summary>
+/// <remarks>
+/// Two patches are needed because the vanilla door has two independent ways to become passable:
 ///
 /// 1. OnEnableInteraction() sets Unlocked from DataManager.UnlockedDungeonDoor, and
-///    OpenDoor() disables the blocking collider when Unlocked - so a stale/auto-added entry
+///    OpenDoor() disables the blocking collider when Unlocked, so a stale or auto-added entry
 ///    would let the player simply walk through.
-/// 2. OnInteract() starts the open ritual based only on HaveFollowers (the follower-count
-///    requirement) - it never consults UnlockedDungeonDoor at all, so meeting the follower
+/// 2. OnInteract() starts the open ritual based only on HaveFollowers, the follower-count
+///    requirement. It never consults UnlockedDungeonDoor at all, so meeting the follower
 ///    cost opens an AP-locked region.
-/// </summary>
+/// </remarks>
 [HarmonyPatch(typeof(Interaction_BaseDungeonDoor))]
 internal static class BaseDungeonDoorPatch
 {
     /// <summary>
-    /// Strip AP-locked regions out of the save's unlocked-door set before the door reads it,
+    /// Strips AP-locked regions out of the save's unlocked-door set before the door reads it,
     /// so Unlocked evaluates false and the blocking collider stays on.
     /// </summary>
     [HarmonyPatch("OnEnableInteraction")]
@@ -33,7 +35,8 @@ internal static class BaseDungeonDoorPatch
         }
     }
 
-    /// <summary>Refuse the open-the-door interaction entirely while AP has it locked.</summary>
+    /// <summary>Refuses the open-the-door interaction entirely while AP has it locked.</summary>
+    /// <returns>false to skip the original, so the open ritual never starts.</returns>
     [HarmonyPatch("OnInteract")]
     [HarmonyPrefix]
     private static bool OnInteract_Prefix(Interaction_BaseDungeonDoor __instance)

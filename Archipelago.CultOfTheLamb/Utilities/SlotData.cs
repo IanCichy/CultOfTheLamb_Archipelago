@@ -105,7 +105,7 @@ internal static class SlotData
     /// <summary>
     /// Resolves an enum member the server named, or warns and returns false.
     ///
-    /// A name this build of the game doesn't have means the mod and the game disagree - most
+    /// A name this build of the game doesn't have means the mod and the game disagree. Most
     /// likely a seed generated against a newer apworld than the installed client. Losing one
     /// upgrade beats losing the session.
     /// </summary>

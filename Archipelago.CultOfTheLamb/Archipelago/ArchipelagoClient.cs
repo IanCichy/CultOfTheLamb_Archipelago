@@ -5,11 +5,11 @@ using System;
 namespace Archipelago.CultOfTheLamb;
 
 /// <summary>
-/// Core connection state and the services built on it.
+/// Core connection state and services 
 /// </summary>
 /// <remarks>
-/// Session, login and reconnect live in the ArchipelagoClient.Connection.cs partial; receiving
-/// items from the server is ArchipelagoItemLogicController.
+/// Session, login and reconnect live in the ArchipelagoClient.Connection.cs partial.
+/// Receiving items from the server is ArchipelagoItemLogicController.
 /// </remarks>
 public partial class ArchipelagoClient : IDisposable
 {
@@ -20,7 +20,7 @@ public partial class ArchipelagoClient : IDisposable
 
     /// <summary>
     /// A retry is pending or in flight. Written only by the reconnect machinery in
-    /// ArchipelagoClient.Connection - an outside setter could desync it from the cancel flag and
+    /// ArchipelagoClient.Connection. An outside setter could desync it from the cancel flag and
     /// the live coroutine, and the UI reads it to decide whether its buttons do anything.
     /// </summary>
     public bool Reconnecting { get; private set; }
@@ -28,8 +28,8 @@ public partial class ArchipelagoClient : IDisposable
     public static string ConnectedPlayerName { get; private set; }
 
     // What the last connection attempt actually used, which is what a retry replays and what the
-    // F9 dump reports. Set only by ConnectRoutine: an outside writer would send the retry loop
-    // at different details than the ones the player is looking at.
+    // F9 dump reports. Set only by ConnectRoutine, because an outside writer would send the retry
+    // loop at different details than the ones the player is looking at.
     public string LastServerUrl { get; private set; }
     public string LastSlotName { get; private set; }
     public string LastPassword { get; private set; }

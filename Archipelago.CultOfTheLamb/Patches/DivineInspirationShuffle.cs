@@ -17,26 +17,26 @@ namespace Archipelago.CultOfTheLamb.Patches;
 /// Rearranges which tier each Divine Inspiration upgrade sits in.
 /// </summary>
 /// <remarks>
-/// Logic-neutral by construction. The tier gate is a *count* -
-/// <c>NumUnlockedUpgrades() &gt;= NumRequiredNodesForTier(tier)</c> - so moving an upgrade
+/// Logic-neutral by construction. The tier gate is a *count*,
+/// <c>NumUnlockedUpgrades() &gt;= NumRequiredNodesForTier(tier)</c>, so moving an upgrade
 /// between tiers changes what the player sees and reaches, but not how many unlocks any tier
 /// costs. Archipelago's rules count items and are untouched.
 ///
-/// Two things have to be rewritten together or the drawn tree silently disagrees with the logic:
-/// the configuration's per-tier membership lists, and each node component's own
+/// Two things have to be rewritten together or the drawn tree silently disagrees with the logic.
+/// One is the configuration's per-tier membership lists. The other is each node component's own
 /// <c>_upgrade</c> field, which is what the menu actually draws and compares against
 /// (`TreeMenu.cs:356`). Rewriting only the first shows you one upgrade and sells
 /// you another.
 ///
-/// **Central nodes stay in their tier.** Each tier has a `RequiresCentralTier` node - the Temple
-/// spine, plus the Refinery - that must be bought to open the next tier. Moving one to a
+/// **Central nodes stay in their tier.** Each tier has a `RequiresCentralTier` node, the Temple
+/// spine plus the Refinery, that must be bought to open the next tier. Moving one to a
 /// different tier makes that tier unopenable, which is a softlock rather than a shuffle. Pinning
-/// them also keeps the Temple I-IV progression in order, which the structure prerequisites
+/// them also keeps the Temple I to IV progression in order, which the structure prerequisites
 /// expect anyway.
 ///
-/// The intra-tree prerequisite graph is empty in this tree - all four `RequiresUpgrade` entries
-/// have parents outside the 69 (PleasureSystem, TailorSystem, DiscipleSystem, System_PlayerTent)
-/// - so there is no ordering constraint left to respect once centrals are pinned.
+/// The intra-tree prerequisite graph is empty in this tree. All four `RequiresUpgrade` entries
+/// have parents outside the 69 (PleasureSystem, TailorSystem, DiscipleSystem, System_PlayerTent),
+/// so there is no ordering constraint left to respect once centrals are pinned.
 /// </remarks>
 internal static class DivineInspirationShuffle
 {
@@ -75,7 +75,7 @@ internal static class DivineInspirationShuffle
         var tiers = tree.TierConfigurations;
         CaptureOriginalTiers(tiers);
 
-        // Pinned: every tier's central node, and all of tier 1 in random_except_first.
+        // Pinned means every tier's central node, and all of tier 1 in random_except_first.
         var pinned = new HashSet<UpgradeSystem.Type>(tiers.Select(t => t.CentralNode));
         if (shuffleMode == ModeRandomExceptFirst && originalTiers.Count > 0)
         {
@@ -99,7 +99,7 @@ internal static class DivineInspirationShuffle
 
             foreach (var original in originalTiers[i])
             {
-                // A pinned slot keeps its own upgrade; every other slot takes the next one off
+                // A pinned slot keeps its own upgrade. Every other slot takes the next one off
                 // the shuffled list. Tier sizes are therefore preserved exactly.
                 var replacement = pinned.Contains(original) ? original : movable[next++];
                 rebuilt.Add(replacement);
@@ -148,8 +148,8 @@ internal static class DivineInspirationShuffle
     private static void CaptureOriginalTiers(
         IReadOnlyList<UpgradeTreeConfiguration.TreeTierConfig> tiers)
     {
-        // Only the first time: a reconnect must shuffle from the authored layout, not from
-        // whatever the previous session left behind.
+        // Only the first time, because a reconnect must shuffle from the authored layout, not
+        // from whatever the previous session left behind.
         originalTiers ??= tiers
             .Select(t => new List<UpgradeSystem.Type>(t.AllUpgradesInTier))
             .ToList();
@@ -172,7 +172,7 @@ internal static class DivineInspirationShuffle
     /// Points each drawn node at the upgrade the shuffle gave its slot.
     ///
     /// Configure() runs from the menu's Awake and again whenever it reopens, so this is written
-    /// to be repeatable: it always maps from the node's authored value, never its current one.
+    /// to be repeatable. It always maps from the node's authored value, never its current one.
     /// </summary>
     [HarmonyPatch(typeof(TreeMenu), nameof(TreeMenu.Configure))]
     internal static class NodeRewrite
@@ -210,9 +210,9 @@ internal static class DivineInspirationShuffle
         /// Makes the node's art match the upgrade it now holds.
         /// </summary>
         /// <remarks>
-        /// Writing `_upgrade` alone moves the *name* - that's resolved from the field at runtime -
-        /// but not the icon or category pip, which are baked onto the prefab, giving a node
-        /// captioned "Demonic Summoning Circle" wearing the Janitor Station's broom.
+        /// Writing `_upgrade` alone moves the *name*, which is resolved from the field at
+        /// runtime, but not the icon or category pip, which are baked onto the prefab. That gives
+        /// a node captioned "Demonic Summoning Circle" wearing the Janitor Station's broom.
         ///
         /// UpgradeTreeNode.OnValidate() already does exactly this refresh (icon sprite, category
         /// text and colour, title, localize term) and is pure field assignment with nothing
@@ -229,7 +229,7 @@ internal static class DivineInspirationShuffle
             }
             catch (Exception e)
             {
-                // Cosmetic only - a stale icon is much better than a throw inside menu setup.
+                // Cosmetic only, and a stale icon is much better than a throw inside menu setup.
                 Log.LogWarning($"[AP] Couldn't refresh a tree node's art: {e.Message}");
             }
         }

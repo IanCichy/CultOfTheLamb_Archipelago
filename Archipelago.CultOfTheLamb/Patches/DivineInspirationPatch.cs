@@ -6,9 +6,9 @@ using UnityEngine;
 namespace Archipelago.CultOfTheLamb.Patches;
 
 /// <summary>
-/// Owns the Divine Inspiration point economy: reports when the player fills the Devotion meter,
-/// optionally withholds the point it would have paid, and can cap how much Devotion a point
-/// costs.
+/// Owns the Divine Inspiration point economy. It reports when the player fills the Devotion
+/// meter, optionally withholds the point it would have paid, and can cap how much Devotion a
+/// point costs.
 /// </summary>
 /// <remarks>
 /// The award is patched at <c>UpgradeSystem.AbilityPoints</c>'s **setter** rather than at
@@ -22,7 +22,7 @@ namespace Archipelago.CultOfTheLamb.Patches;
 internal static class DivineInspirationPatch
 {
     /// <summary>
-    /// Fired when the player fills the Devotion meter - **before** any withholding, because
+    /// Fired when the player fills the Devotion meter, **before** any withholding, because
     /// filling it is the thing that earns the check whether or not they get to keep the point.
     /// </summary>
     internal static Action PointEarned;
@@ -34,9 +34,10 @@ internal static class DivineInspirationPatch
     internal static bool WithholdPoints;
 
     /// <summary>
-    /// Set while the service is granting a point itself, so its own write isn't withheld - and,
+    /// Set while the service is granting a point itself, so its own write isn't withheld and,
     /// just as importantly, isn't mistaken for a meter fill. A point arriving from the
-    /// multiworld must not pay out a check; that would double-count every point in the seed.
+    /// multiworld must not pay out a check, because that would double-count every point in the
+    /// seed.
     /// </summary>
     private static bool granting;
 
@@ -58,8 +59,8 @@ internal static class DivineInspirationPatch
 
     /// <summary>
     /// Logged once per session the first time an award is actually swallowed. Withholding is
-    /// otherwise completely silent - nothing appears in the log and the player just doesn't get
-    /// a point - which makes "is this working?" unanswerable from a log without it.
+    /// otherwise completely silent. Nothing appears in the log and the player just doesn't get a
+    /// point, which makes "is this working?" unanswerable from a log without it.
     /// </summary>
     private static bool loggedFirstWithhold;
 
@@ -69,7 +70,7 @@ internal static class DivineInspirationPatch
     /// <summary>
     /// Reports the meter fill, then swallows the point if this seed is withholding.
     ///
-    /// Spending still has to work - the player converts granted points into upgrades - so a
+    /// Spending still has to work, since the player converts granted points into upgrades, so a
     /// decrease always passes through, as does a write the service made itself.
     /// </summary>
     [HarmonyPatch(typeof(UpgradeSystem), nameof(UpgradeSystem.AbilityPoints),
@@ -79,7 +80,7 @@ internal static class DivineInspirationPatch
         [HarmonyPrefix]
         private static bool Prefix(int value)
         {
-            // Our own grant: not a meter fill, and never withheld.
+            // Our own grant is not a meter fill, and is never withheld.
             if (granting) return true;
 
             var current = UpgradeSystem.AbilityPoints;
@@ -112,11 +113,13 @@ internal static class DivineInspirationPatch
     /// <remarks>
     /// The game's curve runs 1, 13, 29 ... up to 465 and then stays there
     /// (`DataManager.TargetXP`, 41 entries, clamped by index), which totals roughly 24,000
-    /// Devotion for all 69 points - a completionist number, not a one-seed number. Capping the
-    /// tail keeps the early curve intact while making the whole tree reachable in a normal run.
+    /// Devotion for all 69 points, which is a completionist number rather than a one-seed
+    /// number. Capping the tail keeps the early curve intact while making the whole tree
+    /// reachable in a normal run.
     ///
-    /// Applied as a postfix on purpose: `AllUnlockedMultiplier` triples the cost inside GetTargetXP
-    /// once nothing is left to unlock, so clamping afterwards neutralises that cliff for free.
+    /// Applied as a postfix on purpose. `AllUnlockedMultiplier` triples the cost inside
+    /// GetTargetXP once nothing is left to unlock, so clamping afterwards neutralises that cliff
+    /// for free.
     /// </remarks>
     [HarmonyPatch(typeof(DataManager), nameof(DataManager.GetTargetXP))]
     internal static class DevotionCost

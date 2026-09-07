@@ -4,12 +4,15 @@ using HarmonyLib;
 namespace Archipelago.CultOfTheLamb.Patches;
 
 /// <summary>
-/// Interaction_MonsterHeart is the real "boss defeated" completion hook - see
-/// DecompiledGamesViaDnSpy/Cotl/AI_INDEX.md §3. It fires a public OnHeartTaken event right
-/// after the game records the kill (DataManager.Instance.BossesCompleted.Add(...)), so we
-/// subscribe to that event per-instance instead of patching the coroutine that raises it
-/// (which has no clean single method boundary to postfix against).
+/// Raises an event when a boss is defeated.
 /// </summary>
+/// <remarks>
+/// Interaction_MonsterHeart is the real "boss defeated" completion hook. See DcplIdx 3.
+/// It fires a public OnHeartTaken event right
+/// after the game records the kill (DataManager.Instance.BossesCompleted.Add(...)), so we
+/// subscribe to that event per-instance instead of patching the coroutine that raises it, which
+/// has no clean single method boundary to postfix against.
+/// </remarks>
 [HarmonyPatch(typeof(Interaction_MonsterHeart))]
 internal static class InteractionMonsterHeartPatch
 {

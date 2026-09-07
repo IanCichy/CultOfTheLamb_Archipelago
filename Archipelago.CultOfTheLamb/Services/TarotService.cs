@@ -7,27 +7,27 @@ using Newtonsoft.Json.Linq;
 namespace Archipelago.CultOfTheLamb.Services;
 
 /// <summary>
-/// Makes the tarot collection an Archipelago system: earning a card sends a check, and cards
+/// Makes the tarot collection an Archipelago system. Earning a card sends a check, and cards
 /// arrive as items.
 /// </summary>
 /// <remarks>
-/// The collection is emptied on connect, including the cards the game normally starts you with -
-/// a randomizer where a sixth of the pool is already in hand isn't randomizing those - and the
-/// seed's own starting cards are granted straight back.
+/// The collection is emptied on connect, including the cards the game normally starts you with,
+/// because a randomizer where a sixth of the pool is already in hand isn't randomizing those.
+/// The seed's own starting cards are then granted straight back.
 ///
-/// Card identity comes from slot data, keyed by AP item name: display names are nothing like the
+/// Card identity comes from slot data, keyed by AP item name. Display names are nothing like the
 /// TarotCards.Card enum names ("The Burning Dead" is Skull), so hardcoding either side would let
-/// the two drift silently. The revoke/restore/persist/sweep machinery is
-/// <see cref="ManagedCollection{T}"/>; what stays here is slot-data parsing, the unlock decision,
+/// the two drift silently. The revoke, restore, persist and sweep machinery is
+/// <see cref="ManagedCollection{T}"/>. What stays here is slot-data parsing, the unlock decision,
 /// and the patch wiring.
 ///
 /// **A card earned while disconnected is lost, and holding grants outside the collection is why.**
-/// Every other check source re-derives from save state at connect; this one can't, because
+/// Every other check source re-derives from save state at connect. This one can't, because
 /// ManagedCollection.Restore writes revoked *and* granted cards back into PlayerFoundTrinkets,
 /// leaving a card the multiworld gave you indistinguishable from one you earned offline. Fixing
-/// it needs a new persisted record - granted kept separate from revoked at settle time - and it
-/// cannot live in Register(), which runs before any received item has been applied (see the note
-/// on IService.Register).
+/// it needs a new persisted record, with granted kept separate from revoked at settle time, and
+/// it cannot live in Register(), which runs before any received item has been applied (see the
+/// note on IService.Register).
 /// </remarks>
 internal class TarotService : IService
 {
@@ -37,8 +37,8 @@ internal class TarotService : IService
     private readonly Dictionary<string, TarotCards.Card> itemNameToCard;
 
     /// <summary>
-    /// Card -> the check that earning it sends. Not every managed card is here: the ones sold
-    /// in shops have their check on the shop slot instead.
+    /// Card -> the check that earning it sends. Not every managed card is here, because the ones
+    /// sold in shops have their check on the shop slot instead.
     /// </summary>
     private readonly Dictionary<TarotCards.Card, long> cardToCheckId;
 
@@ -84,9 +84,9 @@ internal class TarotService : IService
         TarotUnlockPatch.Decide = null;
         TarotVisibility.GrantedCards = null;
 
-        // Unregister runs on the websocket thread - Session_SocketClosed -> TeardownSession -
-        // and PlayerFoundTrinkets is a plain List the main thread iterates. Touching it from
-        // here can throw mid-enumeration or undo a lend that's part-way through.
+        // Unregister runs on the websocket thread, by way of Session_SocketClosed and
+        // TeardownSession, and PlayerFoundTrinkets is a plain List the main thread iterates.
+        // Touching it from here can throw mid-enumeration or undo a lend that's part-way through.
         //
         // If a reconnect beats the drain, the new session's sweep takes back out whatever
         // this puts in, and the store is what makes that safe either way.
@@ -101,8 +101,8 @@ internal class TarotService : IService
     /// </summary>
     private TarotUnlockPatch.UnlockDecision Decide(TarotCards.Card card)
     {
-        // Not part of this seed - co-op cards, or Woolhaven ones without the DLC option. The
-        // game keeps them entirely, because nothing here would ever grant them back.
+        // Not part of this seed, meaning co-op cards or Woolhaven ones without the DLC option.
+        // The game keeps them entirely, because nothing here would ever grant them back.
         if (!collection.IsManaged(card)) return TarotUnlockPatch.UnlockDecision.Allow;
 
         // A shop slot already sent its own check for this purchase.
@@ -112,7 +112,7 @@ internal class TarotService : IService
         }
 
         // Sent even when the card is already in `granted`. That's the point of holding
-        // Archipelago's cards outside the collection: the trigger stays available, so finding
+        // Archipelago's cards outside the collection. The trigger stays available, so finding
         // a card the multiworld already gave you still pays its check.
         if (cardToCheckId.TryGetValue(card, out var checkId))
         {
@@ -120,7 +120,7 @@ internal class TarotService : IService
             return TarotUnlockPatch.UnlockDecision.SendCheck;
         }
 
-        // Ours, but its check lives on a shop slot rather than on the card - so the card is
+        // Ours, but its check lives on a shop slot rather than on the card, so the card is
         // still withheld (it comes from the pool) and nothing is sent. Every card has exactly
         // one location, and for these that location is the shop.
         return TarotUnlockPatch.UnlockDecision.Swallow;
@@ -129,9 +129,9 @@ internal class TarotService : IService
     /// <summary>
     /// Grants a card if the item is one. Returns false so the caller can keep looking.
     ///
-    /// Safe to replay alongside region and sermon items rather than being suppressed:
+    /// Safe to replay alongside region and sermon items rather than being suppressed, because
     /// granting is a set Add, so granting twice is a no-op. That matters because the
-    /// collection is rebuilt from the item history on every connect - we just emptied it.
+    /// collection is rebuilt from the item history on every connect, having just been emptied.
     /// </summary>
     internal bool TryApplyItem(string itemName)
     {
@@ -153,7 +153,7 @@ internal class TarotService : IService
 
     /// <summary>
     /// AP item name -> card. Cards whose enum name this build of the game doesn't recognise are
-    /// dropped with a warning rather than throwing: that means the mod and the game disagree
+    /// dropped with a warning rather than throwing. That means the mod and the game disagree
     /// about the card list, and losing one card beats losing the connection.
     /// </summary>
     internal static Dictionary<string, TarotCards.Card> ParseCards(
@@ -226,7 +226,7 @@ internal class TarotService : IService
 
     /// <summary>
     /// Reads one location id out of slot data. Malformed entries skip their own card rather
-    /// than throwing: this runs during connect, so an exception here costs the whole session
+    /// than throwing. This runs during connect, so an exception here costs the whole session
     /// instead of the one check we couldn't parse.
     /// </summary>
     private static bool TryParseLocationId(JToken value, string context, out long locationId)

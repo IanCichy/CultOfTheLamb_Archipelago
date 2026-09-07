@@ -11,11 +11,11 @@ namespace Archipelago.CultOfTheLamb.Patches;
 /// upgrades and there are no ability points to spend on opening a row.
 /// </summary>
 /// <remarks>
-/// Patches the reader, not the data: zeroing the serialized _numRequiredToUnlock changes nothing
+/// Patches the reader, not the data. Zeroing the serialized _numRequiredToUnlock changes nothing
 /// on screen, because TierLockIcon and UpgradeTreeNode read through their own config reference.
 ///
 /// Filtered by tree in both patches. NumRequiredNodesForTier is the tier-unlock test, not just the
-/// lock icon, and GameManager holds three of these configs - unfiltered, this opens the player and
+/// lock icon, and GameManager holds three of these configs. Unfiltered, this opens the player and
 /// Woolhaven trees too.
 /// </remarks>
 [HarmonyPatch(typeof(UpgradeTreeConfiguration),
@@ -27,7 +27,7 @@ internal static class DivineInspirationTierReveal
     /// <summary>Instance ids already logged, so the log gets one line each rather than one a frame.</summary>
     private static readonly HashSet<int> reported = new();
 
-    /// <summary>Mirrors DivineInspirationShuffle.Apply - the mode decides, not the caller.</summary>
+    /// <summary>Mirrors DivineInspirationShuffle.Apply. The mode decides, not the caller.</summary>
     internal static void Apply(int mode)
     {
         active = mode == DivineInspirationService.ModeCurated;
@@ -48,7 +48,7 @@ internal static class DivineInspirationTierReveal
         if (!active || __result == 0) return;
         if (!ReferenceEquals(__instance, DivineInspirationPatch.Tree)) return;
 
-        // Keyed on instance id, not name: reading .name marshals a string on every UI paint.
+        // Keyed on instance id, not name. Reading .name marshals a string on every UI paint.
         if (reported.Add(__instance.GetInstanceID()))
         {
             Log.LogInfo($"[AP] Tier reveal: clearing tier gates on '{__instance.name}'.");

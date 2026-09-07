@@ -7,13 +7,14 @@ namespace Archipelago.CultOfTheLamb.Services;
 
 /// <summary>
 /// Watches for the seed's win condition and reports it to the server.
-///
+/// </summary>
+/// <remarks>
 /// Counting lives in GoalProgress, shared with the objective guide's win-condition line. Both
 /// tracks are read from the game's own save state rather than a session-local tally, and both
-/// are already written by the time our handlers run (Interaction_MonsterHeart adds to
-/// BossesCompleted before raising OnHeartTaken; our AddKilledBoss patch is a postfix) - so the
+/// are already written by the time our handlers run. Interaction_MonsterHeart adds to
+/// BossesCompleted before raising OnHeartTaken, and our AddKilledBoss patch is a postfix, so the
 /// count is right after a reconnect, or if the player beat bosses before ever connecting.
-/// </summary>
+/// </remarks>
 internal class GoalService : IService
 {
     // Matches worlds/cult_of_the_lamb/options.py Goal.
@@ -38,7 +39,7 @@ internal class GoalService : IService
         InteractionMonsterHeartPatch.OnBossDefeated += HandleBossDefeated;
         DataManagerKilledBossPatch.OnBossKillRecorded += HandleBossKillRecorded;
         EnemyDeathCatBossPatch.OnNarinderDefeated += HandleNarinderDefeated;
-        // Re-check immediately: the player may already satisfy the goal from a previous
+        // Re-check immediately. The player may already satisfy the goal from a previous
         // session before this connect.
         CheckGoal();
     }
@@ -56,8 +57,10 @@ internal class GoalService : IService
 
     private void HandleNarinderDefeated() => CheckGoal();
 
-    /// <summary>Re-runs the goal check. For debug keys that write save state directly, which
-    /// raises none of the events above.</summary>
+    /// <summary>Re-runs the goal check.</summary>
+    /// <remarks>
+    /// For debug keys that write save state directly, which raises none of the events above.
+    /// </remarks>
     internal void Recheck() => CheckGoal();
 
     /// <summary>This seed's goal, so a debug key can refuse to run on the wrong one.</summary>

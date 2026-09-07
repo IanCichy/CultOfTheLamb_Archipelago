@@ -6,14 +6,14 @@ using UnityEngine.UI;
 namespace Archipelago.CultOfTheLamb.UI;
 
 /// <summary>
-/// An Archipelago logo in the top-left corner: full colour while connected, dimmed while not.
+/// An Archipelago logo in the top-left corner, full colour while connected and dimmed while not.
 /// Without it a session that quietly dropped looks exactly like one that's fine, right up until
 /// a check fails to land.
 ///
-/// Deliberately not interactive - a GraphicRaycaster over the play area risks swallowing clicks in
-/// a game where attacking is a left click. It gets its own canvas because anchoring to a screen
-/// corner needs a full-screen parent, at the cost of no longer inheriting the HUD's show/hide, so
-/// that's mirrored explicitly from HUD_Manager.Hidden.
+/// Deliberately not interactive, because a GraphicRaycaster over the play area risks swallowing
+/// clicks in a game where attacking is a left click. It gets its own canvas because anchoring to
+/// a screen corner needs a full-screen parent, at the cost of no longer inheriting the HUD's
+/// show and hide, so that is mirrored explicitly from HUD_Manager.Hidden.
 /// </summary>
 internal class ArchipelagoHudIndicator : MonoBehaviour
 {
@@ -24,7 +24,7 @@ internal class ArchipelagoHudIndicator : MonoBehaviour
 
     // Inset from the top-left corner, and size, in canvas units. Tucked above and left of the
     // faith ring, which starts a little further in. These are the two numbers to change if it
-    // sits wrong - y is negative because the anchor is the top edge.
+    // sits wrong. y is negative because the anchor is the top edge.
     private static readonly Vector2 Inset = new(34f, -34f);
     private static readonly Vector2 Size = new(44f, 44f);
 
@@ -42,9 +42,9 @@ internal class ArchipelagoHudIndicator : MonoBehaviour
     /// <summary>
     /// Builds the indicator once, and keeps it alive across scenes.
     ///
-    /// Cheap enough to call every frame: the common case is one null check. Polled rather than
-    /// hooked to a HUD method because the HUD is rebuilt per scene and polling re-attaches
-    /// after every one of those without needing to know which method rebuilds it.
+    /// Cheap enough to call every frame, because the common case is one null check. Polled
+    /// rather than hooked to a HUD method, because the HUD is rebuilt per scene and polling
+    /// re-attaches after every one of those without needing to know which method rebuilds it.
     /// </summary>
     internal static void EnsureExists()
     {
@@ -53,7 +53,7 @@ internal class ArchipelagoHudIndicator : MonoBehaviour
         var icon = ApAssets.IconSprite();
         if (icon == null) return;
 
-        // No GraphicRaycaster: nothing here is interactive, and without one this canvas can't
+        // No GraphicRaycaster. Nothing here is interactive, and without one this canvas can't
         // intercept a click even in principle.
         root = new GameObject("ArchipelagoHud", typeof(Canvas));
         UnityEngine.Object.DontDestroyOnLoad(root);

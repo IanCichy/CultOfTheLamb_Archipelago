@@ -22,10 +22,10 @@ class LocationData(NamedTuple):
 # Each region path is 4 chunks (3 regular crusades against a named miniboss, then the
 # Bishop crusade) plus a 5th bonus chunk (the Witness, a miniboss fight that becomes
 # available after the Bishop is defeated). All names and the region/Bishop/Witness
-# groupings are real - confirmed independently via the decompiled FollowerLocation enum's
+# groupings are real. They were confirmed independently via the decompiled FollowerLocation enum's
 # Dungeon{tier}_{region} pattern, the wiki's per-region boss rosters, and williambsm's
-# COTL.Archipelago prototype's own Check enum. See
-# DecompiledGamesViaDnSpy/Cotl/wiki/bishops_regions_and_dlc.md.
+# COTL.Archipelago prototype's own Check enum.
+#
 # Witnesses are part of the free "Relics of the Old Faith" update, not the paid Woolhaven
 # DLC, so they're included unconditionally rather than behind a DLC option.
 location_table: Dict[str, LocationData] = {
@@ -57,12 +57,12 @@ location_table: Dict[str, LocationData] = {
 # The game's own identifier for each boss encounter, sent through slot data so the client doesn't
 # have to hardcode these location ids.
 #
-# **Reordering the dict above silently repoints every boss check**, and these are the goal-critical
-# ones - which is why they travel as slot data rather than as `3_051_000 + N` positional ids.
+# Reordering the dict above silently repoints every boss check, and these are the goal-critical
+# ones. That is why they travel as slot data rather than as `3_051_000 + N` positional ids.
 #
 # Minibosses and Witnesses are keyed by MiniBossController.name, which is what
-# DataManager.KilledBosses stores. Confirmed in-game by dumping a live boss room; see
-# DecompiledGamesViaDnSpy/Cotl/AI_INDEX.md section 3a.
+# DataManager.KilledBosses stores. Confirmed in game by dumping a live boss room. See
+# DcplIdx 3a.
 MINIBOSS_AND_WITNESS_KEYS: Dict[str, str] = {
     "Darkwood - Amdusias": "Boss Mama Worm",
     "Darkwood - Valefar": "Boss Mama Maggot",
@@ -107,7 +107,7 @@ assert set(MINIBOSS_AND_WITNESS_KEYS) | set(BISHOP_DUNGEON_LOCATIONS) == {
 # and the named upgrades are the items (see items.py SERMON_UPGRADES).
 #
 # The last 6 exist only with the Woolhaven DLC, because without it there are only 32 upgrades
-# to earn and the bar stops paying out - so those checks would be unreachable.
+# to earn and the bar stops paying out, so those checks would be unreachable.
 #
 # They live in "Cult" (the home base) rather than a dungeon region: sermons are given at the
 # Temple, so they're gated by follower count and time, not by which regions are unlocked.
@@ -122,16 +122,16 @@ FOLLOWER_MILESTONE_COUNT = 20
 for _n in range(1, FOLLOWER_MILESTONE_COUNT + 1):
     location_table[f"Followers Recruited {_n}"] = LocationData("Cult", "Follower")
 
-# Tarot Card shop purchases. Every hub has a shop selling a fixed, named set of cards - not
-# randomised stock - so each purchase is a stable, identifiable check.
+# Tarot Card shop purchases. Every hub has a shop selling a fixed, named set of cards rather than
+# randomised stock, so each purchase is a stable, identifiable check.
 #
 # These live in the *paired crusade region* rather than "Cult" on purpose: each hub is reached
 # through its region's progression (Midas's Cave opens after the golden tree in Silk Cradle,
 # Pilgrim's Passage's shops need the Lighthouse lit), so putting them here makes them gate
 # naturally instead of all landing in sphere 1 the way the Cult-region blocks do.
 #
-# Display names differ wildly from TarotCards.Card enum names - "The Burning Dead" is Skull,
-# "The Path" is MovementSpeed - so the enum name is carried alongside for the client.
+# Display names differ wildly from TarotCards.Card enum names. "The Burning Dead" is Skull and
+# "The Path" is MovementSpeed, so the enum name is carried alongside for the client.
 # (display name, TarotCards.Card enum name)
 TAROT_SHOP_CARDS = {
     "Darkwood": [            # Pilgrim's Passage
@@ -167,11 +167,11 @@ TAROT_SHOP_HUBS = {
     "Silk Cradle": "Midas's Cave",
 }
 
-# Snail shrines - one per hub, each accepting a single Shell offering. The game tracks them
+# Snail shrines, one per hub, each accepting a single Shell offering. The game tracks them
 # as DataManager.ShellsGifted_0.._4, and lighting all five unlocks the Snail Follower form.
 #
 # Kept in "Cult" rather than region-gated because which ShrineNumber sits in which hub isn't
-# known yet - the index is a serialized field on the prefab, not something the decompile
+# known yet. The index is a serialized field on the prefab, not something the decompile
 # exposes. Depth rules apply to them so they still spread across spheres.
 SNAIL_SHRINE_COUNT = 5
 
@@ -184,21 +184,21 @@ for _region, _cards in TAROT_SHOP_CARDS.items():
         location_table[f"{TAROT_SHOP_HUBS[_region]} - {_display}"] = \
             LocationData(_region, "TarotShop")
 
-# Unlocking a Tarot Card, however you did it - every route ends at the same two unlock methods,
+# Unlocking a Tarot Card, however you did it. Every route ends at the same two unlock methods,
 # so the client sends these without knowing which condition fired.
 #
 # "Cult" rather than a crusade region, because each card's earning condition would mean tracing
 # all 85, and Cult is always reachable so nothing here can become unreachable.
 #
 # Three exclusions:
-#   - shop cards, whose slot is already their check - a second location would pay twice;
-#   - post-game cards, whose checks would sit past a Bishops/Witnesses win condition, and an
-#     unreachable location fails generation outright;
-#   - region-tied cards, which live in their region under a separate category so they get real
-#     logic from the region graph and set_depth_rules leaves them alone.
+#   1. Shop cards. Their slot is already their check, so a second location would pay twice.
+#   2. Post-game cards. Their checks would sit past a Bishops or Witnesses win condition, and an
+#      unreachable location fails generation outright.
+#   3. Region-tied cards. They live in their region under a separate category, so they get real
+#      logic from the region graph and set_depth_rules leaves them alone.
 #
 # The rest are sorted by how hard they are to earn, because a card's band is its position in
-# this table - left in the game's enum order the bands would be meaningless.
+# this table. Left in the game's enum order the bands would be meaningless.
 _SHOP_CARD_NAMES = {_display for _cards in TAROT_SHOP_CARDS.values() for _display, _ in _cards}
 
 _card_locations = [
@@ -220,16 +220,16 @@ for _card in sorted(_card_locations, key=tarot_tier):
 # contains every weapon and a pool-entry check could never fire again. Equipping is something
 # the player does fresh every seed.
 #
-# They live in "Cult" but never get depth bands - rules.py gates each one on its own item,
-# which is real logic rather than an approximation, and set_depth_rules would overwrite it.
+# They live in "Cult" but never get depth bands. rules.py gates each one on its own item, which
+# is real logic rather than an approximation, and set_depth_rules would overwrite it.
 for _weapon in WEAPONS:
     location_table[f"Weapon - {_weapon.display}"] = LocationData("Cult", "Weapon", _weapon.dlc)
 
 for _curse in CURSES:
     location_table[f"Curse - {_curse.display}"] = LocationData("Cult", "Curse", _curse.dlc)
 
-# Divine Inspiration unlocks. Sequential - the Nth upgrade unlocked in that tree is the Nth
-# check - rather than one named location per upgrade, because that shape is the only one that
+# Divine Inspiration unlocks. These are sequential, so the Nth upgrade unlocked in that tree is
+# the Nth check, rather than one named location per upgrade. That shape is the only one that
 # works in all four divine_inspiration_mode values. In checks_and_techs the player never picks
 # anything (Archipelago grants the techs), so a per-upgrade location would fire for whatever the
 # multiworld happened to hand over rather than for anything the player did.
@@ -246,7 +246,7 @@ for _n in range(1, DIVINE_INSPIRATION_COUNT + 1):
     location_table[f"Divine Inspiration {_n}"] = LocationData("Cult", "DivineInspiration")
 
 # First construction of each curated building. Named rather than sequential, unlike most blocks
-# here - which building you put up is a real choice, so "Build - Kitchen" is a more meaningful
+# here. Which building you put up is a real choice, so "Build - Kitchen" is a more meaningful
 # check than "Building 12". The client maps Data.ToBuildType straight to an id.
 #
 # Sorted by the tier of the Divine Inspiration upgrade that unlocks each one, because that order

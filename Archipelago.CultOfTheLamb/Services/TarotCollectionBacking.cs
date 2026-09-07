@@ -5,7 +5,7 @@ namespace Archipelago.CultOfTheLamb.Services;
 /// </summary>
 /// <remarks>
 /// DataManager.Instance.PlayerFoundTrinkets is read through the property on every call rather
-/// than captured once: the instance is replaced across save loads, and a stale reference would
+/// than captured once. The instance is replaced across save loads, and a stale reference would
 /// have the sweep tidying a collection nothing is reading any more.
 ///
 /// Stateless, so the plugin can build one while disconnected for
@@ -17,7 +17,7 @@ internal class TarotCollectionBacking : IManagedBacking<TarotCards.Card>
     internal const string Key = "tarot";
 
     /// <summary>
-    /// What tarot wrote before the store was generalised: a bare "saveN" with no collection
+    /// What tarot wrote before the store was generalised, a bare "saveN" with no collection
     /// prefix. Kept so a player who updates mid-session is still handed their cards back.
     /// </summary>
     internal const string LegacyKey = "save";

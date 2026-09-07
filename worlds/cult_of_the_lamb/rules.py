@@ -36,8 +36,8 @@ def set_rules(world: "CultOfTheLambWorld") -> None:
     player = world.player
     multiworld = world.multiworld
 
-    # world.region_order[0] is free (set in generate_early); each region after that needs
-    # one more copy of the progressive access item than the one before it.
+    # world.region_order[0] is free, set in generate_early. Each region after that needs one
+    # more copy of the progressive access item than the one before it.
     if world.regions_are_gated:
         for i, region_name in enumerate(world.region_order[1:], start=1):
             entrance = multiworld.get_entrance(f"Cult -> {region_name}", player)
@@ -53,8 +53,8 @@ def set_rules(world: "CultOfTheLambWorld") -> None:
             set_depth_rules(world, "TarotCard")
 
         # Bands in every mode. The checks fire on filling the Devotion meter, which is pure
-        # play time - no item this world hands out makes it fill faster - so there is nothing
-        # to write a real rule against, in any mode.
+        # play time. No item this world hands out makes it fill faster, so there is nothing to
+        # write a real rule against, in any mode.
         #
         # exclude_tail=False, uniquely. Two reasons, and the first is a hard constraint:
         #
@@ -65,8 +65,8 @@ def set_rules(world: "CultOfTheLambWorld") -> None:
         #   locations".
         # - Nothing can be *blocked* down there anyway. The deepest band already requires every
         #   Progressive Bishop's Domain copy, so an item placed at "Divine Inspiration 65" can't
-        #   gate anything the player hasn't already reached - it would only be tedious, not
-        #   unwinnable, and the band rule alone keeps it out of the early spheres.
+        #   gate anything the player hasn't already reached. It would only be tedious rather
+        #   than unwinnable, and the band rule alone keeps it out of the early spheres.
         if world.divine_inspiration_enabled and not world.divine_inspiration_is_curated:
             set_depth_rules(world, "DivineInspiration", exclude_tail=False)
 
@@ -90,7 +90,7 @@ def set_rules(world: "CultOfTheLambWorld") -> None:
     # Deliberately outside the `regions_are_gated` block above, and deliberately not using
     # set_depth_rules: these have real logic rather than an approximated band, so they hold up
     # in an all_unlocked seed too. set_rule overwrites rather than composes, so a location can
-    # only have one of the two - and the item requirement is the true one.
+    # only have one of the two, and the item requirement is the true one.
     if world.options.randomize_weapons:
         set_equipment_rules(world, "Weapon", world.weapons, world.starting_weapons)
     if world.options.randomize_curses:
@@ -101,9 +101,10 @@ def set_rules(world: "CultOfTheLambWorld") -> None:
     # AP assumption that "can reach" == "can complete"), so victory is defined by reachable
     # count rather than a separate synthetic "defeated" item.
     if world.options.goal == "narinder":
-        # Narinder has no location of his own - a check that only fires at the win condition
-        # pays nothing. The Gateway opens only after all four Bishops are dead, so requiring
-        # every Bishop location is the same statement, and it already implies every region.
+        # Narinder has no location of his own, because a check that only fires at the win
+        # condition pays nothing. The Gateway opens only after all four Bishops are dead, so
+        # requiring every Bishop location is the same statement, and it already implies every
+        # region.
         multiworld.completion_condition[player] = lambda state: all(
             state.can_reach_location(location_name, player)
             for location_name in BISHOP_LOCATIONS.values()
@@ -128,7 +129,7 @@ _BANDS = _MAX_REGION_COPIES + 1
 def set_equipment_rules(world: "CultOfTheLambWorld", prefix, families, starting) -> None:
     """Gate each weapon/curse check on the item that unlocks it.
 
-    The client never writes to WeaponPool/CursePool - it filters what the game is allowed to
+    The client never writes to WeaponPool or CursePool. It filters what the game is allowed to
     offer. So until Archipelago hands over the Axe, no podium in the game will ever put one
     down, and "Weapon - Apostate's Cleaver" genuinely cannot be checked. That is a real
     constraint, not a pacing approximation, which is why these skip the depth bands.
@@ -136,7 +137,7 @@ def set_equipment_rules(world: "CultOfTheLambWorld", prefix, families, starting)
     It also self-locks: the fill can't put Apostate's Cleaver on its own location, because
     reaching that location requires already holding it. Archipelago handles that natively.
 
-    Starting families are skipped - regions.py never created their locations.
+    Starting families are skipped, because regions.py never created their locations.
     """
     player = world.player
     already = {e.display for e in starting}
@@ -145,7 +146,7 @@ def set_equipment_rules(world: "CultOfTheLambWorld", prefix, families, starting)
         if family.display in already:
             continue
         set_rule(
-            # The location keeps the game's own name; the rule names the AP item, which carries
+            # The location keeps the game's own name. The rule names the AP item, which carries
             # its category prefix. They are deliberately different strings.
             world.multiworld.get_location(f"{prefix} - {family.display}", player),
             lambda state, name=family.item_name: state.has(name, player),
@@ -159,39 +160,39 @@ def set_depth_rules(
 
     These blocks all live in "Cult", which is free from seed start, so without this every one
     of them is sphere 1 and the fill is free to bury a region-unlock item at "Sermon Upgrade
-    32" or "Tarot Card - <something you unlock post-game>". That generates a *valid* seed and
-    a miserable one: the only route to your fourth region is filling the sermon bar 32 times,
-    with nothing else to do in between.
+    32" or "Tarot Card - <something you unlock post-game>". That generates a *valid* seed and a
+    miserable one. The only route to your fourth region is filling the sermon bar 32 times, with
+    nothing else to do in between.
 
     Two mechanisms, doing two different jobs:
 
-    **Reachability bands** approximate the real constraint - deep sermon levels and a
-    20-strong flock both need hours of play and opened regions, and the game doesn't express
-    that in a way Archipelago can see. Split into `_BANDS` bands requiring 0..N copies.
+    **Reachability bands** approximate the real constraint. Deep sermon levels and a 20-strong
+    flock both need hours of play and opened regions, and the game doesn't express that in a way
+    Archipelago can see. Split into `_BANDS` bands requiring 0..N copies.
 
-    The deepest band requires *all* the copies, deliberately - the last copy having nowhere late
+    The deepest band requires *all* the copies, deliberately. The last copy having nowhere late
     to go is the goal. Capping it short of the total is what made "your fourth door is behind
     Sermon Upgrade 32" a legal seed.
 
-    **Exclusion** does the job the bands can't. A band says a location is *unreachable*, which
-    is a lie - you genuinely can reach sermon 30 with one region open, it just takes hours -
-    and that lie propagates into every other player's sphere math. So the deepest band is also
-    marked EXCLUDED, which says the true thing: reachable, still worth checking, but nothing
+    **Exclusion** does the job the bands can't. A band says a location is *unreachable*, which is
+    a lie. You genuinely can reach sermon 30 with one region open, it just takes hours, and that
+    lie propagates into every other player's sphere math. So the deepest band is also marked
+    EXCLUDED, which says the true thing. It is reachable and still worth checking, but nothing
     important goes here. Progression lands on the region-gated boss and shop locations instead,
     which are real gameplay rather than grind.
 
     Excluded locations take filler and traps only, so they cost the fill some room for *useful*
-    items too - and this game's own items are almost entirely useful. One band in four is
-    comfortable; excluding half the block would leave the deep tail paying nothing but Bundles
+    items too, and this game's own items are almost entirely useful. One band in four is
+    comfortable. Excluding half the block would leave the deep tail paying nothing but Bundles
     of Lumber.
 
-    Only called when region access is randomized - otherwise no Progressive Bishop's Domain
-    items exist and every band past the first would be genuinely unreachable.
+    Only called when region access is randomized. Otherwise no Progressive Bishop's Domain items
+    exist and every band past the first would be genuinely unreachable.
     """
     player = world.player
     include_dlc = bool(world.options.include_woolhaven)
 
-    # Taken in location_table order, because that order is what defines "deeper" - but
+    # Taken in location_table order, because that order is what defines "deeper", then
     # filtered to what this seed actually created. Tarot is the first category where those
     # differ: create_regions drops the starting cards' locations, since a card you begin with
     # can never be earned.
@@ -233,8 +234,8 @@ def set_curated_di_rules(world: "CultOfTheLambWorld") -> None:
     is roughly the rate at which this block pays out. Without it, the item governing that rate can
     legally be the last thing found.
 
-    Still soft logic - a patient player can grind the deep checks at Cult I - but aimed at
-    something real rather than at a guess about elapsed time.
+    This is still soft logic, since a patient player can grind the deep checks at Cult I. It is
+    aimed at something real rather than at a guess about elapsed time.
 
     No excluded tail: the block brings no filler of its own at these lengths, so excluding the
     deepest quarter overdraws the seed and generation fails outright.
@@ -250,7 +251,7 @@ def set_curated_di_rules(world: "CultOfTheLambWorld") -> None:
     if not locations:
         return
 
-    # Quarters, so the requirement tracks the block's length rather than a fixed cutoff - the
+    # Quarters, so the requirement tracks the block's length rather than a fixed cutoff. The
     # length is a YAML range and can be anything from 38 to 69.
     band_size = max(1, len(locations) // 4)
 
