@@ -17,7 +17,7 @@ namespace Archipelago.CultOfTheLamb.UI;
 /// </summary>
 internal class ArchipelagoHudIndicator : MonoBehaviour
 {
-    /// <summary>Answers whether Archipelago is connected. Set by the plugin.</summary>
+    // Answers whether Archipelago is connected. Set by the plugin
     internal static Func<bool> IsConnected;
 
     private const string ObjectName = "ArchipelagoStatusIcon";
@@ -39,19 +39,21 @@ internal class ArchipelagoHudIndicator : MonoBehaviour
 
     private Image image;
 
-    /// <summary>
-    /// Builds the indicator once, and keeps it alive across scenes.
-    ///
-    /// Cheap enough to call every frame, because the common case is one null check. Polled
-    /// rather than hooked to a HUD method, because the HUD is rebuilt per scene and polling
-    /// re-attaches after every one of those without needing to know which method rebuilds it.
-    /// </summary>
+    // Builds the indicator once and keeps it alive across scenes. Cheap enough to call every
+    // frame, since the common case is one null check. Polled rather than hooked to a HUD
+    // method, because the HUD is rebuilt per scene
     internal static void EnsureExists()
     {
-        if (root != null) return;
+        if (root != null)
+        {
+            return;
+        }
 
         var icon = ApAssets.IconSprite();
-        if (icon == null) return;
+        if (icon == null)
+        {
+            return;
+        }
 
         // No GraphicRaycaster. Nothing here is interactive, and without one this canvas can't
         // intercept a click even in principle.
@@ -84,7 +86,10 @@ internal class ArchipelagoHudIndicator : MonoBehaviour
 
     private void Update()
     {
-        if (image == null) return;
+        if (image == null)
+        {
+            return;
+        }
 
         image.color = IsConnected != null && IsConnected() ? ConnectedTint : DisconnectedTint;
 
@@ -92,6 +97,9 @@ internal class ArchipelagoHudIndicator : MonoBehaviour
         // everything else rather than floating over them.
         var hud = HUD_Manager.Instance;
         var visible = hud == null || !hud.Hidden;
-        if (image.enabled != visible) image.enabled = visible;
+        if (image.enabled != visible)
+        {
+            image.enabled = visible;
+        }
     }
 }

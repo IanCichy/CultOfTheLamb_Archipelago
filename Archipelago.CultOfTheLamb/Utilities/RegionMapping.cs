@@ -10,12 +10,12 @@ namespace Archipelago.CultOfTheLamb;
 /// strings. The FollowerLocation values are each region's home-base door and Bishop-kill
 /// completion slot.
 ///
-/// See DcplIdx 3 for how these were confirmed (each
-/// Enemy*Boss class's own BossesCompleted.Contains(FollowerLocation.Dungeon1_N) check).
+/// See DcplIdx 3 for how these were confirmed: each Enemy*Boss class's own
+/// BossesCompleted.Contains(FollowerLocation.Dungeon1_N) check.
 /// </remarks>
 internal static class RegionMapping
 {
-    /// <summary>Region name -> its dungeon. Game knowledge, so it isn't sent in slot data.</summary>
+    // Region name -> its dungeon. Game knowledge, so it isn't sent in slot data
     internal static readonly Dictionary<string, FollowerLocation> RegionToDungeonLocation = new()
     {
         { "Darkwood", FollowerLocation.Dungeon1_1 },
@@ -53,5 +53,8 @@ internal static class RegionMapping
         Log.LogInfo($"[AP] Bishop checks: {result.Count} location(s) mapped.");
     }
 
-    internal static void Clear() => BishopLocationToCheckId = new Dictionary<FollowerLocation, long>();
+    internal static void Clear()
+    {
+        BishopLocationToCheckId = new Dictionary<FollowerLocation, long>();
+    }
 }

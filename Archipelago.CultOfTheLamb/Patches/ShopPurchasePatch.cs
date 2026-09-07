@@ -14,7 +14,7 @@ namespace Archipelago.CultOfTheLamb.Patches;
 [HarmonyPatch(typeof(Interaction_BuyItem))]
 internal static class ShopPurchasePatch
 {
-    /// <summary>Fires with the purchased entry. Decorations and plain items come through too.</summary>
+    // Fires with the purchased entry. Decorations and plain items come through too
     internal static event Action<BuyEntry> OnItemPurchased;
 
     [HarmonyPatch("Activate")]
@@ -24,10 +24,16 @@ internal static class ShopPurchasePatch
         // customItemForSale entries are built at runtime rather than configured on the prefab,
         // and Activate() bails out early for them, so there is nothing stable to key a location
         // off.
-        if (__instance == null || __instance.customItemForSale) return;
+        if (__instance == null || __instance.customItemForSale)
+        {
+            return;
+        }
 
         var entry = __instance.itemForSale;
-        if (entry == null) return;
+        if (entry == null)
+        {
+            return;
+        }
 
         Log.LogInfo($"[AP] Shop purchase: tarot={entry.TarotCard} card={entry.Card} "
             + $"decoration={entry.Decoration} item={entry.itemToBuy} "

@@ -14,18 +14,10 @@ namespace Archipelago.CultOfTheLamb.Services;
 /// </summary>
 internal static class FillerService
 {
-    /// <summary>
-    /// Resource bundles, keyed by AP item name. Each grants several stacks at once.
-    /// </summary>
-    /// <remarks>
-    /// Themed mixes rather than one resource each. Filler is about half of a seed, and a single
-    /// small pile of something you already hold stops registering as a reward early on. The
-    /// grouping also fixes two names that used to lie. Raw ore now sits with the ritual costs
-    /// it pays, and coins with the rest of the treasury.
-    ///
-    /// Quantities are deliberately generous. The per-stack cap is 9999 (Inventory.cs:266) and
-    /// BLACK_GOLD is exempt from it, so nothing here is near a limit.
-    /// </remarks>
+    // Resource bundles, keyed by AP item name, each granting several stacks at once. Themed
+    // mixes rather than one resource each, since filler is about half of a seed and a small
+    // pile of something you already hold stops reading as a reward. Quantities are generous:
+    // the per-stack cap is 9999 (Inventory.cs:266) and BLACK_GOLD is exempt from it
     private static readonly Dictionary<string, (InventoryItem.ITEM_TYPE Type, int Quantity)[]> Bundles = new()
     {
         ["Construction Bundle"] = new[]
@@ -57,18 +49,19 @@ internal static class FillerService
         },
     };
 
-    /// <summary>Faith removed by a Dissent Trap.</summary>
+    // Faith removed by a Dissent Trap
     private const float DissentTrapFaith = -5f;
 
-    /// <summary>Levels granted per Follower Level Up item. See ApplyFollowerLevelUp.</summary>
+    // Levels granted per Follower Level Up item. See ApplyFollowerLevelUp
     private const int FollowerLevelsPerItem = 3;
 
-    /// <summary>
-    /// Returns false if the name isn't a filler/trap item, so the caller can keep looking.
-    /// </summary>
+    // Returns false if the name isn't a filler or trap item, so the caller can keep looking
     internal static bool TryApplyItem(string itemName)
     {
-        if (itemName == null) return false;
+        if (itemName == null)
+        {
+            return false;
+        }
 
         if (Bundles.TryGetValue(itemName, out var bundle))
         {
@@ -101,15 +94,10 @@ internal static class FillerService
         }
     }
 
-    /// <summary>
-    /// Levels up Followers three times. Each Follower contributes sermon points equal to their
-    /// level (capped at 10, see FollowerInfo.cs:653), so this compounds into faster sermons,
-    /// which is what makes it worth more than a resource drop. One level was barely perceptible.
-    ///
-    /// Re-picks between each level rather than pushing one Follower up three times, so it
-    /// spreads across the flock once the current best hits the cap. Each pick targets the
-    /// highest Follower still under the cap, because levels above 10 contribute nothing.
-    /// </summary>
+    // Three levels. A Follower contributes sermon points equal to their level, capped at 10
+    // (FollowerInfo.cs:653), so this compounds into faster sermons. Re-picks between each
+    // level, targeting the highest Follower still under the cap, so it spreads across the
+    // flock once the current best tops out
     private static void ApplyFollowerLevelUp()
     {
         var followers = DataManager.Instance?.Followers;
@@ -127,11 +115,21 @@ internal static class FillerService
             FollowerInfo best = null;
             foreach (var follower in followers)
             {
-                if (follower == null || follower.XPLevel >= MaxUsefulFollowerLevel) continue;
-                if (best == null || follower.XPLevel > best.XPLevel) best = follower;
+                if (follower == null || follower.XPLevel >= MaxUsefulFollowerLevel)
+                {
+                    continue;
+                }
+
+                if (best == null || follower.XPLevel > best.XPLevel)
+                {
+                    best = follower;
+                }
             }
 
-            if (best == null) break;
+            if (best == null)
+            {
+                break;
+            }
 
             best.XPLevel++;
             levelled.Add($"{best.Name} -> {best.XPLevel}");
@@ -156,17 +154,12 @@ internal static class FillerService
             NotificationBase.Flair.Positive);
     }
 
-    /// <summary>
-    /// Sermon-point contribution is Mathf.Clamp(XPLevel, 1, 10), so levels past 10 are dead
-    /// weight for the thing this item exists to accelerate.
-    /// </summary>
+    // Sermon-point contribution is Mathf.Clamp(XPLevel, 1, 10), so levels past 10 are dead
+    // weight
     private const int MaxUsefulFollowerLevel = 10;
 
-    /// <summary>
-    /// Drains cult faith. GetFaith is the single choke point for all faith change
-    /// (CultFaithManager.cs:224) and handles the clamping and the notification itself, so
-    /// going through it keeps the trap consistent with every other faith source.
-    /// </summary>
+    // Drains cult faith. GetFaith is the single choke point for all faith change
+    // (CultFaithManager.cs:224) and handles the clamping and the notification itself
     private static void ApplyDissentTrap()
     {
         if (CultFaithManager.Instance == null && DataManager.Instance == null)

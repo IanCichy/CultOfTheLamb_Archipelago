@@ -12,10 +12,10 @@ namespace Archipelago.CultOfTheLamb.Services;
 /// As a location, filling the sermon bar sends "Sermon Upgrade N" (see SermonUpgradePatch). As an
 /// item, a received sermon item calls UpgradeSystem.UnlockAbility for the upgrade it maps to.
 ///
-/// The item -> UpgradeSystem.Type mapping arrives in slot data rather than being hardcoded
-/// here, so adding or reordering upgrades on the Python side can't silently desync the two
-/// halves. Each entry is an ordered list. One element is a standalone upgrade, several make a
-/// progressive chain whose Nth copy grants the Nth tier.
+/// The item -> UpgradeSystem.Type mapping arrives in slot data rather than hardcoded here, so
+/// adding or reordering upgrades on the Python side can't silently desync the two halves. Each
+/// entry is an ordered list: one element is a standalone upgrade, several make a progressive
+/// chain whose Nth copy grants the Nth tier.
 /// </remarks>
 internal class SermonService : IService
 {
@@ -24,7 +24,7 @@ internal class SermonService : IService
     private readonly long locationBaseId;
     private readonly int locationCount;
 
-    /// <summary>Which tier of each progressive sermon chain comes next. See ProgressiveGrant.</summary>
+    // Which tier of each progressive sermon chain comes next. See ProgressiveGrant
     private readonly ProgressiveGrant progressive = new();
 
     internal SermonService(
@@ -49,30 +49,29 @@ internal class SermonService : IService
         SendChecksUpTo(EarnedCount());
     }
 
-    /// <summary>
-    /// How many sermon upgrades this save has taken, ever. Monotonic, and vanilla keeps counting
-    /// while we're disconnected, since Unregister hands the pick-an-upgrade flow back and
-    /// SermonController increments this on its own.
-    /// </summary>
+    // How many sermon upgrades this save has taken, ever. Monotonic, and vanilla keeps
+    // counting while disconnected, since Unregister hands the pick-an-upgrade flow back
     private static int EarnedCount() => DataManager.Instance?.Doctrine_PlayerUpgrade_Level ?? 0;
 
-    /// <summary>
-    /// Pays for every sermon the save says was taken, so ones earned while disconnected still
-    /// land. Same shape as DivineInspirationService, and free to repeat because CheckSender
-    /// filters against what the server already has.
-    ///
-    /// One knock-on is worth knowing. A sermon taken offline also hands out a real vanilla
-    /// upgrade, since the choice screen isn't suppressed once Unregister runs, and catch-up pays
-    /// the check on top, so the player keeps that upgrade for free. A leaked reward beats a lost
-    /// check, since withholding it would strand an item for someone else.
-    /// </summary>
+    // Pays for every sermon the save says was taken, so ones earned while disconnected still
+    // land.
+    //
+    // A sermon taken offline also hands out a real vanilla upgrade, since the choice screen
+    // isn't suppressed once Unregister runs, and catch-up pays the check on top. The player
+    // keeps that upgrade for free.
     private void SendChecksUpTo(int level)
     {
-        if (level < 1) return;
+        if (level < 1)
+        {
+            return;
+        }
 
         var highest = System.Math.Min(level, locationCount);
         var pending = new List<long>();
-        for (var i = 1; i <= highest; i++) pending.Add(locationBaseId + (i - 1));
+        for (var i = 1; i <= highest; i++)
+        {
+            pending.Add(locationBaseId + (i - 1));
+        }
 
         Log.LogInfo($"[AP] Save records {level} sermon upgrade(s) taken - sending any of the "
             + $"first {highest} check(s) that haven't landed yet.");
@@ -103,15 +102,18 @@ internal class SermonService : IService
         CheckSender.Send(session, checkId);
     }
 
-    /// <summary>
-    /// Applies a received sermon item. Returns false if the item isn't a sermon item, so the
-    /// caller can go on trying other handlers.
-    /// </summary>
+    // Returns false if the item isn't a sermon item, so the caller can try other handlers
     internal bool TryApplyItem(string itemName)
     {
-        if (itemName == null || !itemToUpgrades.TryGetValue(itemName, out var upgrades)) return false;
+        if (itemName == null || !itemToUpgrades.TryGetValue(itemName, out var upgrades))
+        {
+            return false;
+        }
 
-        if (!progressive.TryTake(itemName, upgrades.Count, out var tierIndex)) return true;
+        if (!progressive.TryTake(itemName, upgrades.Count, out var tierIndex))
+        {
+            return true;
+        }
 
         if (!SlotData.TryParseEnum<UpgradeSystem.Type>(
                 upgrades[tierIndex], itemName, out var upgrade))

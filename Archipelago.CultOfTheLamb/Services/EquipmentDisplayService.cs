@@ -10,14 +10,13 @@ namespace Archipelago.CultOfTheLamb.Services;
 /// granted, and the collection book between them.
 /// </summary>
 /// <remarks>
-/// These are the only randomized system with no native screen anywhere in the game. The weapon
-/// and curse wheels are in-run only and read the transient pool, and there is no
-/// PlayerFoundWeapons to mirror how PlayerFoundTrinkets backs the tarot collection. So unlike
-/// sermons or tarot there is nothing to unhide, and the display has to be built.
+/// The only randomized system with no native screen anywhere in the game. The weapon and curse
+/// wheels are in-run only and read the transient pool, and there is no PlayerFoundWeapons to
+/// mirror how PlayerFoundTrinkets backs the tarot collection, so there is nothing to unhide.
 ///
-/// Nothing is written to save data, meaning no StructureBrain and no StructureManager entry. The
-/// podiums are respawned per scene load and destroyed on disconnect, so a save that stops using
-/// this mod is unchanged.
+/// Nothing is written to save data: no StructureBrain, no StructureManager entry. The podiums
+/// are respawned per scene load and destroyed on disconnect, so a save that stops using this
+/// mod is unchanged.
 /// </remarks>
 internal class EquipmentDisplayService : IService
 {
@@ -28,16 +27,10 @@ internal class EquipmentDisplayService : IService
     private readonly ConfigEntry<bool> bookEnabled;
     private readonly ConfigEntry<float> spacing;
 
-    /// <summary>
-    /// Where each display starts, independently of the others.
-    /// </summary>
-    /// <remarks>
-    /// Three anchors, rather than one origin that the rest are measured from. Chained, the curse
-    /// row and the book moved whenever the weapon row changed length. That was two units for a
-    /// Woolhaven seventh weapon, and twenty-three when weapons weren't randomized at all, so the
-    /// same base laid itself out differently per seed. With separate anchors, switching any one
-    /// system off leaves the other two where they were.
-    /// </remarks>
+    // Three independent anchors, not one origin the rest are measured from. Chained, the curse
+    // row and the book moved whenever the weapon row changed length: two units for a Woolhaven
+    // seventh weapon, twenty-three with weapons not randomized at all, so the same base laid
+    // itself out differently per seed
     private readonly ConfigEntry<float> weaponX;
     private readonly ConfigEntry<float> weaponY;
     private readonly ConfigEntry<float> curseX;
@@ -45,26 +38,20 @@ internal class EquipmentDisplayService : IService
     private readonly ConfigEntry<float> bookX;
     private readonly ConfigEntry<float> bookY;
 
-    /// <summary>
-    /// Whether to show a podium for the Teleport curses.
-    /// </summary>
-    /// <remarks>
-    /// They are the one curse family with no default variant. All three arrive with the
-    /// Curses_Teleport sermon upgrade, which is Woolhaven-only. That still reaches the player
-    /// through Archipelago, just as a sermon item rather than a curse-pool item, so leaving it off
-    /// the row would hide a family they can genuinely earn.
-    /// </remarks>
+    // The one curse family with no default variant. All three arrive with the Curses_Teleport
+    // sermon upgrade, which is Woolhaven-only, so they reach the player as a sermon item rather
+    // than a curse-pool item. Leaving them off the row would hide a family they can earn
     private readonly bool showTeleport;
 
-    /// <summary>Last known state of the Teleport podium, which isn't in either pool.</summary>
+    // Last known state of the Teleport podium, which isn't in either pool
     private bool teleportShown;
 
-    /// <summary>What each podium is showing, so a re-tint only happens when something changed.</summary>
+    // What each podium is showing, so a re-tint only happens when something changed
     private readonly Dictionary<EquipmentType, bool> shown = new();
 
     private bool placed;
 
-    /// <summary>What the config said when we placed, so a mid-session toggle is noticed.</summary>
+    // What the config said when we placed, so a mid-session toggle is noticed
     private bool pedestalsPlaced;
     private bool bookPlaced;
 
@@ -96,7 +83,7 @@ internal class EquipmentDisplayService : IService
         this.showTeleport = showTeleport;
     }
 
-    /// <summary>Whether the Teleport curse family has been earned, via its sermon upgrade.</summary>
+    // Whether the Teleport curse family has been earned, via its sermon upgrade
     private static bool TeleportReceived() =>
         UpgradeSystem.GetUnlocked(UpgradeSystem.Type.Curses_Teleport);
 
@@ -112,18 +99,19 @@ internal class EquipmentDisplayService : IService
         placed = false;
     }
 
-    /// <summary>
-    /// Polled rather than driven by a scene-load event, for the same reason
-    /// ArchipelagoHudIndicator.EnsureExists is. The base is rebuilt on every load and this
-    /// re-places itself afterwards without needing to know which path rebuilt it.
-    /// </summary>
+    // Polled rather than driven by a scene-load event. The base is rebuilt on every load and
+    // this re-places itself afterwards without needing to know which path rebuilt it
     internal void Tick()
     {
         // Either display alone is reason enough to run. The book is useful in a seed that
         // randomizes no equipment at all, so it isn't gated on the podiums being on.
         if (!enabled.Value && !bookEnabled.Value)
         {
-            if (placed) Unregister();
+            if (placed)
+            {
+                Unregister();
+            }
+
             return;
         }
 
@@ -131,11 +119,18 @@ internal class EquipmentDisplayService : IService
         {
             // The podiums belong to the base scene and are gone with it, so drop our references
             // and the next visit rebuilds rather than re-tinting destroyed objects.
-            if (placed) Unregister();
+            if (placed)
+            {
+                Unregister();
+            }
 
             // Out here is the only place a lectern exists to copy. One stands beside every tarot
             // shop and vendor, and the base has none.
-            if (bookEnabled.Value) CollectionBook.TryAdoptFromScene();
+            if (bookEnabled.Value)
+            {
+                CollectionBook.TryAdoptFromScene();
+            }
+
             return;
         }
 
@@ -160,22 +155,25 @@ internal class EquipmentDisplayService : IService
 
     private static bool InBase()
     {
-        if (PlayerFarming.Instance == null || DataManager.Instance == null) return false;
+        if (PlayerFarming.Instance == null || DataManager.Instance == null)
+        {
+            return false;
+        }
 
         var location = PlayerFarming.Location;
         return location == FollowerLocation.Base || location == FollowerLocation.Church;
     }
 
-    /// <summary>
-    /// Puts each display at its own anchor, meaning the weapon row, the curse row, and the book
-    /// between them. Only a pool the seed actually randomizes is placed at all, since an empty one
-    /// would just be a line of locked podiums for something never in play.
-    /// </summary>
+    // Weapon row, curse row, book, each at its own anchor. Only a pool the seed randomizes is
+    // placed, since an empty one would be a line of locked podiums for something never in play
     private void Place()
     {
         var curseOrigin = new Vector3(curseX.Value, curseY.Value, 0f);
 
-        if (enabled.Value) PlaceGroup(weapons, new Vector3(weaponX.Value, weaponY.Value, 0f));
+        if (enabled.Value)
+        {
+            PlaceGroup(weapons, new Vector3(weaponX.Value, weaponY.Value, 0f));
+        }
 
         var curseCount = enabled.Value ? PlaceGroup(curses, curseOrigin) : 0;
 
@@ -202,18 +200,14 @@ internal class EquipmentDisplayService : IService
             + $"{CollectionBook.Count} book(s).");
     }
 
-    /// <summary>
-    /// Stands the collection book at its own anchor, defaulting to the gap between the two rows.
-    /// </summary>
-    /// <remarks>
-    /// Its own coordinates rather than a position derived from the podium rows. Derived, it moved
-    /// whenever the weapon row changed length, and a weapons-off seed left it marooned off the
-    /// side of the base. An independent anchor is also what keeps it present when no equipment is
-    /// randomized at all.
-    /// </remarks>
+    // Stands the book at its own anchor, defaulting to the gap between the two rows. Its own
+    // coordinates keep it present when no equipment is randomized at all
     private void PlaceBook()
     {
-        if (!bookEnabled.Value) return;
+        if (!bookEnabled.Value)
+        {
+            return;
+        }
 
         var position = new Vector3(bookX.Value, bookY.Value, 0f);
 
@@ -223,13 +217,19 @@ internal class EquipmentDisplayService : IService
         }
     }
 
-    /// <summary>Returns how many podiums it placed, so the caller knows where the next group starts.</summary>
+    // Returns how many podiums it placed, so the caller knows where the next group starts
     private int PlaceGroup(EquipmentPoolService pool, Vector3 origin)
     {
-        if (pool == null) return 0;
+        if (pool == null)
+        {
+            return 0;
+        }
 
         var families = pool.Managed;
-        if (families == null || families.Count == 0) return 0;
+        if (families == null || families.Count == 0)
+        {
+            return 0;
+        }
 
         var index = 0;
         foreach (var family in families)
@@ -245,10 +245,8 @@ internal class EquipmentDisplayService : IService
         return index;
     }
 
-    /// <summary>
-    /// Re-lights a podium when its family arrives mid-session. Only touches ones whose state
-    /// actually changed, so the common case is a handful of dictionary reads.
-    /// </summary>
+    // Re-lights a podium when its family arrives mid-session. Only touches ones whose state
+    // actually changed
     private void Refresh()
     {
         RefreshPool(weapons);
@@ -268,12 +266,18 @@ internal class EquipmentDisplayService : IService
 
     private void RefreshPool(EquipmentPoolService pool)
     {
-        if (pool == null) return;
+        if (pool == null)
+        {
+            return;
+        }
 
         foreach (var family in pool.Managed)
         {
             var received = pool.IsGranted(family);
-            if (shown.TryGetValue(family, out var was) && was == received) continue;
+            if (shown.TryGetValue(family, out var was) && was == received)
+            {
+                continue;
+            }
 
             shown[family] = received;
             EquipmentPedestal.SetReceived(family, received);

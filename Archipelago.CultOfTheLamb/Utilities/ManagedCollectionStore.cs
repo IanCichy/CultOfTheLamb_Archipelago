@@ -12,13 +12,13 @@ namespace Archipelago.CultOfTheLamb;
 /// player data permanently.
 /// </summary>
 /// <remarks>
-/// Keyed by **collection and save slot only**, unlike AppliedItemStore's save+seed+slot key -
-/// "we owe this save its cards back" is a property of the save alone, true across a different
+/// Keyed by collection and save slot only, unlike AppliedItemStore's save+seed+slot key.
+/// "We owe this save its cards back" is a property of the save alone, true across a different
 /// seed, a different AP slot, or a reinstall.
 ///
-/// Sidecar file rather than the game save, because DataManager is MessagePack-serialized with fixed
-/// [Key(N)] attributes. Entries are stored as enum *names*, which survive the game reordering an
-/// enum between updates where a shifted ordinal would silently hand back the wrong cards.
+/// Sidecar file rather than the game save, because DataManager is MessagePack-serialized with
+/// fixed [Key(N)] attributes. Entries are stored as enum names, which survive the game
+/// reordering an enum where a shifted ordinal would hand back the wrong cards.
 /// </remarks>
 internal static class ManagedCollectionStore
 {
@@ -27,12 +27,15 @@ internal static class ManagedCollectionStore
 
     private static string KeyFor(string collection, int saveSlot) => $"{collection}.save{saveSlot}";
 
-    /// <summary>Records what this save is owed from one collection, replacing its previous entry.</summary>
+    // Records what this save is owed from one collection, replacing its previous entry
     internal static void Owe<T>(string collection, int saveSlot, IEnumerable<T> values)
         where T : struct, Enum
     {
         var names = new List<string>();
-        foreach (var value in values) names.Add(value.ToString());
+        foreach (var value in values)
+        {
+            names.Add(value.ToString());
+        }
 
         Write(KeyFor(collection, saveSlot), string.Join(",", names.ToArray()));
     }
@@ -59,11 +62,17 @@ internal static class ManagedCollectionStore
             return result;
         }
 
-        if (string.IsNullOrEmpty(joined)) return result;
+        if (string.IsNullOrEmpty(joined))
+        {
+            return result;
+        }
 
         foreach (var name in joined.Split(','))
         {
-            if (name.Length == 0) continue;
+            if (name.Length == 0)
+            {
+                continue;
+            }
 
             if (!Enum.IsDefined(typeof(T), name))
             {
@@ -78,24 +87,37 @@ internal static class ManagedCollectionStore
         return result;
     }
 
-    /// <summary>Called once the entries are actually back in the save.</summary>
+    // Called once the entries are actually back in the save
     internal static void Settle(string collection, int saveSlot, string legacyKey = null)
     {
         Write(KeyFor(collection, saveSlot), null);
-        if (legacyKey != null) Write($"{legacyKey}{saveSlot}", null);
+        if (legacyKey != null)
+        {
+            Write($"{legacyKey}{saveSlot}", null);
+        }
     }
 
     private static void Write(string key, string value)
     {
         var entries = ReadAll();
 
-        if (value == null) entries.Remove(key);
-        else entries[key] = value;
+        if (value == null)
+        {
+            entries.Remove(key);
+        }
+        else
+        {
+            entries[key] = value;
+        }
 
         try
         {
             var lines = new List<string>();
-            foreach (var entry in entries) lines.Add($"{entry.Key}={entry.Value}");
+            foreach (var entry in entries)
+            {
+                lines.Add($"{entry.Key}={entry.Value}");
+            }
+
             File.WriteAllLines(StorePath, lines.ToArray());
         }
         catch (Exception e)
@@ -111,12 +133,19 @@ internal static class ManagedCollectionStore
         var result = new Dictionary<string, string>();
         try
         {
-            if (!File.Exists(StorePath)) return result;
+            if (!File.Exists(StorePath))
+            {
+                return result;
+            }
 
             foreach (var line in File.ReadAllLines(StorePath))
             {
                 var split = line.IndexOf('=');
-                if (split <= 0) continue;
+                if (split <= 0)
+                {
+                    continue;
+                }
+
                 result[line.Substring(0, split)] = line.Substring(split + 1);
             }
         }

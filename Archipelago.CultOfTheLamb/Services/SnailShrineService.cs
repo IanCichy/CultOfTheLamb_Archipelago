@@ -7,9 +7,9 @@ namespace Archipelago.CultOfTheLamb.Services;
 /// </summary>
 /// <remarks>
 /// The game records these as five plain save booleans, DataManager.ShellsGifted_0 through _4.
-/// There is no event and no single write site worth patching, so this polls them, which is the
-/// better shape anyway. They are save state, so polling also catches offerings made while
-/// disconnected and re-derives correctly after a reload.
+/// There is no event and no single write site worth patching, so this polls them. They are save
+/// state, so polling also catches offerings made while disconnected and re-derives after a
+/// reload.
 /// </remarks>
 internal class SnailShrineService : IService
 {
@@ -17,7 +17,7 @@ internal class SnailShrineService : IService
     private readonly long locationBaseId;
     private readonly int locationCount;
 
-    /// <summary>Shrines already reported, so a steady state poll stays silent.</summary>
+    // Shrines already reported, so a steady state poll stays silent
     private readonly bool[] sent;
 
     internal SnailShrineService(ArchipelagoSession session, long locationBaseId, int locationCount)
@@ -37,18 +37,26 @@ internal class SnailShrineService : IService
 
     public void Unregister()
     {
-        for (var i = 0; i < sent.Length; i++) sent[i] = false;
+        for (var i = 0; i < sent.Length; i++)
+        {
+            sent[i] = false;
+        }
     }
 
-    /// <summary>Called on a throttle from the plugin's Update.</summary>
     internal void Tick()
     {
         var dataManager = DataManager.Instance;
-        if (dataManager == null) return;
+        if (dataManager == null)
+        {
+            return;
+        }
 
         for (var i = 0; i < locationCount && i < sent.Length; i++)
         {
-            if (sent[i] || !IsGifted(dataManager, i)) continue;
+            if (sent[i] || !IsGifted(dataManager, i))
+            {
+                continue;
+            }
 
             sent[i] = true;
             var checkId = locationBaseId + i;
@@ -57,12 +65,7 @@ internal class SnailShrineService : IService
         }
     }
 
-    /// <summary>
-    /// Whether the shrine at <paramref name="index"/> has been given its Shell.
-    /// </summary>
-    /// <remarks>
-    /// Five separately-named booleans rather than an array, so this is an explicit switch.
-    /// </remarks>
+    // Five separately-named booleans rather than an array, so this is an explicit switch
     private static bool IsGifted(DataManager dataManager, int index)
     {
         switch (index)

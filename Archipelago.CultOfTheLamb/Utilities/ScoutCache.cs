@@ -11,14 +11,12 @@ namespace Archipelago.CultOfTheLamb;
 /// </summary>
 /// <remarks>
 /// One bulk scout on connect. Fetching on demand as each check completes would make the
-/// announcement async and force it back through MainThreadQueue, for a lookup that's wanted within
-/// the same frame. <c>HintCreationPolicy</c> is deliberately left at its default of no hint. This
-/// is a labelling convenience, and burning the player's hint points to render text, let alone
-/// broadcasting hints to the whole multiworld on connect, would be hostile.
+/// announcement async and force it back through MainThreadQueue, for a lookup wanted within the
+/// same frame. <c>HintCreationPolicy</c> stays at its default of no hint: this is a labelling
+/// convenience, and spending the player's hint points on it would be hostile.
 ///
-/// Callers must cope with a miss. There's a round trip between connecting and the scout landing,
-/// so a check completed in that window has no item name yet and every caller falls back to the
-/// location name.
+/// Callers must cope with a miss. There is a round trip between connecting and the scout
+/// landing, and a check completed in that window falls back to the location name.
 /// </remarks>
 internal class ScoutCache
 {
@@ -70,10 +68,13 @@ internal class ScoutCache
         Scout(ids);
     }
 
-    /// <summary>Scouts a specific set, merging the result over anything already known.</summary>
+    // Scouts a specific set, merging the result over anything already known
     internal void Scout(IReadOnlyCollection<long> locationIds)
     {
-        if (locationIds == null || locationIds.Count == 0) return;
+        if (locationIds == null || locationIds.Count == 0)
+        {
+            return;
+        }
 
         var ids = locationIds.Distinct().ToArray();
 

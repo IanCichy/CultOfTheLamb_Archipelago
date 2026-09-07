@@ -1,6 +1,8 @@
 namespace Archipelago.CultOfTheLamb;
 
-/// <summary>Which save is loaded, as a stable id.</summary>
+/// <summary>
+/// Which save is loaded, as a stable id.
+/// </summary>
 /// <remarks>Every managed collection keys its debt by it.</remarks>
 internal static class SaveSlot
 {

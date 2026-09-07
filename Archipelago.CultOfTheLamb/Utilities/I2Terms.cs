@@ -8,43 +8,43 @@ namespace Archipelago.CultOfTheLamb;
 /// only accepts an I2 key.
 /// </summary>
 /// <remarks>
-/// Several of the game's display paths take a term key rather than a string -
-/// NotificationCentre.PlayGenericNotification(locKey, flair), ObjectivesData.GroupId (the
-/// objective group's title), and Objectives_Custom.Text (which looks up
-/// "Objectives/Custom/{CustomQuestType}"). I2 returns null for an unregistered term and does
-/// **not** fall back to the key (LocalizationManager.cs:1019), so handing any of them raw
-/// English renders blank.
+/// Several of the game's display paths take a term key rather than a string:
+/// NotificationCentre.PlayGenericNotification(locKey, flair), ObjectivesData.GroupId, and
+/// Objectives_Custom.Text (which looks up "Objectives/Custom/{CustomQuestType}"). I2 returns
+/// null for an unregistered term and does not fall back to the key
+/// (LocalizationManager.cs:1019), so raw English renders blank.
 ///
 /// Two callers with different key schemes: ApNotification hashes the message text into a key
-/// under its own prefix, while QuestGuideService uses fixed keys the game computes for itself.
-/// Hence the explicit-key API. The key is the caller's business, the registration isn't.
+/// under its own prefix, QuestGuideService uses fixed keys the game computes itself. Hence the
+/// explicit-key API.
 /// </remarks>
 internal static class I2Terms
 {
-    /// <summary>
-    /// Whether I2 is far enough up to accept a term. False early in startup and briefly during
-    /// some scene loads. Callers should treat it as "not yet" and retry rather than giving up.
-    /// </summary>
+    // Whether I2 is far enough up to accept a term. False early in startup and briefly during
+    // some scene loads, so callers should treat it as "not yet" and retry
     internal static bool Ready =>
         LocalizationManager.Sources != null
         && LocalizationManager.Sources.Count > 0
         && LocalizationManager.Sources[0] != null;
 
-    /// <summary>
-    /// Points <paramref name="key"/> at <paramref name="text"/> in every language slot,
-    /// creating the term if it doesn't exist yet. Re-registering an existing key overwrites the
-    /// translation, which is how a live progress counter updates.
-    /// </summary>
-    /// <returns>False if I2 wasn't ready or the term couldn't be created.</returns>
+    // Points key at text in every language slot, creating the term if it doesn't exist yet.
+    // Re-registering an existing key overwrites the translation, which is how a live progress
+    // counter updates. False if I2 wasn't ready or the term couldn't be created
     internal static bool Register(string key, string text)
     {
-        if (string.IsNullOrEmpty(key) || !Ready) return false;
+        if (string.IsNullOrEmpty(key) || !Ready)
+        {
+            return false;
+        }
 
         var source = LocalizationManager.Sources[0];
 
         // SaveSource is false so we don't write our terms into the game's shipped localization asset.
         var termData = source.GetTermData(key) ?? source.AddTerm(key, eTermType.Text, SaveSource: false);
-        if (termData == null) return false;
+        if (termData == null)
+        {
+            return false;
+        }
 
         // Every slot gets the same string. We have no translations, and leaving the other
         // languages null would render blank for anyone not playing in English.

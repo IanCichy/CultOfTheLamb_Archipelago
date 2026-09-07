@@ -29,13 +29,16 @@ internal static class SlotData
     internal static string GetString(IReadOnlyDictionary<string, object> slotData, string key) =>
         slotData.TryGetValue(key, out var value) ? value?.ToString() : null;
 
-    /// <summary>The values of a name -> location-id mapping, ignoring the names.</summary>
+    // The values of a name -> location-id mapping, ignoring the names
     internal static List<long> ParseIdValues(
         IReadOnlyDictionary<string, object> slotData, string key)
     {
         var result = new List<long>();
 
-        if (!slotData.TryGetValue(key, out var raw) || raw is not JObject mapping) return result;
+        if (!slotData.TryGetValue(key, out var raw) || raw is not JObject mapping)
+        {
+            return result;
+        }
 
         foreach (var entry in mapping)
         {
@@ -52,13 +55,16 @@ internal static class SlotData
         return result;
     }
 
-    /// <summary>A name -> list-of-names mapping, e.g. an item to the upgrades it grants.</summary>
+    // A name -> list-of-names mapping, e.g. an item to the upgrades it grants
     internal static Dictionary<string, List<string>> ParseNameLists(
         IReadOnlyDictionary<string, object> slotData, string key)
     {
         var result = new Dictionary<string, List<string>>();
 
-        if (!slotData.TryGetValue(key, out var raw) || raw is not JObject mapping) return result;
+        if (!slotData.TryGetValue(key, out var raw) || raw is not JObject mapping)
+        {
+            return result;
+        }
 
         foreach (var entry in mapping)
         {
@@ -113,7 +119,10 @@ internal static class SlotData
     {
         value = default;
 
-        if (string.IsNullOrEmpty(name)) return false;
+        if (string.IsNullOrEmpty(name))
+        {
+            return false;
+        }
 
         if (!Enum.IsDefined(typeof(T), name))
         {

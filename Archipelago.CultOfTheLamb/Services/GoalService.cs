@@ -10,10 +10,10 @@ namespace Archipelago.CultOfTheLamb.Services;
 /// </summary>
 /// <remarks>
 /// Counting lives in GoalProgress, shared with the objective guide's win-condition line. Both
-/// tracks are read from the game's own save state rather than a session-local tally, and both
-/// are already written by the time our handlers run. Interaction_MonsterHeart adds to
-/// BossesCompleted before raising OnHeartTaken, and our AddKilledBoss patch is a postfix, so the
-/// count is right after a reconnect, or if the player beat bosses before ever connecting.
+/// tracks read the game's own save state rather than a session tally, and both are written by
+/// the time our handlers run: Interaction_MonsterHeart adds to BossesCompleted before raising
+/// OnHeartTaken, and our AddKilledBoss patch is a postfix. So the count is right after a
+/// reconnect, or if the player beat bosses before ever connecting.
 /// </remarks>
 internal class GoalService : IService
 {
@@ -51,24 +51,36 @@ internal class GoalService : IService
         EnemyDeathCatBossPatch.OnNarinderDefeated -= HandleNarinderDefeated;
     }
 
-    private void HandleBossDefeated(FollowerLocation location) => CheckGoal();
+    private void HandleBossDefeated(FollowerLocation location)
+    {
+        CheckGoal();
+    }
 
-    private void HandleBossKillRecorded(string bossKey) => CheckGoal();
+    private void HandleBossKillRecorded(string bossKey)
+    {
+        CheckGoal();
+    }
 
-    private void HandleNarinderDefeated() => CheckGoal();
+    private void HandleNarinderDefeated()
+    {
+        CheckGoal();
+    }
 
-    /// <summary>Re-runs the goal check.</summary>
-    /// <remarks>
-    /// For debug keys that write save state directly, which raises none of the events above.
-    /// </remarks>
-    internal void Recheck() => CheckGoal();
+    // For debug keys that write save state directly, which raises none of the events above
+    internal void Recheck()
+    {
+        CheckGoal();
+    }
 
-    /// <summary>This seed's goal, so a debug key can refuse to run on the wrong one.</summary>
+    // This seed's goal, so a debug key can refuse to run on the wrong one
     internal int Goal => goal;
 
     private void CheckGoal()
     {
-        if (goalSent) return;
+        if (goalSent)
+        {
+            return;
+        }
 
         var defeated = GoalProgress.CountForGoal(goal);
 

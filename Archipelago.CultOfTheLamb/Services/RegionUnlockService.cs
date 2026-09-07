@@ -6,10 +6,9 @@ namespace Archipelago.CultOfTheLamb.Services;
 /// Force-opens dungeon regions by writing directly to DataManager.Instance.UnlockedDungeonDoor.
 /// </summary>
 /// <remarks>
-/// See DcplIdx 3 for the region unlock mechanism.
-/// Region 0 in regionOrder is free from connect. Each further region opens as a "Progressive
-/// Bishop's Domain" copy arrives (see worlds/cult_of_the_lamb/rules.py for the matching
-/// Python-side logic).
+/// See DcplIdx 3 for the region unlock mechanism. Region 0 in regionOrder is free from connect,
+/// and each further region opens as a "Progressive Bishop's Domain" copy arrives. The matching
+/// Python-side logic is in worlds/cult_of_the_lamb/rules.py.
 /// </remarks>
 internal class RegionUnlockService : IService
 {
@@ -45,7 +44,7 @@ internal class RegionUnlockService : IService
         RegionLockState.Reset();
     }
 
-    /// <summary>Call when a Progressive Bishop's Domain item is received.</summary>
+    // Call when a Progressive Bishop's Domain item is received
     internal void UnlockNextRegion()
     {
         if (regionOrder == null || unlockedCount >= regionOrder.Count)

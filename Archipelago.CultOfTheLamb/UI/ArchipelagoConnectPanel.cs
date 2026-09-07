@@ -8,10 +8,10 @@ namespace Archipelago.CultOfTheLamb.UI;
 /// The connection form, meaning server, port, slot, password, and a Connect button.
 /// </summary>
 /// <remarks>
-/// Drawn with IMGUI rather than the game's own UI, so it looks like a mod. That is deliberate for
-/// now, since a native form means repurposing a prefab's private serialized fields and doing that
-/// badly takes the game's UI down with it. The pause- and main-menu entry points are themselves
-/// native, so the form behind them can be upgraded later without moving where players look.
+/// Drawn with IMGUI rather than the game's own UI, so it looks like a mod. A native form means
+/// repurposing a prefab's private serialized fields, and doing that badly takes the game's UI
+/// down with it. The menu entry points are native, so the form behind them can be upgraded
+/// later without moving where players look.
 /// </remarks>
 internal class ArchipelagoConnectPanel : ApPanelBase
 {
@@ -136,19 +136,20 @@ internal class ArchipelagoConnectPanel : ApPanelBase
         return result;
     }
 
-    /// <summary>
-    /// The connection status line drawn above the form.
-    /// </summary>
-    /// <remarks>
-    /// Both in-flight states are reported ahead of LastError, so a retry reads as "still trying"
-    /// rather than flickering the previous failure between attempts. The retry line names the
-    /// attempt number because the loop never ends on its own. Without a number, a thirty-second
-    /// backoff looks the same as a wedged client.
-    /// </remarks>
+    // Both in-flight states are reported ahead of LastError, so a retry reads as "still trying"
+    // rather than flickering the previous failure between attempts. The retry line names the
+    // attempt number, or a thirty-second backoff looks the same as a wedged client
     private string StatusText()
     {
-        if (client.IsConnected) return $"Connected as {ArchipelagoClient.ConnectedPlayerName}.";
-        if (client.Connecting) return "Connecting...";
+        if (client.IsConnected)
+        {
+            return $"Connected as {ArchipelagoClient.ConnectedPlayerName}.";
+        }
+
+        if (client.Connecting)
+        {
+            return "Connecting...";
+        }
 
         if (client.Reconnecting)
         {
@@ -159,14 +160,8 @@ internal class ArchipelagoConnectPanel : ApPanelBase
         return client.LastError == null ? "Not connected." : $"Not connected. {client.LastError}";
     }
 
-    /// <summary>
-    /// Writes what was typed back into the config entries.
-    /// </summary>
-    /// <remarks>
-    /// A returning player doesn't have to retype it, and a typo worth correcting is still there
-    /// when the panel is reopened. Saved on the attempt rather than on success for exactly that
-    /// reason.
-    /// </remarks>
+    // Writes what was typed back into the config entries. Saved on the attempt rather than on
+    // success, so a typo worth correcting is still there when the panel is reopened
     private void Save()
     {
         serverEntry.Value = server.Trim();
@@ -175,15 +170,16 @@ internal class ArchipelagoConnectPanel : ApPanelBase
         passwordEntry.Value = password;
     }
 
-    /// <summary>The port as typed.</summary>
-    /// <remarks>
-    /// Falls back to the last saved port rather than a literal, so the default lives once.
-    /// </remarks>
+    // The port as typed. Falls back to the last saved port rather than a literal, so the
+    // default lives once
     private int ParsePort() => int.TryParse(port, out var parsed) ? parsed : portEntry.Value;
 
     private void EnsureStyles()
     {
-        if (labelStyle != null) return;
+        if (labelStyle != null)
+        {
+            return;
+        }
 
         labelStyle = new GUIStyle(GUI.skin.label) { wordWrap = true };
         statusStyle = new GUIStyle(GUI.skin.label) { wordWrap = true, fontStyle = FontStyle.Bold };

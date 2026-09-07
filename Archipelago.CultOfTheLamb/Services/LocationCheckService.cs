@@ -15,8 +15,8 @@ namespace Archipelago.CultOfTheLamb.Services;
 ///  2. Minibosses and Witnesses arrive on DataManagerKilledBossPatch.OnBossKillRecorded, keyed by
 ///     the game's internal boss-name string.
 ///
-/// Both events only fire at the moment of the kill, so Register also re-derives from the save's
-/// own kill records. See SendChecksForRecordedKills. That is how a boss killed while disconnected
+/// Both events fire only at the moment of the kill, so Register also re-derives from the save's
+/// own kill records (SendChecksForRecordedKills), which is how a boss killed while disconnected
 /// still pays out on the next connect.
 /// </remarks>
 internal class LocationCheckService : IService
@@ -36,23 +36,18 @@ internal class LocationCheckService : IService
         SendChecksForRecordedKills();
     }
 
-    /// <summary>
-    /// Pays for every boss the save already records as dead.
-    /// </summary>
-    /// <remarks>
-    /// Without this a boss killed while disconnected is lost for good. The events above only fire
-    /// at the moment of the kill, and these are the goal-critical checks. The game writes both
-    /// kill records to save data, so the answer is already sitting there at connect. GoalService
-    /// reads those same two fields to decide whether the goal is met, so the server could record
-    /// a satisfied goal for checks that were never sent.
-    ///
-    /// Re-sending costs nothing. CheckSender filters against AllLocationsChecked, which the
-    /// Connected packet has already populated by the time any service registers.
-    /// </remarks>
+    // Pays for every boss the save already records as dead. The events above fire only at the
+    // moment of the kill, so without this a boss killed while disconnected is lost for good.
+    //
+    // GoalService reads the same two save fields to decide whether the goal is met, so skipping
+    // this lets the server record a satisfied goal for checks that were never sent.
     private void SendChecksForRecordedKills()
     {
         var data = DataManager.Instance;
-        if (data == null) return;
+        if (data == null)
+        {
+            return;
+        }
 
         var pending = new List<long>();
 
@@ -73,7 +68,10 @@ internal class LocationCheckService : IService
         {
             foreach (var bossKey in data.KilledBosses)
             {
-                if (bossKey == null || BossKeyMapping.IsPostGameVariant(bossKey)) continue;
+                if (bossKey == null || BossKeyMapping.IsPostGameVariant(bossKey))
+                {
+                    continue;
+                }
 
                 if (BossKeyMapping.BossKeyToCheckId.TryGetValue(bossKey, out var checkId))
                 {
@@ -82,7 +80,10 @@ internal class LocationCheckService : IService
             }
         }
 
-        if (pending.Count == 0) return;
+        if (pending.Count == 0)
+        {
+            return;
+        }
 
         Log.LogInfo($"[AP] {pending.Count} boss kill(s) already recorded in the save - "
             + "sending any whose check hasn't landed yet.");

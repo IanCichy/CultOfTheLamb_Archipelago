@@ -11,40 +11,34 @@ namespace Archipelago.CultOfTheLamb.Patches;
 /// point costs.
 /// </summary>
 /// <remarks>
-/// The award is patched at <c>UpgradeSystem.AbilityPoints</c>'s **setter** rather than at
-/// PlayerFarming's <c>++</c> (`PlayerFarming.cs:2024`). That `++` is the only non-debug award
-/// site today, but the setter catches every path including any the game adds later, and it's
-/// where the "new upgrade point" notification fires from.
+/// Patched at <c>UpgradeSystem.AbilityPoints</c>'s setter rather than PlayerFarming's
+/// <c>++</c> (`PlayerFarming.cs:2024`). That `++` is the only non-debug award site today, but
+/// the setter catches every path and is where the "new upgrade point" notification fires from.
 ///
-/// Everything here is inert unless a session sets it, so the game is untouched when
-/// disconnected.
+/// Inert unless a session sets it.
 /// </remarks>
 internal static class DivineInspirationPatch
 {
-    /// <summary>
-    /// Fired when the player fills the Devotion meter, **before** any withholding, because
-    /// filling it is the thing that earns the check whether or not they get to keep the point.
-    /// </summary>
+    // Fired when the player fills the Devotion meter, *before* any withholding. Filling it is
+    // what earns the check, whether or not they keep the point
     internal static Action PointEarned;
 
-    /// <summary>
-    /// True while Archipelago owns the point supply. Set by DivineInspirationService in
-    /// checks_and_points and checks_and_techs.
-    /// </summary>
+    // True while Archipelago owns the point supply. Set by DivineInspirationService in
+    // checks_and_points and checks_and_techs
     internal static bool WithholdPoints;
 
-    /// <summary>
-    /// Set while the service is granting a point itself, so its own write isn't withheld and,
-    /// just as importantly, isn't mistaken for a meter fill. A point arriving from the
-    /// multiworld must not pay out a check, because that would double-count every point in the
-    /// seed.
-    /// </summary>
+    // Set while the service is granting a point itself, so its own write is neither withheld nor
+    // mistaken for a meter fill. A point from the multiworld paying out a check would
+    // double-count every point in the seed
     private static bool granting;
 
-    /// <summary>Adds <paramref name="count"/> points past the withholding.</summary>
+    // Adds count points past the withholding
     internal static void GrantPoints(int count)
     {
-        if (count <= 0) return;
+        if (count <= 0)
+        {
+            return;
+        }
 
         granting = true;
         try
@@ -57,15 +51,15 @@ internal static class DivineInspirationPatch
         }
     }
 
-    /// <summary>
-    /// Logged once per session the first time an award is actually swallowed. Withholding is
-    /// otherwise completely silent. Nothing appears in the log and the player just doesn't get a
-    /// point, which makes "is this working?" unanswerable from a log without it.
-    /// </summary>
+    // Logged once per session the first time an award is swallowed. Withholding is otherwise
+    // completely silent, which makes "is this working?" unanswerable from a log
     private static bool loggedFirstWithhold;
 
-    /// <summary>Lets the next session report its own first withhold.</summary>
-    internal static void ResetWithholdLog() => loggedFirstWithhold = false;
+    // Lets the next session report its own first withhold
+    internal static void ResetWithholdLog()
+    {
+        loggedFirstWithhold = false;
+    }
 
     /// <summary>
     /// Reports the meter fill, then swallows the point if this seed is withholding.
@@ -81,14 +75,23 @@ internal static class DivineInspirationPatch
         private static bool Prefix(int value)
         {
             // Our own grant is not a meter fill, and is never withheld.
-            if (granting) return true;
+            if (granting)
+            {
+                return true;
+            }
 
             var current = UpgradeSystem.AbilityPoints;
-            if (value <= current) return true;
+            if (value <= current)
+            {
+                return true;
+            }
 
             PointEarned?.Invoke();
 
-            if (!WithholdPoints) return true;
+            if (!WithholdPoints)
+            {
+                return true;
+            }
 
             if (!loggedFirstWithhold)
             {
@@ -111,15 +114,12 @@ internal static class DivineInspirationPatch
     /// Caps what the next point costs.
     /// </summary>
     /// <remarks>
-    /// The game's curve runs 1, 13, 29 ... up to 465 and then stays there
-    /// (`DataManager.TargetXP`, 41 entries, clamped by index), which totals roughly 24,000
-    /// Devotion for all 69 points, which is a completionist number rather than a one-seed
-    /// number. Capping the tail keeps the early curve intact while making the whole tree
-    /// reachable in a normal run.
+    /// The curve runs 1, 13, 29 ... to 465 and holds there (`DataManager.TargetXP`, 41 entries,
+    /// clamped by index), roughly 24,000 Devotion for all 69 points. Capping the tail leaves the
+    /// early curve intact.
     ///
-    /// Applied as a postfix on purpose. `AllUnlockedMultiplier` triples the cost inside
-    /// GetTargetXP once nothing is left to unlock, so clamping afterwards neutralises that cliff
-    /// for free.
+    /// A postfix, not a prefix: `AllUnlockedMultiplier` triples the cost inside GetTargetXP once
+    /// nothing is left to unlock, so clamping afterwards also neutralises that cliff.
     /// </remarks>
     [HarmonyPatch(typeof(DataManager), nameof(DataManager.GetTargetXP))]
     internal static class DevotionCost
@@ -127,11 +127,14 @@ internal static class DivineInspirationPatch
         [HarmonyPostfix]
         private static void Postfix(ref int __result)
         {
-            if (DevotionCap > 0) __result = Mathf.Min(__result, DevotionCap);
+            if (DevotionCap > 0)
+            {
+                __result = Mathf.Min(__result, DevotionCap);
+            }
         }
     }
 
-    /// <summary>The Divine Inspiration tree, or null before GameManager exists.</summary>
+    // The Divine Inspiration tree, or null before GameManager exists
     internal static UpgradeTreeConfiguration Tree =>
         GameManager.GetInstance()?.UpgradeTreeConfiguration;
 }

@@ -53,11 +53,17 @@ internal static class DebugActions
 
             sb.AppendLine();
             sb.AppendLine($"### '{folder}': {found?.Length ?? 0} GameObject(s)");
-            if (found == null) continue;
+            if (found == null)
+            {
+                continue;
+            }
 
             foreach (var prefab in found)
             {
-                if (prefab != null) sb.AppendLine($"\t{prefab.name}");
+                if (prefab != null)
+                {
+                    sb.AppendLine($"\t{prefab.name}");
+                }
             }
         }
 
@@ -100,12 +106,18 @@ internal static class DebugActions
         {
             foreach (var locator in UnityEngine.AddressableAssets.Addressables.ResourceLocators)
             {
-                if (locator?.Keys == null) continue;
+                if (locator?.Keys == null)
+                {
+                    continue;
+                }
 
                 foreach (var key in locator.Keys)
                 {
                     var name = key?.ToString();
-                    if (string.IsNullOrEmpty(name)) continue;
+                    if (string.IsNullOrEmpty(name))
+                    {
+                        continue;
+                    }
 
                     total++;
                     if (name.IndexOf("podium", System.StringComparison.OrdinalIgnoreCase) < 0
@@ -145,7 +157,11 @@ internal static class DebugActions
         // classes with different art, and either could be the right look for a base display.
         foreach (var podium in UnityEngine.Object.FindObjectsOfType<Interaction_WeaponSelectionPodium>(true))
         {
-            if (podium == null) continue;
+            if (podium == null)
+            {
+                continue;
+            }
+
             found++;
 
             DescribeSceneObject(podium.gameObject, "WeaponSelectionPodium");
@@ -155,7 +171,11 @@ internal static class DebugActions
 
         foreach (var item in UnityEngine.Object.FindObjectsOfType<Interaction_WeaponItem>(true))
         {
-            if (item == null) continue;
+            if (item == null)
+            {
+                continue;
+            }
+
             found++;
 
             DescribeSceneObject(item.gameObject, "WeaponItem (shop slot)");
@@ -253,13 +273,12 @@ internal static class DebugActions
     /// the game's own way of showing this tree.
     /// </summary>
     /// <remarks>
-    /// Deliberately does NOT open UIUpgradePlayerTreeMenuController. That menu can't be
-    /// dismissed (empty OnCancelButtonInput) and its only exit is DoUnlock(), so opening it to
-    /// "just look" hands out a free upgrade the randomizer never granted.
+    /// Deliberately does NOT open UIUpgradePlayerTreeMenuController. That menu can't be dismissed
+    /// (empty OnCancelButtonInput) and its only exit is DoUnlock(), so opening it to "just look"
+    /// hands out a free upgrade the randomizer never granted.
     ///
-    /// The player-facing viewer is SermonTreeViewer ("Archipelago" on the Temple Altar menu).
-    /// This stays as the log-only diagnostic, an independent second opinion since both read
-    /// UpgradePlayerConfiguration.
+    /// The player-facing viewer is SermonTreeViewer. This stays as the log-only diagnostic, a
+    /// second opinion since both read UpgradePlayerConfiguration.
     /// </remarks>
     internal static void ListOwnedSermonUpgrades()
     {
@@ -278,13 +297,26 @@ internal static class DebugActions
         foreach (var upgrade in tree)
         {
             var line = $"{Safe(() => UpgradeSystem.GetLocalizedName(upgrade))}  [{upgrade}]";
-            if (UpgradeSystem.GetUnlocked(upgrade)) owned.Add(line);
-            else missing.Add(line);
+            if (UpgradeSystem.GetUnlocked(upgrade))
+            {
+                owned.Add(line);
+            }
+            else
+            {
+                missing.Add(line);
+            }
         }
 
         Log.LogInfo($"[AP] Sermon upgrades: {owned.Count} owned of {tree.Count}.");
-        foreach (var line in owned) Log.LogInfo($"[AP]   have  {line}");
-        foreach (var line in missing) Log.LogInfo($"[AP]   want  {line}");
+        foreach (var line in owned)
+        {
+            Log.LogInfo($"[AP]   have  {line}");
+        }
+
+        foreach (var line in missing)
+        {
+            Log.LogInfo($"[AP]   want  {line}");
+        }
 
         ApNotification.Show($"Archipelago: {owned.Count}/{tree.Count} sermon upgrades - see the log",
             NotificationBase.Flair.None);
@@ -385,7 +417,11 @@ internal static class DebugActions
     {
         foreach (UpgradeSystem.Type candidate in System.Enum.GetValues(typeof(UpgradeSystem.Type)))
         {
-            if (UpgradeSystem.GetUnlocked(candidate)) continue;
+            if (UpgradeSystem.GetUnlocked(candidate))
+            {
+                continue;
+            }
+
             locked = candidate;
             return true;
         }
@@ -394,7 +430,7 @@ internal static class DebugActions
         return false;
     }
 
-    /// <summary>F8 unlocks a tarot card.</summary>
+    // F8 unlocks a tarot card
     internal static void UnlockSampleTarot()
     {
         // Same already-unlocked problem as F7. Fall back to a card the save doesn't have, so
@@ -437,7 +473,11 @@ internal static class DebugActions
         {
             foreach (var candidate in DataManager.AllTrinkets)
             {
-                if (found.Contains(candidate)) continue;
+                if (found.Contains(candidate))
+                {
+                    continue;
+                }
+
                 card = candidate;
                 return true;
             }
@@ -592,9 +632,8 @@ internal static class DebugActions
     ///  - UpgradePlayerConfiguration    : the Temple sermon tree  (the one we randomize)
     ///  - DLCUpgradeTreeConfiguration   : the Woolhaven tree
     ///
-    /// AllUpgradesRequiringUpgrade is the real prerequisite graph. It isn't needed for granting,
-    /// since UnlockAbility ignores prerequisites, but it is useful for checking the progressive
-    /// chains.
+    /// AllUpgradesRequiringUpgrade is the real prerequisite graph. Not needed for granting, since
+    /// UnlockAbility ignores prerequisites, but useful for checking the progressive chains.
     /// </remarks>
     private static void DumpUpgradeTrees(StringBuilder sb)
     {
@@ -657,7 +696,10 @@ internal static class DebugActions
 
         var nodes = template.GetComponentsInChildren<UpgradeTreeNode>(true);
         sb.AppendLine($"# Nodes: {nodes?.Length ?? 0}");
-        if (nodes == null || nodes.Length == 0) return;
+        if (nodes == null || nodes.Length == 0)
+        {
+            return;
+        }
 
         var root = template.transform.root;
         float minX = float.MaxValue, maxX = float.MinValue;
@@ -670,7 +712,10 @@ internal static class DebugActions
 
         foreach (var node in nodes)
         {
-            if (node == null) continue;
+            if (node == null)
+            {
+                continue;
+            }
 
             var rect = Safe2(() => node.RectTransform);
 
@@ -684,10 +729,25 @@ internal static class DebugActions
                 ? Vector3.zero
                 : root.InverseTransformPoint(rect.position);
 
-            if (anchored.x < minX) minX = anchored.x;
-            if (anchored.x > maxX) maxX = anchored.x;
-            if (anchored.y < minY) minY = anchored.y;
-            if (anchored.y > maxY) maxY = anchored.y;
+            if (anchored.x < minX)
+            {
+                minX = anchored.x;
+            }
+
+            if (anchored.x > maxX)
+            {
+                maxX = anchored.x;
+            }
+
+            if (anchored.y < minY)
+            {
+                minY = anchored.y;
+            }
+
+            if (anchored.y > maxY)
+            {
+                maxY = anchored.y;
+            }
 
             var prereqs = node.PrerequisiteNodes;
             var conns = node.NodeConnections;
@@ -717,30 +777,49 @@ internal static class DebugActions
         // why the count alone isn't enough to reconstruct the graph.
         var lines = template.GetComponentsInChildren<NodeConnectionLine>(true);
         sb.AppendLine($"# NodeConnectionLines: {lines?.Length ?? 0}");
-        if (lines == null) return;
+        if (lines == null)
+        {
+            return;
+        }
+
         foreach (var line in lines)
         {
-            if (line == null) continue;
+            if (line == null)
+            {
+                continue;
+            }
+
             sb.AppendLine($"\t{NodeNames(Safe2(() => line.Nodes))}");
         }
     }
 
     private static string NodeNames(IEnumerable<UpgradeTreeNode> nodes)
     {
-        if (nodes == null) return "";
+        if (nodes == null)
+        {
+            return "";
+        }
+
         var names = new List<string>();
         foreach (var node in nodes)
         {
-            if (node != null) names.Add(Safe(() => node.Upgrade.ToString()));
+            if (node != null)
+            {
+                names.Add(Safe(() => node.Upgrade.ToString()));
+            }
         }
         return string.Join(", ", names.ToArray());
     }
 
-    /// <summary>Where the node sits under the prefab, to show whether tier containers group them.</summary>
+    // Where the node sits under the prefab, to show whether tier containers group them
     private static string HierarchyPath(Transform node, Transform root)
     {
         var parts = new List<string>();
-        for (var t = node; t != null && t != root; t = t.parent) parts.Add(t.name);
+        for (var t = node; t != null && t != root; t = t.parent)
+        {
+            parts.Add(t.name);
+        }
+
         parts.Reverse();
         return string.Join("/", parts.ToArray());
     }
@@ -800,7 +879,10 @@ internal static class DebugActions
     {
         var tiers = tree.TierConfigurations;
         sb.AppendLine($"# Tiers: {tiers?.Count ?? 0}");
-        if (tiers == null) return;
+        if (tiers == null)
+        {
+            return;
+        }
 
         var cumulative = 0;
         foreach (var tier in tiers)
@@ -813,8 +895,15 @@ internal static class DebugActions
                 + $"\tCUMULATIVE_THRESHOLD={cumulative}"
                 + $"\tmembers={members?.Count ?? 0}");
 
-            if (members == null) continue;
-            foreach (var upgrade in members) sb.AppendLine($"\t\t{upgrade}");
+            if (members == null)
+            {
+                continue;
+            }
+
+            foreach (var upgrade in members)
+            {
+                sb.AppendLine($"\t\t{upgrade}");
+            }
         }
     }
 
@@ -845,11 +934,17 @@ internal static class DebugActions
         foreach (var upgrade in tree.AllUpgrades)
         {
             var built = Safe2(() => UpgradeSystem.GetStructureTypeFromUpgrade(upgrade));
-            if (built != StructureBrain.TYPES.NONE) structureToUpgrade[built] = upgrade;
+            if (built != StructureBrain.TYPES.NONE)
+            {
+                structureToUpgrade[built] = upgrade;
+            }
         }
 
         sb.AppendLine($"# Upgrades that unlock a structure: {structureToUpgrade.Count}");
-        foreach (var pair in structureToUpgrade) sb.AppendLine($"{pair.Value}\tunlocks\t{pair.Key}");
+        foreach (var pair in structureToUpgrade)
+        {
+            sb.AppendLine($"{pair.Value}\tunlocks\t{pair.Key}");
+        }
 
         sb.AppendLine();
         sb.AppendLine("# Upgrades that REQUIRE a built structure (the cycle risk):");
@@ -857,7 +952,10 @@ internal static class DebugActions
         foreach (var upgrade in tree.AllUpgrades)
         {
             var required = Safe2(() => UpgradeSystem.GetRequiredBuilding(upgrade));
-            if (required == null || required.Count == 0) continue;
+            if (required == null || required.Count == 0)
+            {
+                continue;
+            }
 
             found++;
             foreach (var structure in required)
@@ -876,7 +974,7 @@ internal static class DebugActions
         }
     }
 
-    /// <summary>Value-typed sibling of <see cref="Safe"/>, for the same reason.</summary>
+    // Value-typed sibling of Safe, for the same reason
     private static T Safe2<T>(System.Func<T> get)
     {
         try
@@ -931,10 +1029,18 @@ internal static class DebugActions
         Log.LogInfo($"[AP] Snail_Interaction in scene ({shrines?.Length ?? 0}) - "
             + $"current scene: {UnityEngine.SceneManagement.SceneManager.GetActiveScene().name}");
 
-        if (shrines == null) return;
+        if (shrines == null)
+        {
+            return;
+        }
+
         foreach (var shrine in shrines)
         {
-            if (shrine == null) continue;
+            if (shrine == null)
+            {
+                continue;
+            }
+
             Log.LogInfo($"[AP]   ShrineNumber={shrine.ShrineNumber}  (object: {shrine.name})");
         }
     }
@@ -948,9 +1054,8 @@ internal static class DebugActions
     /// and sets DoorActive at >= 5 chains (there are five breaks for four Bishops, since the
     /// fourth triggers the fifth), so the door is open the next time the Door Room loads.
     ///
-    /// Does **not** send the four Bishop location checks. Those fire from
-    /// Interaction_MonsterHeart when a heart is actually taken, and faking that is a different
-    /// job. The goal re-check below is what this key is for.
+    /// Does not send the four Bishop location checks. Those fire from Interaction_MonsterHeart
+    /// when a heart is actually taken. The goal re-check below is what this key is for.
     /// </remarks>
     internal static void CompleteBishopsAndOpenGateway(ArchipelagoClient ap)
     {
@@ -978,7 +1083,11 @@ internal static class DebugActions
         var added = 0;
         foreach (var bishop in RegionMapping.RegionToDungeonLocation.Values)
         {
-            if (dataManager.BossesCompleted.Contains(bishop)) continue;
+            if (dataManager.BossesCompleted.Contains(bishop))
+            {
+                continue;
+            }
+
             dataManager.BossesCompleted.Add(bishop);
             added++;
         }
@@ -998,13 +1107,13 @@ internal static class DebugActions
     /// Everything about the objective guide, then a sweep-and-rebuild.
     /// </summary>
     /// <remarks>
-    /// The per-line I2 read-back is why this has its own key. A term that never registered and a
-    /// broken UI look identical in game, both showing a blank quest line, and the same read-back
-    /// is what diagnosed the blank-notification bug three attempts in.
+    /// The per-line I2 read-back is why this has its own key: a term that never registered and a
+    /// broken UI both show a blank quest line. The same read-back diagnosed the
+    /// blank-notification bug three attempts in.
     ///
     /// The save-list counts are the leak detector. After a disconnect every one must be zero, or
-    /// a player is left with Archipelago lines in a vanilla quest log. The rebuild at the end
-    /// lets one session exercise add -> sweep -> re-add without reconnecting.
+    /// a player keeps Archipelago lines in a vanilla quest log. The rebuild at the end lets one
+    /// session exercise add -> sweep -> re-add without reconnecting.
     /// </remarks>
     internal static void DumpQuestGuide(ArchipelagoClient ap)
     {
@@ -1029,8 +1138,14 @@ internal static class DebugActions
 
         // ForceRebuild sweeps first, so this is one path either way. The bare sweep matters
         // too, because it is how you check that a disconnected or never-connected save is clean.
-        if (guide != null) guide.ForceRebuild();
-        else Services.QuestGuideService.SweepAll();
+        if (guide != null)
+        {
+            guide.ForceRebuild();
+        }
+        else
+        {
+            Services.QuestGuideService.SweepAll();
+        }
 
         Log.LogInfo("[AP] ---- end objective guide ----");
     }
@@ -1044,15 +1159,24 @@ internal static class DebugActions
     {
         foreach (var service in new[] { ap?.WeaponPoolService, ap?.CursePoolService })
         {
-            if (service != null) Log.LogInfo($"[AP] {service.DescribeState()}");
+            if (service != null)
+            {
+                Log.LogInfo($"[AP] {service.DescribeState()}");
+            }
         }
 
-        if (ap?.WeaponPoolService != null || ap?.CursePoolService != null) return;
+        if (ap?.WeaponPoolService != null || ap?.CursePoolService != null)
+        {
+            return;
+        }
 
         // Still worth printing when the options are off, since the invariant above is about
         // the game's data rather than about our state.
         var dataManager = DataManager.Instance;
-        if (dataManager == null) return;
+        if (dataManager == null)
+        {
+            return;
+        }
 
         Log.LogInfo($"[AP] Equipment randomization off. WeaponPool "
             + $"({dataManager.WeaponPool.Count}): {string.Join(", ", dataManager.WeaponPool)}");
@@ -1060,7 +1184,7 @@ internal static class DebugActions
             + string.Join(", ", dataManager.CursePool));
     }
 
-    /// <summary>F9 dumps client and game boss state to the log.</summary>
+    // F9 dumps client and game boss state to the log
     internal static void DumpState(ArchipelagoClient ap)
     {
         Log.LogInfo("[AP] ---- Archipelago debug state dump ----");
@@ -1085,10 +1209,26 @@ internal static class DebugActions
         {
             Log.LogInfo($"[AP] {ap.DivineInspirationService.DescribeState()}");
         }
-        if (ap?.BuildingService != null) Log.LogInfo($"[AP] {ap.BuildingService.DescribeState()}");
-        if (ap?.BroomService != null) Log.LogInfo($"[AP] {ap.BroomService.DescribeState()}");
-        if (ap?.QuestGuideService != null) Log.LogInfo($"[AP] {ap.QuestGuideService.DescribeState()}");
-        if (ap?.QuestTrimService != null) Log.LogInfo($"[AP] {ap.QuestTrimService.DescribeState()}");
+        if (ap?.BuildingService != null)
+        {
+            Log.LogInfo($"[AP] {ap.BuildingService.DescribeState()}");
+        }
+
+        if (ap?.BroomService != null)
+        {
+            Log.LogInfo($"[AP] {ap.BroomService.DescribeState()}");
+        }
+
+        if (ap?.QuestGuideService != null)
+        {
+            Log.LogInfo($"[AP] {ap.QuestGuideService.DescribeState()}");
+        }
+
+        if (ap?.QuestTrimService != null)
+        {
+            Log.LogInfo($"[AP] {ap.QuestTrimService.DescribeState()}");
+        }
+
         DumpMiniBossesInScene();
         DumpSnailShrines();
         Log.LogInfo("[AP] ---- end dump ----");
@@ -1112,18 +1252,30 @@ internal static class DebugActions
 
         var granted = new List<TarotCards.Card>();
         var lent = Patches.TarotVisibility.GrantedCards?.Invoke();
-        if (lent != null) granted.AddRange(lent);
+        if (lent != null)
+        {
+            granted.AddRange(lent);
+        }
 
         Log.LogInfo($"[AP] PlayerFoundTrinkets ({found.Count}) - the game's own collection:");
-        foreach (var card in found) Log.LogInfo($"[AP]   {card}");
+        foreach (var card in found)
+        {
+            Log.LogInfo($"[AP]   {card}");
+        }
 
         Log.LogInfo($"[AP] Archipelago has granted {granted.Count} card(s):");
-        foreach (var card in granted) Log.LogInfo($"[AP]   {card}");
+        foreach (var card in granted)
+        {
+            Log.LogInfo($"[AP]   {card}");
+        }
 
         var leaked = new List<TarotCards.Card>();
         foreach (var card in found)
         {
-            if (granted.Contains(card)) leaked.Add(card);
+            if (granted.Contains(card))
+            {
+                leaked.Add(card);
+            }
         }
 
         // Only meaningful while connected. Disconnected, everything is correctly back in the
@@ -1183,11 +1335,17 @@ internal static class DebugActions
         Log.LogInfo($"[AP] MiniBossControllers in scene ({miniBosses?.Length ?? 0}) - "
             + "internal name -> display name:");
 
-        if (miniBosses == null) return;
+        if (miniBosses == null)
+        {
+            return;
+        }
 
         foreach (var miniBoss in miniBosses)
         {
-            if (miniBoss == null) continue;
+            if (miniBoss == null)
+            {
+                continue;
+            }
 
             var displayTerm = miniBoss.DisplayName;
             var translated = string.IsNullOrEmpty(displayTerm)
@@ -1218,17 +1376,26 @@ internal static class DebugActions
         var shops = Object.FindObjectsOfType<shopKeeperManager>();
         Log.LogInfo($"[AP] shopKeeperManagers in scene: {shops?.Length ?? 0}");
 
-        if (shops == null) return;
+        if (shops == null)
+        {
+            return;
+        }
 
         foreach (var shop in shops)
         {
-            if (shop == null) continue;
+            if (shop == null)
+            {
+                continue;
+            }
 
             Log.LogInfo($"[AP]   shop \"{shop.name}\" location={shop.Location} "
                 + $"tarot={shop.TarotCardShop} decorations={shop.DecorationsForSale} "
                 + $"daily={shop.DailyShop} slots={shop.itemSlots?.Length ?? 0}");
 
-            if (shop.itemSlots == null) continue;
+            if (shop.itemSlots == null)
+            {
+                continue;
+            }
 
             foreach (var slot in shop.itemSlots)
             {
@@ -1285,7 +1452,11 @@ internal static class DebugActions
                 // Catches the case where the art is neither, such as a Spine skeleton or a mesh.
                 foreach (var renderer in slot.GetComponentsInChildren<Renderer>(true))
                 {
-                    if (renderer is SpriteRenderer) continue;
+                    if (renderer is SpriteRenderer)
+                    {
+                        continue;
+                    }
+
                     Log.LogInfo($"[AP]       {renderer.GetType().Name} on "
                         + $"\"{renderer.gameObject.name}\" enabled={renderer.enabled}");
                 }

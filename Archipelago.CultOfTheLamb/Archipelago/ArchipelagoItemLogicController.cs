@@ -78,19 +78,21 @@ public partial class ArchipelagoItemLogicController : IService
         session.Items.ItemReceived -= Items_ItemReceived;
     }
 
-    private void Items_ItemReceived(ReceivedItemsHelper helper) =>
+    private void Items_ItemReceived(ReceivedItemsHelper helper)
+    {
         pendingItemIds.Enqueue(Capture(helper.DequeueItem()));
+    }
 
     /// <summary>
     /// Everything we need off the library's item DTO, taken here so nothing downstream depends on
     /// its exact shape.
     /// </summary>
     /// <remarks>
-    /// The sender is read at dequeue time rather than looked up later. An item's origin is on the
-    /// packet, and by the time the main thread processes the queue there is nothing left to ask.
+    /// The sender is read at dequeue time. An item's origin is on the packet, and by the time the
+    /// main thread processes the queue there is nothing left to ask.
     ///
-    /// It is null when the item came from our own world, so the popup reads "Received X" instead of
-    /// "Received X from yourself". That happened four times in one test run, because this world's
+    /// Null when the item came from our own world, so the popup reads "Received X" rather than
+    /// "Received X from yourself". That happened four times in one test run, since this world's
     /// own points and cards land on its own locations.
     /// </remarks>
     private PendingItem Capture(ItemInfo item)
@@ -110,7 +112,7 @@ public partial class ArchipelagoItemLogicController : IService
     {
         internal readonly long ItemId;
 
-        /// <summary>Who found it, or null when it was our own world.</summary>
+        // Who found it, or null when it was our own world
         internal readonly string SenderName;
 
         internal readonly bool IsTrap;
@@ -123,7 +125,7 @@ public partial class ArchipelagoItemLogicController : IService
         }
     }
 
-    /// <summary>Call once per frame from the main thread (see ArchipelagoPlugin.Update).</summary>
+    // Call once per frame from the main thread (see ArchipelagoPlugin.Update)
     public void ProcessQueue()
     {
         while (pendingItemIds.TryDequeue(out var item))
@@ -132,10 +134,10 @@ public partial class ArchipelagoItemLogicController : IService
         }
     }
 
-    /// <summary>Identifies this save+seed+slot in AppliedItemStore.</summary>
+    // Identifies this save+seed+slot in AppliedItemStore
     private string storeKey;
 
-    /// <summary>How many items have actually been granted to this save.</summary>
+    // How many items have actually been granted to this save
     private int appliedCount;
 
     /// <summary>
@@ -143,8 +145,8 @@ public partial class ArchipelagoItemLogicController : IService
     /// </summary>
     /// <remarks>
     /// The server resends the full history on connect and we have to drain it. Re-granting stacks
-    /// anything non-idempotent, Inventory.AddItem above all, which is what made reconnect-spamming
-    /// an infinite resource generator.
+    /// anything non-idempotent, Inventory.AddItem above all, which made reconnect-spamming an
+    /// infinite resource generator.
     /// </remarks>
     private int replaysRemaining;
 
@@ -161,7 +163,10 @@ public partial class ArchipelagoItemLogicController : IService
         var itemName = session.Items.GetItemName(itemId);
 
         var isReplay = replaysRemaining > 0;
-        if (isReplay) replaysRemaining--;
+        if (isReplay)
+        {
+            replaysRemaining--;
+        }
 
         if (!isReplay)
         {
@@ -200,17 +205,30 @@ public partial class ArchipelagoItemLogicController : IService
         // Matched by name, not id. The item -> upgrade mapping comes from slot data, which is
         // keyed by name, and that indirection is what keeps the two sides from drifting when
         // upgrades get added or reordered.
-        if (sermonService != null && sermonService.TryApplyItem(itemName)) return;
+        if (sermonService != null && sermonService.TryApplyItem(itemName))
+        {
+            return;
+        }
 
         // Idempotent too, since granting a card is a set Add, and it has to replay, because
         // TarotService empties the collection on connect and the item history is what rebuilds
         // it.
-        if (tarotService != null && tarotService.TryApplyItem(itemName)) return;
+        if (tarotService != null && tarotService.TryApplyItem(itemName))
+        {
+            return;
+        }
 
         // Idempotent for the same reason, and it has to replay. The granted set lives only in
         // memory, so the item history is the only thing that rebuilds it on connect.
-        if (weaponPoolService != null && weaponPoolService.TryApplyItem(itemName)) return;
-        if (cursePoolService != null && cursePoolService.TryApplyItem(itemName)) return;
+        if (weaponPoolService != null && weaponPoolService.TryApplyItem(itemName))
+        {
+            return;
+        }
+
+        if (cursePoolService != null && cursePoolService.TryApplyItem(itemName))
+        {
+            return;
+        }
 
         // Handles its own replay rule rather than sitting on either side of the line. Granting a
         // tech is a set Add and must replay, but granting an ability point is a counter and
@@ -229,7 +247,10 @@ public partial class ArchipelagoItemLogicController : IService
             return;
         }
 
-        if (FillerService.TryApplyItem(itemName)) return;
+        if (FillerService.TryApplyItem(itemName))
+        {
+            return;
+        }
 
         // Loud rather than silent. An unhandled item is one the player earned and didn't get,
         // and filler is about half of a seed, so a quiet drop here is the most likely way this

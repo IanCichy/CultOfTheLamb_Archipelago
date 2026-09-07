@@ -40,16 +40,16 @@ internal sealed class QuestGuideEntry
     /// </summary>
     internal string TermKey => "Objectives/Custom/" + (int)QuestType;
 
-    /// <summary>Which of the two groups this line belongs to (pinned, or log-only).</summary>
+    // Which of the two groups this line belongs to (pinned, or log-only)
     internal string GroupId { get; }
 
-    /// <summary>Short name for logs. Never shown to the player.</summary>
+    // Short name for logs. Never shown to the player
     internal string DebugName { get; }
 
-    /// <summary>Re-derived on every refresh. Current may exceed Target, and the service clamps.</summary>
+    // Re-derived on every refresh. Current may exceed Target, and the service clamps
     internal Func<(int Current, int Target)> Progress { get; }
 
-    /// <summary>(current, target) -> the line the player reads. Must contain no braces.</summary>
+    // (current, target) -> the line the player reads. Must contain no braces
     internal Func<int, int, string> BuildText { get; }
 
     internal QuestGuideEntry(
@@ -72,17 +72,16 @@ internal sealed class QuestGuideEntry
 /// region access, and one live-progress line per check block this seed switched on.
 /// </summary>
 /// <remarks>
-/// The game tells a player nothing about the seed they're in. The vanilla quest log fills with
-/// follower errands and never mentions the win condition, how many followers the multiworld
-/// wants, or which blocks are even active, so a new player has no way to tell what to aim for.
+/// The vanilla quest log fills with follower errands and never mentions the win condition, how
+/// many followers the multiworld wants, or which blocks are active.
 ///
-/// **Guidance only.** Every line is a read-only view over check state the mod already derives.
-/// Nothing here creates a location, sends a check, or affects generation.
+/// Guidance only. Every line is a read-only view over check state the mod already derives, and
+/// nothing here creates a location, sends a check, or affects generation.
 ///
-/// The mechanism is Objectives_Custom, added straight to ObjectiveManager (DcplIdx 5a).
-/// A brand-new ObjectivesData subclass would not serialize, because the [Union] list is closed
-/// and the save would break. Objectives_Custom is union member 8 and its CustomQuestType is an
-/// int-backed enum, so an out-of-range cast round-trips fine and gives us free identity.
+/// The mechanism is Objectives_Custom, added straight to ObjectiveManager (DcplIdx 5a). A new
+/// ObjectivesData subclass would not serialize, since the [Union] list is closed.
+/// Objectives_Custom is union member 8 and its CustomQuestType is an int-backed enum, so an
+/// out-of-range cast round-trips and gives us free identity.
 /// </remarks>
 internal class QuestGuideService : IService
 {
@@ -115,7 +114,7 @@ internal class QuestGuideService : IService
     private readonly GuideHudMode hudMode;
     private readonly List<QuestGuideEntry> entries;
 
-    /// <summary>Everything believed about the loaded save, dropped when it changes.</summary>
+    // Everything believed about the loaded save, dropped when it changes
     private void ForgetSave()
     {
         added = false;
@@ -124,7 +123,7 @@ internal class QuestGuideService : IService
         registeredOnce.Clear();
     }
 
-    /// <summary>Entries already reported complete, so CompleteCustomObjective runs once each.</summary>
+    // Entries already reported complete, so CompleteCustomObjective runs once each
     private readonly HashSet<int> completed = new();
 
     private int lastSaveSlot = -1;
@@ -163,7 +162,6 @@ internal class QuestGuideService : IService
         MainThreadQueue.Enqueue(SweepAll);
     }
 
-    /// <summary>Called on a throttle from the plugin's Update.</summary>
     internal void Tick()
     {
         var dataManager = DataManager.Instance;
@@ -181,7 +179,10 @@ internal class QuestGuideService : IService
         }
 
         // I2 comes up after the plugin does, so treat this as "not yet" and retry next tick.
-        if (!I2Terms.Ready) return;
+        if (!I2Terms.Ready)
+        {
+            return;
+        }
 
         RefreshCheckedSnapshot();
 
@@ -210,17 +211,30 @@ internal class QuestGuideService : IService
             }
             lastProgress[entry.TermKey] = (current, target);
 
-            if (!I2Terms.Register(entry.TermKey, entry.BuildText(current, target))) continue;
+            if (!I2Terms.Register(entry.TermKey, entry.BuildText(current, target)))
+            {
+                continue;
+            }
+
             textChanged = true;
         }
 
-        if (!added) EnsureObjectivesAdded(dataManager);
+        if (!added)
+        {
+            EnsureObjectivesAdded(dataManager);
+        }
 
         // Nothing of ours is tracked when pinning is off, so there is no HUD line to repaint.
         // The pause-menu log rebuilds from DataManager on open either way.
-        if (textChanged && hudMode != GuideHudMode.Off) RefreshTrackedText(dataManager);
+        if (textChanged && hudMode != GuideHudMode.Off)
+        {
+            RefreshTrackedText(dataManager);
+        }
 
-        if (satisfied != null) CompleteSatisfiedEntries(satisfied);
+        if (satisfied != null)
+        {
+            CompleteSatisfiedEntries(satisfied);
+        }
     }
 
     /// <summary>
@@ -232,17 +246,24 @@ internal class QuestGuideService : IService
     /// </summary>
     private readonly HashSet<long> checkedSnapshot = new();
 
-    /// <summary>Progress last rendered per line, so an unchanged tick composes no strings.</summary>
-    /// <summary>Last text pushed into each term, so a steady-state tick does no work.</summary>
+    // Progress last rendered per line, so an unchanged tick composes no strings
+    // Last text pushed into each term, so a steady-state tick does no work
     private readonly Dictionary<string, (int Current, int Target)> lastProgress = new();
 
-    /// <summary>Terms already registered whose text never changes.</summary>
+    // Terms already registered whose text never changes
     private readonly HashSet<string> registeredOnce = new();
 
     private void RegisterOnce(string key, string text)
     {
-        if (registeredOnce.Contains(key)) return;
-        if (I2Terms.Register(key, text)) registeredOnce.Add(key);
+        if (registeredOnce.Contains(key))
+        {
+            return;
+        }
+
+        if (I2Terms.Register(key, text))
+        {
+            registeredOnce.Add(key);
+        }
     }
 
     private void RefreshCheckedSnapshot()
@@ -250,10 +271,13 @@ internal class QuestGuideService : IService
         checkedSnapshot.Clear();
 
         var alreadyChecked = session?.Locations?.AllLocationsChecked;
-        if (alreadyChecked != null) checkedSnapshot.UnionWith(alreadyChecked);
+        if (alreadyChecked != null)
+        {
+            checkedSnapshot.UnionWith(alreadyChecked);
+        }
     }
 
-    /// <summary>A probe that throws must not take the tick, and therefore the guide, with it.</summary>
+    // A probe that throws must not take the tick, and therefore the guide, with it
     private (int Current, int Target) Probe(QuestGuideEntry entry)
     {
         try
@@ -276,7 +300,10 @@ internal class QuestGuideService : IService
         var present = new HashSet<Objectives.CustomQuestTypes>();
         foreach (var objective in AllOurObjectives(dataManager))
         {
-            if (objective is Objectives_Custom custom) present.Add(custom.CustomQuestType);
+            if (objective is Objectives_Custom custom)
+            {
+                present.Add(custom.CustomQuestType);
+            }
         }
 
         // Goal group first. ObjectiveManager.Add auto-tracks the first group when nothing else
@@ -284,7 +311,11 @@ internal class QuestGuideService : IService
         // OrderByDescending is a stable sort, so order within each group is preserved.
         foreach (var entry in entries.OrderByDescending(e => e.GroupId == GoalGroupId))
         {
-            if (present.Contains(entry.QuestType)) continue;
+            if (present.Contains(entry.QuestType))
+            {
+                continue;
+            }
+
             Add(entry);
         }
 
@@ -293,8 +324,15 @@ internal class QuestGuideService : IService
         // Add's free auto-track is not the tracking we want past the first group, so state it
         // explicitly. Done once, at add time. If the player later pins three other things and
         // evicts ours, that is their call, and they can re-pin from the quest log.
-        if (hudMode != GuideHudMode.Everything) Untrack(dataManager, ChecklistGroupId);
-        if (hudMode == GuideHudMode.Off) Untrack(dataManager, GoalGroupId);
+        if (hudMode != GuideHudMode.Everything)
+        {
+            Untrack(dataManager, ChecklistGroupId);
+        }
+
+        if (hudMode == GuideHudMode.Off)
+        {
+            Untrack(dataManager, GoalGroupId);
+        }
 
         Log.LogInfo($"[AP] Objective guide added to save slot {lastSaveSlot} "
             + $"({entries.Count - present.Count} new line(s), {present.Count} already present).");
@@ -320,7 +358,10 @@ internal class QuestGuideService : IService
     private static void Untrack(DataManager dataManager, string groupId)
     {
         var uniqueId = UniqueGroupIdFor(dataManager, groupId);
-        if (uniqueId != null) ObjectiveManager.UntrackGroup(uniqueId);
+        if (uniqueId != null)
+        {
+            ObjectiveManager.UntrackGroup(uniqueId);
+        }
     }
 
     /// <summary>
@@ -374,7 +415,10 @@ internal class QuestGuideService : IService
         // current by now, and Objectives_Custom.Text reads it live, so the next one to show is
         // right without help.
         var handler = ObjectiveUpdatedEvent.GetValue(null) as ObjectiveManager.ObjectiveUpdated;
-        if (handler == null) return;
+        if (handler == null)
+        {
+            return;
+        }
 
         foreach (var objective in AllOurObjectives(dataManager))
         {
@@ -388,7 +432,10 @@ internal class QuestGuideService : IService
     {
         foreach (var entry in satisfied)
         {
-            if (!completed.Add((int)entry.QuestType)) continue;
+            if (!completed.Add((int)entry.QuestType))
+            {
+                continue;
+            }
 
             // Sets ResultFollowerID to -1, which equals our TargetFollowerID, so CheckComplete
             // passes and the game plays its own tick-box animation for us.
@@ -399,7 +446,7 @@ internal class QuestGuideService : IService
 
     // ------------------------------------------------------------------ teardown
 
-    /// <summary>Save slot the idle sweep has already cleaned. See SweepLoadedSaveOnce.</summary>
+    // Save slot the idle sweep has already cleaned. See SweepLoadedSaveOnce
     private static int lastSweptSlot = -1;
 
     /// <summary>
@@ -419,7 +466,10 @@ internal class QuestGuideService : IService
             return;
         }
 
-        if (SaveSlot.Current == lastSweptSlot) return;
+        if (SaveSlot.Current == lastSweptSlot)
+        {
+            return;
+        }
 
         lastSweptSlot = SaveSlot.Current;
         SweepAll();
@@ -436,7 +486,10 @@ internal class QuestGuideService : IService
     internal static void SweepAll()
     {
         var dataManager = DataManager.Instance;
-        if (dataManager == null) return;
+        if (dataManager == null)
+        {
+            return;
+        }
 
         var uniqueIds = AllOurObjectives(dataManager)
             .Select(o => o.UniqueGroupID)
@@ -478,7 +531,7 @@ internal class QuestGuideService : IService
     private static int RemoveOursFinalized(List<ObjectivesDataFinalized> list) =>
         list?.RemoveAll(o => o != null && IsOurs(o.GroupId)) ?? 0;
 
-    /// <summary>Live and completed guide objectives. History lists hold a different type.</summary>
+    // Live and completed guide objectives. History lists hold a different type
     private static IEnumerable<ObjectivesData> AllOurObjectives(DataManager dataManager) =>
         (dataManager.Objectives ?? Enumerable.Empty<ObjectivesData>())
         .Concat(dataManager.CompletedObjectives ?? Enumerable.Empty<ObjectivesData>())
@@ -607,7 +660,11 @@ internal class QuestGuideService : IService
                 continue;
             }
 
-            if (sample == null) continue;
+            if (sample == null)
+            {
+                continue;
+            }
+
             if (sample.IndexOf('{') >= 0 || sample.IndexOf('}') >= 0 || sample.IndexOf('\n') >= 0)
             {
                 Log.LogError($"[AP] Objective guide line '{entry.DebugName}' contains a brace or "
@@ -626,7 +683,11 @@ internal class QuestGuideService : IService
         string countKey,
         Func<int, int, string> buildText)
     {
-        if (!SlotData.GetBool(slotData, toggleKey)) return;
+        if (!SlotData.GetBool(slotData, toggleKey))
+        {
+            return;
+        }
+
         AddSequentialBlock(target, slotData, id, debugName, baseIdKey, countKey, buildText);
     }
 
@@ -641,7 +702,10 @@ internal class QuestGuideService : IService
     {
         var baseId = SlotData.GetLong(slotData, baseIdKey);
         var count = (int)SlotData.GetLong(slotData, countKey);
-        if (count <= 0) return;
+        if (count <= 0)
+        {
+            return;
+        }
 
         var ids = Enumerable.Range(0, count).Select(i => baseId + i).ToList();
         AddIdList(target, id, debugName, ids, buildText);
@@ -654,7 +718,11 @@ internal class QuestGuideService : IService
         IReadOnlyList<long> ids,
         Func<int, int, string> buildText)
     {
-        if (ids == null || ids.Count == 0) return;
+        if (ids == null || ids.Count == 0)
+        {
+            return;
+        }
+
         target.Add(new QuestGuideEntry(id, ChecklistGroupId, debugName, () => CountChecked(ids), buildText));
     }
 
@@ -672,7 +740,10 @@ internal class QuestGuideService : IService
         var found = 0;
         for (var i = 0; i < ids.Count; i++)
         {
-            if (checkedSnapshot.Contains(ids[i])) found++;
+            if (checkedSnapshot.Contains(ids[i]))
+            {
+                found++;
+            }
         }
 
         return (found, ids.Count);

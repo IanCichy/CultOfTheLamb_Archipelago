@@ -10,17 +10,16 @@ namespace Archipelago.CultOfTheLamb;
 /// </summary>
 /// <remarks>
 /// The server replays a slot's entire item history on every connect, and the client must drain
-/// it or lose items received while disconnected. Re-applying it is only harmless for idempotent
-/// grants: Inventory.AddItem stacks, so before this existed spamming F5 was an infinite resource
-/// generator.
+/// it or lose items received while disconnected. Re-applying is only harmless for idempotent
+/// grants: Inventory.AddItem stacks, so before this existed spamming F5 was an infinite
+/// resource generator.
 ///
-/// The key includes the save slot as well as the AP seed and slot, because "already applied" is a
-/// property of the save file, not of the client install. It lives in a sidecar file rather than
-/// the game save, because DataManager is MessagePack-serialized with fixed [Key(N)] attributes.
+/// The key includes the save slot as well as the AP seed and slot, since "already applied" is a
+/// property of the save file rather than the client install. It lives in a sidecar file because
+/// DataManager is MessagePack-serialized with fixed [Key(N)] attributes.
 ///
-/// One known limitation. Reloading an earlier autosave of the same slot leaves the count ahead
-/// of what that save received, so those items are skipped. That is better than unbounded
-/// duplication, and it matches how most AP clients behave.
+/// Known limitation: reloading an earlier autosave of the same slot leaves the count ahead of
+/// what that save received, so those items are skipped.
 /// </remarks>
 internal static class AppliedItemStore
 {
@@ -40,7 +39,11 @@ internal static class AppliedItemStore
         try
         {
             var lines = new List<string>();
-            foreach (var entry in entries) lines.Add($"{entry.Key}={entry.Value}");
+            foreach (var entry in entries)
+            {
+                lines.Add($"{entry.Key}={entry.Value}");
+            }
+
             File.WriteAllLines(StorePath, lines.ToArray());
         }
         catch (Exception e)
@@ -51,18 +54,12 @@ internal static class AppliedItemStore
         }
     }
 
-    /// <summary>
-    /// Identity of "this playthrough": which save, on which seed, as which slot.
-    /// </summary>
-    /// <remarks>
-    /// Built from <see cref="SaveSlot.Current"/> rather than the raw SAVE_SLOT: the game parks a
-    /// Woolhaven save at slot+10 and moves SAVE_SLOT between the two while writing, so the raw
-    /// value can key the same save two different ways within one session. A key that misses reads
-    /// the count as 0 and re-applies the entire item history.
-    /// </remarks>
-    /// <param name="seed">The multiworld's seed name, or "noseed" when there isn't one.</param>
-    /// <param name="apSlot">The Archipelago slot this client is playing.</param>
-    /// <returns>The store key for the loaded save on this seed and slot.</returns>
+    // Identity of "this playthrough": which save, on which seed, as which slot.
+    //
+    // Built from SaveSlot.Current rather than the raw SAVE_SLOT. The game parks a Woolhaven
+    // save at slot+10 and moves SAVE_SLOT between the two while writing, so the raw value can
+    // key the same save two ways in one session. A key that misses reads the count as 0 and
+    // re-applies the entire item history
     internal static string BuildKey(string seed, int apSlot)
     {
         return $"save{SaveSlot.Current}:{seed ?? "noseed"}:{apSlot}";
@@ -73,12 +70,19 @@ internal static class AppliedItemStore
         var result = new Dictionary<string, int>();
         try
         {
-            if (!File.Exists(StorePath)) return result;
+            if (!File.Exists(StorePath))
+            {
+                return result;
+            }
 
             foreach (var line in File.ReadAllLines(StorePath))
             {
                 var split = line.LastIndexOf('=');
-                if (split <= 0) continue;
+                if (split <= 0)
+                {
+                    continue;
+                }
+
                 if (int.TryParse(line.Substring(split + 1), out var count))
                 {
                     result[line.Substring(0, split)] = count;

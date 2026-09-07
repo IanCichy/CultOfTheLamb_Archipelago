@@ -10,20 +10,13 @@ namespace Archipelago.CultOfTheLamb.Console;
 /// keybinds. The bodies live in DebugActions and ArchipelagoPlugin does the wiring.
 /// </summary>
 /// <remarks>
-/// **A normal build has exactly one key. F9 dumps state to the log.** Every other binding
-/// is behind the AP_DEBUG_KEYS compile constant, set only in the gitignored
-/// Directory.Build.props.user, so a clean checkout, a tester's build and any release build can't
-/// press them. The DebugActions bodies still compile in. It's the bindings that are gated, so
-/// the accurate claim is "unreachable", not "absent".
+/// A normal build has exactly one key: F9 dumps state to the log. Every other binding is behind
+/// the AP_DEBUG_KEYS compile constant, set only in the gitignored Directory.Build.props.user.
+/// The DebugActions bodies still compile in, so the gated keys are unreachable, not absent.
 ///
-/// One key on purpose. The entire instruction a tester needs is "press F9 and send the log", every
-/// extra binding is something to press by accident and report as a bug, and connecting doesn't need
-/// a key at all since the panel is on both menus.
-///
-/// That matters because six of the gated keys write real state and three reach the server. Ctrl+F2
-/// could report a false victory on a Bishops seed, F3 pays out a sermon check, and F8 unlocks a
-/// tarot card that TarotService then sends. In a shared multiworld those corrupt other people's
-/// games, and testers press keys without reading what they do.
+/// Six of the gated keys write real state and three reach the server. Ctrl+F2 can report a
+/// false victory on a Bishops seed, F3 pays out a sermon check, and F8 unlocks a tarot card that
+/// TarotService then sends, which in a shared multiworld corrupts other people's games.
 /// </remarks>
 internal static class DebugCommands
 {
@@ -180,7 +173,10 @@ internal static class DebugCommands
     /// </summary>
     private static void Fire(ConfigEntry<KeyboardShortcut> key, Action handler)
     {
-        if (key == null || !key.Value.IsDown()) return;
+        if (key == null || !key.Value.IsDown())
+        {
+            return;
+        }
 
         try
         {
@@ -201,6 +197,6 @@ internal static class DebugCommands
     /// </summary>
     internal static event Action OnQuestGuideKeyPressed;
 
-    /// <summary>Ctrl+F2. Needs the ArchipelagoClient to re-check the goal after writing.</summary>
+    // Ctrl+F2. Needs the ArchipelagoClient to re-check the goal after writing
     internal static event Action OnCompleteBishopsKeyPressed;
 }

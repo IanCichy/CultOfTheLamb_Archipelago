@@ -21,7 +21,7 @@ internal class BuildingService : IService
 {
     private readonly ArchipelagoSession session;
 
-    /// <summary>Structure -> the check its first construction sends.</summary>
+    // Structure -> the check its first construction sends
     private readonly Dictionary<StructureBrain.TYPES, long> structureToCheckId;
 
     internal BuildingService(
@@ -41,25 +41,25 @@ internal class BuildingService : IService
         Log.LogInfo($"[AP] Building checks active: {structureToCheckId.Count} structure(s) mapped.");
     }
 
-    public void Unregister() => StructureBuildPatch.Built = null;
+    public void Unregister()
+    {
+        StructureBuildPatch.Built = null;
+    }
 
     private void OnBuilt(StructureBrain.TYPES type)
     {
-        if (!structureToCheckId.TryGetValue(type, out var checkId)) return;
+        if (!structureToCheckId.TryGetValue(type, out var checkId))
+        {
+            return;
+        }
 
         Log.LogInfo($"[AP] Built {type} - sending check {checkId}.");
         CheckSender.Send(session, checkId);
     }
 
-    /// <summary>
-    /// Sends a check for every managed structure already standing.
-    ///
-    /// The game keeps a first-built record only for *decorations*
-    /// (DataManager.DecorationTypesBuilt), and none of these are decorations, so "have you ever
-    /// built one" has to be answered by looking at what exists right now. That means a building
-    /// demolished before connecting is missed, which is the right way round: CheckSender makes
-    /// re-sends free, so the check lands whenever one is standing at any future connect.
-    /// </summary>
+    // DataManager.DecorationTypesBuilt records first-built for decorations only, and none of
+    // these are decorations, so this reads what is standing right now. A building demolished
+    // before connecting is missed until one is standing at a later connect.
     private void SendChecksForExisting()
     {
         var pending = new List<long>();
@@ -71,7 +71,10 @@ internal class BuildingService : IService
             try
             {
                 var standing = StructureManager.GetAllStructuresOfType(pair.Key);
-                if (standing != null && standing.Count > 0) pending.Add(pair.Value);
+                if (standing != null && standing.Count > 0)
+                {
+                    pending.Add(pair.Value);
+                }
             }
             catch (Exception e)
             {
@@ -82,11 +85,8 @@ internal class BuildingService : IService
         CheckSender.Send(session, pending);
     }
 
-    /// <summary>
-    /// StructureBrain.TYPES name -> location id, from "buildingLocations". Names this build of
-    /// the game doesn't recognise are dropped with a warning, because losing one check beats
-    /// losing the connection.
-    /// </summary>
+    // StructureBrain.TYPES name -> location id, from "buildingLocations". Unrecognised names
+    // are dropped with a warning
     internal static Dictionary<StructureBrain.TYPES, long> ParseLocations(
         IReadOnlyDictionary<string, object> slotData)
     {
@@ -121,7 +121,7 @@ internal class BuildingService : IService
         return result;
     }
 
-    /// <summary>What F9 prints.</summary>
+    // For debugging, F9 prints
     internal string DescribeState()
     {
         var standing = structureToCheckId.Keys

@@ -26,8 +26,15 @@ internal static class BaseDungeonDoorPatch
     [HarmonyPrefix]
     private static void OnEnableInteraction_Prefix(Interaction_BaseDungeonDoor __instance)
     {
-        if (!RegionLockState.IsLockedByArchipelago(__instance.Location)) return;
-        if (DataManager.Instance == null) return;
+        if (!RegionLockState.IsLockedByArchipelago(__instance.Location))
+        {
+            return;
+        }
+
+        if (DataManager.Instance == null)
+        {
+            return;
+        }
 
         if (DataManager.Instance.UnlockedDungeonDoor.Remove(__instance.Location))
         {
@@ -35,13 +42,16 @@ internal static class BaseDungeonDoorPatch
         }
     }
 
-    /// <summary>Refuses the open-the-door interaction entirely while AP has it locked.</summary>
-    /// <returns>false to skip the original, so the open ritual never starts.</returns>
+    // Refuses the open-the-door interaction entirely while AP has it locked. Returns false to
+    // skip the original, so the open ritual never starts
     [HarmonyPatch("OnInteract")]
     [HarmonyPrefix]
     private static bool OnInteract_Prefix(Interaction_BaseDungeonDoor __instance)
     {
-        if (!RegionLockState.IsLockedByArchipelago(__instance.Location)) return true;
+        if (!RegionLockState.IsLockedByArchipelago(__instance.Location))
+        {
+            return true;
+        }
 
         Log.LogInfo($"[AP] Blocked opening {__instance.Location} - locked by Archipelago.");
         // Same negative-feedback cue vanilla uses when the follower requirement isn't met,

@@ -8,25 +8,19 @@ namespace Archipelago.CultOfTheLamb.UI;
 /// Shared behaviour for the mod's IMGUI windows.
 /// </summary>
 /// <remarks>
-/// That covers open/close, the design-height scale, freezing the player while a window is up, and
+/// Covers open/close, the design-height scale, freezing the player while a window is up, and
 /// suspending the game's EventSystem so clicks don't fall through to the menu behind.
 ///
-/// All of this was written for the connect panel and is unchanged here. It moved out only when a
-/// second window, the upgrades panel, needed the same handling, since two copies of the
-/// freeze/suspend pairing is exactly the kind of thing that drifts.
+/// Written for the connect panel, and moved out when the upgrades panel needed the same
+/// handling. Two copies of the freeze/suspend pairing would drift.
 /// </remarks>
 internal abstract class ApPanelBase
 {
-    /// <summary>
-    /// The distinct constant that identifies this window to IMGUI.
-    /// </summary>
-    /// <remarks>
-    /// IMGUI identifies windows by an int the caller picks, and two windows sharing one id fight
-    /// over position and focus, so every subclass must return a value of its own.
-    /// </remarks>
+    // IMGUI identifies windows by an int the caller picks, and two windows sharing one id fight
+    // over position and focus, so every subclass must return a value of its own
     protected abstract int WindowId { get; }
 
-    /// <summary>Title bar text, and the drag handle.</summary>
+    // Title bar text, and the drag handle
     protected abstract string Title { get; }
 
     protected abstract void DrawContents(int id);
@@ -50,15 +44,29 @@ internal abstract class ApPanelBase
 
     internal void Toggle()
     {
-        if (IsOpen) Close();
-        else Open();
+        if (IsOpen)
+        {
+            Close();
+        }
+        else
+        {
+            Open();
+        }
     }
 
     internal void Open()
     {
-        if (IsOpen) return;
+        if (IsOpen)
+        {
+            return;
+        }
+
         IsOpen = true;
-        if (host != null) host.enabled = true;
+        if (host != null)
+        {
+            host.enabled = true;
+        }
+
         FreezePlayer();
         SuspendGameUi();
         OnOpened();
@@ -66,30 +74,29 @@ internal abstract class ApPanelBase
 
     internal void Close()
     {
-        if (!IsOpen) return;
+        if (!IsOpen)
+        {
+            return;
+        }
+
         IsOpen = false;
-        if (host != null) host.enabled = false;
+        if (host != null)
+        {
+            host.enabled = false;
+        }
+
         UnfreezePlayer();
         RestoreGameUi();
     }
 
-    /// <summary>
-    /// Hook for work that should happen once per opening rather than per frame, such as
-    /// rebuilding a cached view of game state.
-    /// </summary>
-    /// <remarks>Does nothing by default.</remarks>
+    // Work that should happen once per opening rather than per frame, such as rebuilding a
+    // cached view of game state. Does nothing by default
     protected virtual void OnOpened()
     {
     }
 
-    /// <summary>
-    /// Attaches this panel to the <see cref="ApPanelHost"/> whose OnGUI draws it.
-    /// </summary>
-    /// <param name="host">The component that will draw this panel.</param>
-    /// <remarks>
-    /// The host is disabled whenever the panel is closed, so Unity's IMGUI dispatch costs nothing
-    /// for the ~99% of a session the panel isn't up.
-    /// </remarks>
+    // Attaches this panel to the ApPanelHost whose OnGUI draws it. The host is disabled whenever
+    // the panel is closed, so IMGUI dispatch costs nothing while it isn't up
     internal void AttachTo(ApPanelHost host)
     {
         this.host = host;
@@ -97,10 +104,13 @@ internal abstract class ApPanelBase
         host.enabled = IsOpen;
     }
 
-    /// <summary>Called from the host's OnGUI.</summary>
+    // Called from the host's OnGUI
     internal void Draw()
     {
-        if (!IsOpen) return;
+        if (!IsOpen)
+        {
+            return;
+        }
 
         var scale = Screen.height / DesignHeight;
         var previousMatrix = GUI.matrix;
@@ -114,27 +124,19 @@ internal abstract class ApPanelBase
         GUI.matrix = previousMatrix;
     }
 
-    /// <summary>
-    /// Whether there's a loaded save underneath.
-    /// </summary>
-    /// <remarks>
-    /// Connecting replays item history into save state and unlocks regions through DataManager;
-    /// the upgrade trees likewise only exist once a save is up. At the main menu neither can do
-    /// its job.
-    /// </remarks>
+    // Connecting replays item history into save state and unlocks regions through DataManager,
+    // and the upgrade trees only exist once a save is up. At the main menu neither works
     protected static bool HasLoadedSave() =>
         DataManager.Instance != null && PlayerFarming.Instance != null;
 
-    /// <summary>
-    /// Stops the lamb reacting to typing.
-    /// </summary>
-    /// <remarks>
-    /// Without it, entering a slot name walks the player across the room and can trigger
-    /// interactions.
-    /// </remarks>
+    // Without this, entering a slot name walks the player across the room and can trigger
+    // interactions
     private void FreezePlayer()
     {
-        if (PlayerFarming.Instance == null) return;
+        if (PlayerFarming.Instance == null)
+        {
+            return;
+        }
 
         try
         {
@@ -149,10 +151,17 @@ internal abstract class ApPanelBase
 
     private void UnfreezePlayer()
     {
-        if (!frozePlayer) return;
+        if (!frozePlayer)
+        {
+            return;
+        }
+
         frozePlayer = false;
 
-        if (PlayerFarming.Instance == null) return;
+        if (PlayerFarming.Instance == null)
+        {
+            return;
+        }
 
         try
         {
@@ -164,20 +173,17 @@ internal abstract class ApPanelBase
         }
     }
 
-    /// <summary>
-    /// Switches off Unity's EventSystem while the panel is up.
-    /// </summary>
-    /// <remarks>
-    /// IMGUI and the game's UI take input through completely separate paths, so a click inside
-    /// this window also lands on whatever menu button sits behind it, and the panel is usually
-    /// opened from the pause menu, which is exactly where that would happen. Turning the
-    /// EventSystem off makes the menu behind inert until the panel closes, and stops arrow keys
-    /// walking its selection while you type.
-    /// </remarks>
+    // IMGUI and the game's UI take input through separate paths, so a click inside this window
+    // also lands on whatever menu button sits behind it, and the panel is usually opened from
+    // the pause menu. Switching the EventSystem off makes the menu behind inert and stops arrow
+    // keys walking its selection while you type
     private void SuspendGameUi()
     {
         var eventSystem = EventSystem.current;
-        if (eventSystem == null || !eventSystem.enabled) return;
+        if (eventSystem == null || !eventSystem.enabled)
+        {
+            return;
+        }
 
         eventSystem.enabled = false;
         suspendedEventSystem = eventSystem;
@@ -185,7 +191,10 @@ internal abstract class ApPanelBase
 
     private void RestoreGameUi()
     {
-        if (suspendedEventSystem == null) return;
+        if (suspendedEventSystem == null)
+        {
+            return;
+        }
 
         suspendedEventSystem.enabled = true;
         suspendedEventSystem = null;

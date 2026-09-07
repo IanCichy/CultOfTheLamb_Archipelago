@@ -18,5 +18,8 @@ internal static class EnemyDeathCatBossPatch
 {
     internal static event Action OnNarinderDefeated;
 
-    private static void Postfix() => OnNarinderDefeated?.Invoke();
+    private static void Postfix()
+    {
+        OnNarinderDefeated?.Invoke();
+    }
 }

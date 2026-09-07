@@ -18,7 +18,7 @@ namespace Archipelago.CultOfTheLamb.Patches;
 [HarmonyPatch]
 internal static class ShopSlotDisplayPatch
 {
-    /// <summary>Raised once per shop after its slots have been filled in.</summary>
+    // Raised once per shop after its slots have been filled in
     internal static event Action<shopKeeperManager> OnShopInitialised;
 
     /// <summary>
@@ -39,7 +39,10 @@ internal static class ShopSlotDisplayPatch
     /// </summary>
     internal static void ReplaceLabel(Interaction_BuyItem buyItem, string label)
     {
-        if (buyItem == null || string.IsNullOrEmpty(label)) return;
+        if (buyItem == null || string.IsNullOrEmpty(label))
+        {
+            return;
+        }
 
         LabelField(buyItem) = label;
     }
@@ -60,7 +63,10 @@ internal static class ShopSlotDisplayPatch
     // branches on the TarotCardShop flag). Private, which Harmony doesn't care about.
     [HarmonyPatch(typeof(shopKeeperManager), "InitTarotShop")]
     [HarmonyPrefix]
-    private static void InitTarotShop_Prefix() => initialisingTarotShop = true;
+    private static void InitTarotShop_Prefix()
+    {
+        initialisingTarotShop = true;
+    }
 
     [HarmonyPatch(typeof(shopKeeperManager), "InitTarotShop")]
     [HarmonyPostfix]
@@ -77,29 +83,38 @@ internal static class ShopSlotDisplayPatch
     /// </summary>
     [HarmonyPatch(typeof(shopKeeperManager), "InitTarotShop")]
     [HarmonyFinalizer]
-    private static void InitTarotShop_Finalizer() => initialisingTarotShop = false;
+    private static void InitTarotShop_Finalizer()
+    {
+        initialisingTarotShop = false;
+    }
 
     /// <summary>
     /// Decides which tarot slots a shop puts out, by answering the one question it asks.
     /// </summary>
     /// <remarks>
-    /// InitTarotShop shows a slot only if the player doesn't own its card, which is the only
-    /// state a tarot purchase writes. Once these slots became AP checks that answer was wrong
-    /// both ways. A card granted by the multiworld made the slot vanish and stranded its
-    /// location, and a sent check left the slot buyable again on every visit for nothing.
+    /// InitTarotShop shows a slot only if the player doesn't own its card, the only state a tarot
+    /// purchase writes. Once these slots became AP checks that was wrong both ways: a card
+    /// granted by the multiworld made the slot vanish and stranded its location, and a sent
+    /// check left the slot buyable again on every visit.
     ///
-    /// So the answer comes from the location's state instead, and overriding this one call rather
-    /// than rebuilding slots afterwards keeps the game's own initialisation, meaning cost,
-    /// quantity, prefab wiring and sold-out signs.
+    /// The answer comes from the location's state instead. Overriding this one call rather than
+    /// rebuilding slots afterwards keeps the game's own initialisation: cost, quantity, prefab
+    /// wiring, sold-out signs.
     /// </remarks>
     [HarmonyPatch(typeof(DataManager), nameof(DataManager.TrinketUnlocked))]
     [HarmonyPrefix]
     private static bool TrinketUnlocked_Prefix(TarotCards.Card card, ref bool __result)
     {
-        if (!initialisingTarotShop || SlotIsSpent == null) return true;
+        if (!initialisingTarotShop || SlotIsSpent == null)
+        {
+            return true;
+        }
 
         var spent = SlotIsSpent(card);
-        if (!spent.HasValue) return true;
+        if (!spent.HasValue)
+        {
+            return true;
+        }
 
         __result = spent.Value;
         return false;
@@ -139,20 +154,32 @@ internal static class ShopSlotDisplayPatch
         OnTarotDisplayBuilt?.Invoke(__instance, DisplayCardField(__instance));
     }
 
-    /// <summary>Overwrites the floating panel's three lines. Null leaves a line as it was.</summary>
+    // Overwrites the floating panel's three lines. Null leaves a line as it was
     internal static void SetTarotDisplayText(
         UITarotDisplay display, string title, string lore, string description)
     {
-        if (display == null) return;
+        if (display == null)
+        {
+            return;
+        }
 
         var titleText = DisplayTitleField(display);
-        if (titleText != null && title != null) titleText.text = title;
+        if (titleText != null && title != null)
+        {
+            titleText.text = title;
+        }
 
         var loreText = DisplayLoreField(display);
-        if (loreText != null && lore != null) loreText.text = lore;
+        if (loreText != null && lore != null)
+        {
+            loreText.text = lore;
+        }
 
         var descriptionText = DisplayDescriptionField(display);
-        if (descriptionText != null && description != null) descriptionText.text = description;
+        if (descriptionText != null && description != null)
+        {
+            descriptionText.text = description;
+        }
     }
 
     // Cards whose next unlock belongs to the multiworld, with the time each entry goes stale.
@@ -179,11 +206,17 @@ internal static class ShopSlotDisplayPatch
     /// </summary>
     internal static bool ConsumeSuppressedUnlock(TarotCards.Card card)
     {
-        if (!suppressedUnlocks.TryGetValue(card, out var expiresAt)) return false;
+        if (!suppressedUnlocks.TryGetValue(card, out var expiresAt))
+        {
+            return false;
+        }
 
         suppressedUnlocks.Remove(card);
 
-        if (Time.unscaledTime <= expiresAt) return true;
+        if (Time.unscaledTime <= expiresAt)
+        {
+            return true;
+        }
 
         Log.LogInfo($"[AP] Stale unlock suppression for {card} - treating it as earned normally.");
         return false;

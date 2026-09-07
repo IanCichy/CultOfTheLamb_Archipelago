@@ -24,12 +24,22 @@ internal static class SermonTreeViewerPatch
     [HarmonyPrefix]
     private static bool OnCancelButtonInput_Prefix(UIUpgradePlayerTreeMenuController __instance)
     {
-        if (!ReferenceEquals(__instance, SermonTreeViewer.Viewer)) return true;
+        if (!ReferenceEquals(__instance, SermonTreeViewer.Viewer))
+        {
+            return true;
+        }
 
         // The same guards the base class uses. Cancelling mid-fade would call Hide before the show
         // coroutine finishes and leave the menu up with navigation still locked.
-        if (__instance.IsShowing || __instance.IsHiding) return false;
-        if (__instance.CanvasGroup == null || !__instance.CanvasGroup.interactable) return false;
+        if (__instance.IsShowing || __instance.IsHiding)
+        {
+            return false;
+        }
+
+        if (__instance.CanvasGroup == null || !__instance.CanvasGroup.interactable)
+        {
+            return false;
+        }
 
         __instance.Hide(false);
         return false;
@@ -42,14 +52,13 @@ internal static class SermonTreeViewerPatch
     /// Adds the upgrade's description under its name on the focused node.
     /// </summary>
     /// <remarks>
-    /// The card is the label the player actually sees. UpgradeTreeNodeInfoCard.Configure writes
+    /// The card is the label the player sees. UpgradeTreeNodeInfoCard.Configure writes
     /// GetLocalizedName into it on every selection. UpgradeTreeNode's own `_title` is a different
     /// object that isn't what renders here, which is why setting that one changed nothing.
     ///
-    /// A postfix rather than pre-setting the text, because Configure re-writes it on every
-    /// selection, so appending afterwards is the only thing that survives. Vanilla puts the
-    /// description in the hold-to-confirm overlay, which a read-only viewer never opens, so
-    /// without this there is nowhere to learn what an upgrade does.
+    /// A postfix, because Configure re-writes the text on every selection, so appending
+    /// afterwards is the only thing that survives. Vanilla puts the description in the
+    /// hold-to-confirm overlay, which a read-only viewer never opens.
     /// </remarks>
     [HarmonyPatch(typeof(UpgradeTreeNodeInfoCard), nameof(UpgradeTreeNodeInfoCard.Configure))]
     [HarmonyPostfix]
@@ -57,14 +66,21 @@ internal static class SermonTreeViewerPatch
     {
         // Only our viewer's card. The same component serves the Divine Inspiration and Woolhaven
         // trees, which are the game's own and should read as the game wrote them.
-        if (SermonTreeViewer.Viewer == null || node == null) return;
+        if (SermonTreeViewer.Viewer == null || node == null)
+        {
+            return;
+        }
+
         if (__instance.GetComponentInParent<UIUpgradePlayerTreeMenuController>() != SermonTreeViewer.Viewer)
         {
             return;
         }
 
         var label = CardName(__instance);
-        if (label == null) return;
+        if (label == null)
+        {
+            return;
+        }
 
         string description;
         try
@@ -77,7 +93,10 @@ internal static class SermonTreeViewerPatch
             return;
         }
 
-        if (string.IsNullOrEmpty(description)) return;
+        if (string.IsNullOrEmpty(description))
+        {
+            return;
+        }
 
         // The card is authored for a single short name, so a description needs somewhere to go.
         label.enableWordWrapping = true;

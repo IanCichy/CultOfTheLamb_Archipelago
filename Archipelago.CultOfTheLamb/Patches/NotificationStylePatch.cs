@@ -12,10 +12,10 @@ namespace Archipelago.CultOfTheLamb.Patches;
 /// </summary>
 /// <remarks>
 /// Both changes land here rather than at the call site because
-/// NotificationCentre.PlayGenericNotification is fire-and-forget. It starts a coroutine that
-/// waits for the HUD to be willing to show anything before spawning the popup, so there is no
-/// instance to configure at the moment we ask for one. Configure is the first point the object
-/// exists, and it is also the only place the loc key and the instance are in scope together.
+/// NotificationCentre.PlayGenericNotification is fire-and-forget: it starts a coroutine that
+/// waits for the HUD before spawning the popup, so there is no instance to configure when we
+/// ask. Configure is the first point the object exists, and the only place the loc key and the
+/// instance are in scope together.
 /// </remarks>
 [HarmonyPatch]
 internal static class NotificationStylePatch
@@ -59,7 +59,10 @@ internal static class NotificationStylePatch
         // A postfix specifically: NotificationBase.Configure resets _overrideScreenDuration to
         // -1f as its first statement, so setting the override any earlier would be thrown away.
         // Non-AP popups are left on that reset value, which is the vanilla 3s path.
-        if (mine) __instance.SetOverrideShowDuration(OnScreenSeconds);
+        if (mine)
+        {
+            __instance.SetOverrideShowDuration(OnScreenSeconds);
+        }
 
         // The colour the message asked for, or the default AP green when it didn't. Carried on
         // a side table keyed by loc key, because Configure is handed the key and nothing else.
@@ -87,7 +90,10 @@ internal static class NotificationStylePatch
             return;
         }
 
-        if (flair == null) return;
+        if (flair == null)
+        {
+            return;
+        }
 
         // Notifications are spawned with SpawnUI into the notification container, so the glow is
         // uGUI (Image, or a TMP label) rather than a SpriteRenderer. Inactive included because
@@ -107,9 +113,15 @@ internal static class NotificationStylePatch
 
         foreach (var graphic in graphics)
         {
-            if (graphic == null) continue;
+            if (graphic == null)
+            {
+                continue;
+            }
 
-            if (!originalColours.ContainsKey(graphic)) originalColours[graphic] = graphic.color;
+            if (!originalColours.ContainsKey(graphic))
+            {
+                originalColours[graphic] = graphic.color;
+            }
 
             graphic.color = glow ?? originalColours[graphic];
         }

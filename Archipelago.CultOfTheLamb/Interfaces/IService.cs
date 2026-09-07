@@ -7,7 +7,7 @@ interface IService
     /// that happened while disconnected if implemented in the service.
     /// </summary>
     /// <remarks>
-    /// Catch up may read the games own save, but must not read anything Archipelago has granted.
+    /// Catch up may read the game's own save, but must not read anything Archipelago has granted.
     ///
     /// Services register in sequence on connect, and nothing has been applied by the time they run.
     /// ArchipelagoItemLogicController registers alongside the others, but its Register only drains

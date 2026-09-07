@@ -13,19 +13,18 @@ namespace Archipelago.CultOfTheLamb.Patches;
 /// Puts an "Archipelago" entry in the pause menu and the main menu.
 /// </summary>
 /// <remarks>
-/// Both menus wire their buttons the same way in their own Start(), with a serialized MMButton
-/// per entry, each given an onClick listener. So the cheapest correct way to add one is to clone
-/// a button that already exists. A clone inherits the prefab's styling, layout and hover
-/// behaviour, none of which we could reproduce by hand without an asset pipeline.
+/// Both menus wire their buttons the same way in their own Start(), a serialized MMButton per
+/// entry with an onClick listener, so a clone of an existing button is the cheapest correct way
+/// to add one. A clone inherits the prefab's styling, layout and hover behaviour.
 ///
-/// The pause menu is the one that matters. It's the only entry point guaranteed to be at a
-/// loaded save, which is the only place connecting can actually finish (see the panel's
-/// CanConnectHere). The main menu one is a convenience for entering details early.
+/// The pause menu is the one that matters: it's the only entry point guaranteed to be at a
+/// loaded save, which is the only place connecting can finish (see the panel's CanConnectHere).
+/// The main menu one is a convenience for entering details early.
 /// </remarks>
 [HarmonyPatch]
 internal static class MenuButtonPatch
 {
-    /// <summary>Raised when the player picks Archipelago from either menu.</summary>
+    // Raised when the player picks Archipelago from either menu
     internal static event Action OnArchipelagoButtonPressed;
 
     private const string ButtonName = "ArchipelagoButton";
@@ -83,11 +82,17 @@ internal static class MenuButtonPatch
         }
 
         var parent = donor.transform.parent;
-        if (parent == null) return;
+        if (parent == null)
+        {
+            return;
+        }
 
         // Start can run again on a menu that was rebuilt, and a second button would be worse
         // than none.
-        if (parent.Find(ButtonName) != null) return;
+        if (parent.Find(ButtonName) != null)
+        {
+            return;
+        }
 
         var clone = UnityEngine.Object.Instantiate(donor.gameObject, parent);
         clone.name = ButtonName;
@@ -102,7 +107,10 @@ internal static class MenuButtonPatch
         button.onClick.AddListener(() => OnArchipelagoButtonPressed?.Invoke());
 
         SetLabel(clone, ButtonLabel);
-        if (donorHasGlyph) SetIcon(clone, where);
+        if (donorHasGlyph)
+        {
+            SetIcon(clone, where);
+        }
 
         Log.LogInfo($"[AP] Added the Archipelago button to the {where}.");
     }
@@ -119,13 +127,23 @@ internal static class MenuButtonPatch
     private static void SetIcon(GameObject button, string where)
     {
         var icon = ApAssets.IconSprite();
-        if (icon == null) return;
+        if (icon == null)
+        {
+            return;
+        }
 
         var replacedAny = false;
         foreach (var image in button.GetComponentsInChildren<Image>(true))
         {
-            if (image.sprite == null) continue;
-            if (image.sprite.name.IndexOf("twitch", StringComparison.OrdinalIgnoreCase) < 0) continue;
+            if (image.sprite == null)
+            {
+                continue;
+            }
+
+            if (image.sprite.name.IndexOf("twitch", StringComparison.OrdinalIgnoreCase) < 0)
+            {
+                continue;
+            }
 
             image.sprite = icon;
             // The AP logo isn't the same shape as the glyph it replaces, and the slot it sits

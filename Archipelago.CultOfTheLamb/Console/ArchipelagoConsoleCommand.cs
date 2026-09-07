@@ -5,9 +5,9 @@ namespace Archipelago.CultOfTheLamb.Console;
 /// them.
 /// </summary>
 /// <remarks>
-/// A trigger can be the in-game UI button, a debug keybind, or a real dev console if COTL_API or
-/// the game exposes one. Kept separate from ArchipelagoClient so the trigger source can change
-/// without touching connection logic.
+/// A trigger can be the in-game UI button, a debug keybind, or a real dev console if COTL_API
+/// exposes one. Separate from ArchipelagoClient so the trigger source can change without
+/// touching connection logic.
 /// </remarks>
 public static class ArchipelagoConsoleCommand
 {
@@ -20,10 +20,18 @@ public static class ArchipelagoConsoleCommand
     public delegate void ArchipelagoReconnectCommandCalled();
     public static event ArchipelagoReconnectCommandCalled OnArchipelagoReconnectCommandCalled;
 
-    public static void Connect(string url, int port, string slot, string password) =>
+    public static void Connect(string url, int port, string slot, string password)
+    {
         OnArchipelagoCommandCalled?.Invoke(url, port, slot, password);
+    }
 
-    public static void Disconnect() => OnArchipelagoDisconnectCommandCalled?.Invoke();
+    public static void Disconnect()
+    {
+        OnArchipelagoDisconnectCommandCalled?.Invoke();
+    }
 
-    public static void Reconnect() => OnArchipelagoReconnectCommandCalled?.Invoke();
+    public static void Reconnect()
+    {
+        OnArchipelagoReconnectCommandCalled?.Invoke();
+    }
 }

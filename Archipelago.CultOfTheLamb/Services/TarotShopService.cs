@@ -9,16 +9,14 @@ namespace Archipelago.CultOfTheLamb.Services;
 /// </summary>
 /// <remarks>
 /// Every hub sells a fixed, named set of cards rather than randomised stock, so each purchase is
-/// a stable location, 14 across the four hubs. The mapping comes from slot data, keyed by *enum*
-/// name because that's what a BuyEntry exposes and display names are nothing like it ("The Burning
-/// Dead" is Skull).
+/// a stable location, 14 across the four hubs. Keyed by enum name, which is what a BuyEntry
+/// exposes ("The Burning Dead" is Skull).
 ///
-/// **No catch-up is possible, and a card bought while disconnected is lost for good.** Unlike the
-/// other check sources there is nothing in save data to re-derive from: DataManager.Shops does
-/// persist BuyEntry.Bought, but the tarot branch of Interaction_BuyItem.Activate spawns a
-/// TarotCustomTarget and returns before any Bought = true / UpdateShop call, so a tarot slot
-/// leaves no trace at all. The card landing in PlayerFoundTrinkets is the only evidence, and that
-/// can't be told apart from a card Archipelago itself granted. See TarotService.
+/// No catch-up is possible, and a card bought while disconnected is lost for good. There is
+/// nothing in save data to re-derive from: DataManager.Shops persists BuyEntry.Bought, but the
+/// tarot branch of Interaction_BuyItem.Activate spawns a TarotCustomTarget and returns before
+/// any Bought = true / UpdateShop call, so a tarot slot leaves no trace. The card landing in
+/// PlayerFoundTrinkets is the only evidence, and that can't be told apart from an AP grant.
 /// </remarks>
 internal class TarotShopService : IService
 {
@@ -45,7 +43,10 @@ internal class TarotShopService : IService
     private void HandleItemPurchased(BuyEntry entry)
     {
         // Decorations and plain items flow through the same patch. Only cards are locations.
-        if (entry == null || !entry.TarotCard) return;
+        if (entry == null || !entry.TarotCard)
+        {
+            return;
+        }
 
         var cardName = entry.Card.ToString();
         if (!cardToCheckId.TryGetValue(cardName, out var checkId))

@@ -7,40 +7,35 @@ namespace Archipelago.CultOfTheLamb.Patches;
 /// Restricts what weapons and curses the game may offer, and reports what the player equipped.
 /// </summary>
 /// <remarks>
-/// The save data is never touched, which is the opposite of TarotService. Emptying WeaponPool
-/// doesn't withhold anything: GetRandomWeaponInPool opens with a ladder that hands over the
-/// first weapon you don't own on the first floor of every run, so a revoked weapon is
-/// force-fed straight back. Leaving the pool alone also keeps three count-sensitive checks
-/// honest (Interaction_Chest's second podium, BiomeGenerator's weapon room,
-/// AccessibilitySettings' Force Weapon control), and means an established save works.
+/// The save data is never touched, unlike TarotService. Emptying WeaponPool withholds nothing:
+/// GetRandomWeaponInPool opens with a ladder that hands over the first weapon you don't own on
+/// the first floor of every run, so a revoked weapon is force-fed straight back. Leaving the
+/// pool alone also keeps three count-sensitive checks honest (Interaction_Chest's second podium,
+/// BiomeGenerator's weapon room, AccessibilitySettings' Force Weapon control).
 ///
-/// All four hooks are null unless a session sets them, so the game is untouched when
-/// disconnected or when the options are off.
+/// All four hooks are null unless a session sets them.
 /// </remarks>
 internal static class EquipmentPoolPatch
 {
-    /// <summary>
-    /// Given the weapon the game chose, the one it's allowed to hand over. Set by
-    /// EquipmentPoolService while connected with weapon randomization on.
-    /// </summary>
+    // Given the weapon the game chose, the one it's allowed to hand over. Set by
+    // EquipmentPoolService while connected with weapon randomization on
     internal static Func<EquipmentType, EquipmentType> SubstituteWeapon;
 
-    /// <summary>The curse-side counterpart.</summary>
+    // The curse-side counterpart
     internal static Func<EquipmentType, EquipmentType> SubstituteCurse;
 
-    /// <summary>Called when a weapon is equipped, which is what sends its check.</summary>
+    // Called when a weapon is equipped, which is what sends its check
     internal static Action<EquipmentType> WeaponEquipped;
 
-    /// <summary>The curse-side counterpart.</summary>
+    // The curse-side counterpart
     internal static Action<EquipmentType> CurseEquipped;
 
     /// <summary>
     /// Every weapon podium, chest and choice room in the game.
     /// </summary>
     /// <remarks>
-    /// A postfix rather than a prefix because the original carries a lot worth keeping. That
-    /// includes legendary gating, the Fervour lockout, ForcedStartingWeapon, the Cowboy fleece
-    /// branch, and the accessibility Force Weapon setting.
+    /// A postfix, because the original carries legendary gating, the Fervour lockout,
+    /// ForcedStartingWeapon, the Cowboy fleece branch, and the Force Weapon setting.
     /// </remarks>
     [HarmonyPatch(typeof(DataManager), nameof(DataManager.GetRandomWeaponInPool))]
     internal static class WeaponSelection
@@ -49,7 +44,10 @@ internal static class EquipmentPoolPatch
         private static void Postfix(ref EquipmentType __result)
         {
             var substitute = SubstituteWeapon;
-            if (substitute == null) return;
+            if (substitute == null)
+            {
+                return;
+            }
 
             var chosen = __result;
             __result = substitute(__result);
@@ -65,7 +63,10 @@ internal static class EquipmentPoolPatch
         private static void Postfix(ref EquipmentType __result)
         {
             var substitute = SubstituteCurse;
-            if (substitute == null) return;
+            if (substitute == null)
+            {
+                return;
+            }
 
             var chosen = __result;
             __result = substitute(__result);
@@ -85,10 +86,16 @@ internal static class EquipmentPoolPatch
         private static void Postfix(FoundItemPickUp __instance)
         {
             var substitute = SubstituteWeapon;
-            if (substitute == null) return;
+            if (substitute == null)
+            {
+                return;
+            }
 
             var chosen = substitute(__instance.TypeOfWeapon);
-            if (chosen == __instance.TypeOfWeapon) return;
+            if (chosen == __instance.TypeOfWeapon)
+            {
+                return;
+            }
 
             __instance.TypeOfWeapon = chosen;
             RefreshSprite(__instance, chosen);
@@ -103,26 +110,33 @@ internal static class EquipmentPoolPatch
         private static void Postfix(FoundItemPickUp __instance)
         {
             var substitute = SubstituteCurse;
-            if (substitute == null) return;
+            if (substitute == null)
+            {
+                return;
+            }
 
             var chosen = substitute(__instance.TypeOfCurse);
-            if (chosen == __instance.TypeOfCurse) return;
+            if (chosen == __instance.TypeOfCurse)
+            {
+                return;
+            }
 
             __instance.TypeOfCurse = chosen;
             RefreshSprite(__instance, chosen);
         }
     }
 
-    /// <summary>
-    /// Swallows a missing sprite rather than throwing: GetEquipmentData reads a
-    /// ScriptableObject, and a wrong icon beats an exception inside a pickup's setup.
-    /// </summary>
+    // Swallows a missing sprite rather than throwing. GetEquipmentData reads a ScriptableObject,
+    // and a wrong icon beats an exception inside a pickup's setup
     private static void RefreshSprite(FoundItemPickUp pickup, EquipmentType type)
     {
         try
         {
             var sprite = EquipmentManager.GetEquipmentData(type)?.WorldSprite;
-            if (sprite != null && pickup.itemSprite != null) pickup.itemSprite.sprite = sprite;
+            if (sprite != null && pickup.itemSprite != null)
+            {
+                pickup.itemSprite.sprite = sprite;
+            }
         }
         catch (Exception e)
         {
@@ -134,10 +148,9 @@ internal static class EquipmentPoolPatch
     /// Equipping a weapon. This is the funnel every route ends at, including FoundItemPickUp.
     /// </summary>
     /// <remarks>
-    /// This sends the check rather than the four sites that add to WeaponPool, which are wrong
-    /// twice over. They bypass DataManager.AddWeapon so OnWeaponUnlocked never fires for them,
-    /// and on an established save the pool already holds every weapon, so "first added to the
-    /// pool" can never happen again.
+    /// This sends the check, not the four sites that add to WeaponPool. Those bypass
+    /// DataManager.AddWeapon so OnWeaponUnlocked never fires, and on an established save the
+    /// pool already holds every weapon, so "first added to the pool" can never happen again.
     /// </remarks>
     [HarmonyPatch(typeof(PlayerWeapon), nameof(PlayerWeapon.SetWeapon))]
     internal static class WeaponEquip

@@ -9,13 +9,12 @@ namespace Archipelago.CultOfTheLamb;
 /// Loads the mod's own textures out of the assembly.
 /// </summary>
 /// <remarks>
-/// Assets ship as *embedded resources* rather than loose files next to the DLL. r2modman
-/// flattens plugin folders in ways that make relative paths unreliable, and a missing file at
-/// runtime would be a silent visual bug rather than a build error. Embedding makes the DLL
-/// self-contained.
+/// Assets ship as embedded resources rather than loose files next to the DLL. r2modman flattens
+/// plugin folders in ways that make relative paths unreliable, and a missing file at runtime
+/// would be a silent visual bug rather than a build error.
 ///
-/// PNG, not the WebP the AP logo is normally distributed as, because Unity's Texture2D.LoadImage
-/// only decodes PNG and JPG.
+/// PNG, not the WebP the AP logo is normally distributed as, because Unity's
+/// Texture2D.LoadImage only decodes PNG and JPG.
 /// </remarks>
 internal static class ApAssets
 {
@@ -34,19 +33,18 @@ internal static class ApAssets
     // did. Keyed on hundredths of a world unit, finer than any visible difference.
     private static readonly Dictionary<string, Sprite> cardSprites = new();
 
-    /// <summary>
-    /// The Archipelago tarot card, sized and anchored to stand exactly where art with the given
-    /// bounds was standing. It is fitted inside them keeping aspect ratio, with a pivot chosen
-    /// so its centre lands on the original's. A naive centred pivot inherits the original's
-    /// anchor point, which for base-anchored art sinks the card into the shop counter.
-    ///
-    /// Returns null if the texture couldn't be loaded. Callers should leave the original alone
-    /// rather than blanking a slot.
-    /// </summary>
+    // Fitted inside the given bounds keeping aspect ratio, with a pivot chosen so its centre
+    // lands on the original's. A naive centred pivot inherits the original's anchor point,
+    // which for base-anchored art sinks the card into the shop counter.
+    //
+    // Null if the texture couldn't be loaded. Callers should leave the original alone
     internal static Sprite TarotCardSprite(Bounds original)
     {
         var texture = CardTexture();
-        if (texture == null) return null;
+        if (texture == null)
+        {
+            return null;
+        }
 
         // Height the card would need to be exactly as wide as the space it has to fit.
         var heightAtFullWidth = original.size.x > 0f
@@ -56,7 +54,10 @@ internal static class ApAssets
         var height = original.size.y > 0f && heightAtFullWidth > 0f
             ? Mathf.Min(original.size.y, heightAtFullWidth)
             : Mathf.Max(original.size.y, heightAtFullWidth);
-        if (height <= 0f) height = 1f;
+        if (height <= 0f)
+        {
+            height = 1f;
+        }
 
         var width = height * texture.width / texture.height;
 
@@ -73,7 +74,10 @@ internal static class ApAssets
     {
         var key = $"{Mathf.RoundToInt(worldHeight * 100f)}"
             + $"_{Mathf.RoundToInt(pivot.x * 100f)}_{Mathf.RoundToInt(pivot.y * 100f)}";
-        if (cardSprites.TryGetValue(key, out var cached) && cached != null) return cached;
+        if (cardSprites.TryGetValue(key, out var cached) && cached != null)
+        {
+            return cached;
+        }
 
         var sprite = MakeSprite(texture, pivot, texture.height / worldHeight, $"ArchipelagoTarot_{key}");
 
@@ -81,26 +85,28 @@ internal static class ApAssets
         return sprite;
     }
 
-    /// <summary>
-    /// The plain AP logo, for UI Images. Size and aspect are the RectTransform's business, so
-    /// unlike the tarot card this needs no fitting, only a centred pivot.
-    /// </summary>
+    // The plain AP logo, for UI Images. Size and aspect are the RectTransform's business, so
+    // this needs no fitting, only a centred pivot
     internal static Sprite IconSprite()
     {
-        if (iconSprite != null) return iconSprite;
+        if (iconSprite != null)
+        {
+            return iconSprite;
+        }
 
         var texture = Texture(IconResourceName);
-        if (texture == null) return null;
+        if (texture == null)
+        {
+            return null;
+        }
 
         iconSprite = MakeSprite(texture, new Vector2(0.5f, 0.5f), 100f, "ArchipelagoIcon");
         return iconSprite;
     }
 
-    /// <summary>
-    /// Builds a sprite from a whole texture. The hideFlags matter for the same reason they do on
-    /// the texture itself. Without them Unity treats it as scene content and destroys it on
-    /// scene load, and every renderer holding it silently draws nothing.
-    /// </summary>
+    // The hideFlags matter for the same reason they do on the texture. Without them Unity
+    // treats it as scene content and destroys it on scene load, and every renderer holding it
+    // silently draws nothing
     private static Sprite MakeSprite(Texture2D texture, Vector2 pivot, float pixelsPerUnit, string name)
     {
         // pixelsPerUnit is what sets a sprite's world size, since height / PPU is units tall.
@@ -115,7 +121,10 @@ internal static class ApAssets
 
     private static Texture2D Texture(string resourceName)
     {
-        if (textures.TryGetValue(resourceName, out var cached)) return cached;
+        if (textures.TryGetValue(resourceName, out var cached))
+        {
+            return cached;
+        }
 
         var texture = LoadTexture(resourceName);
         textures[resourceName] = texture;
@@ -125,7 +134,10 @@ internal static class ApAssets
     private static Texture2D LoadTexture(string resourceName)
     {
         var bytes = ReadResource(resourceName);
-        if (bytes == null) return null;
+        if (bytes == null)
+        {
+            return null;
+        }
 
         // The 2x2 size is a placeholder. LoadImage resizes the texture to the decoded image.
         var texture = new Texture2D(2, 2, TextureFormat.RGBA32, mipChain: false)

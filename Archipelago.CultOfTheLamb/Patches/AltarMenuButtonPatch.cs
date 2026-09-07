@@ -24,17 +24,16 @@ internal static class AltarMenuButtonPatch
     /// The entry's label, abbreviated to fit the button.
     /// </summary>
     /// <remarks>
-    /// The label inherits its width from the button we clone, and the game's own labels top out
-    /// at "Doctrine", which is eight characters. "Archipelago" is one unbroken word too wide for
-    /// that box, so TMP wrapped it mid-word into "Archipelag" and "o". Widening isn't an option
-    /// either. The icons sit about 130px apart and the full word needs closer to 190, so it would
-    /// overlap Crown and Rituals instead. The description below spells it out in full.
+    /// The label inherits its width from the cloned button, and the game's own labels top out at
+    /// "Doctrine", eight characters. "Archipelago" is one unbroken word too wide, so TMP wrapped
+    /// it mid-word into "Archipelag" and "o". Widening isn't an option either: the icons sit
+    /// about 130px apart and the full word needs closer to 190, overlapping Crown and Rituals.
     /// </remarks>
     private const string ButtonLabel = "AP";
 
     private const string ButtonDescription = "View the sermon upgrades Archipelago has granted.";
 
-    /// <summary>Which entry OnShowStarted re-focuses on. 1 is Player Upgrades, our neighbour.</summary>
+    // Which entry OnShowStarted re-focuses on. 1 is Player Upgrades, our neighbour
     private const int PlayerUpgradesIndex = 1;
 
     private static readonly AccessTools.FieldRef<UIAltarMenuController, MMButton> PlayerUpgradesButton =
@@ -47,7 +46,7 @@ internal static class AltarMenuButtonPatch
         AccessTools.StaticFieldRefAccess<int>(
             AccessTools.Field(typeof(UIAltarMenuController), "_defaultIndex"));
 
-    /// <summary>Start is where every vanilla button gets its onClick and OnSelected.</summary>
+    // Start is where every vanilla button gets its onClick and OnSelected
     [HarmonyPatch(nameof(UIAltarMenuController.Start))]
     [HarmonyPostfix]
     private static void Start_Postfix(UIAltarMenuController __instance)
@@ -68,16 +67,28 @@ internal static class AltarMenuButtonPatch
     {
         // No dead entry when the tree prefab isn't loaded, since the viewer would have nothing
         // to show.
-        if (!SermonTreeViewer.IsAvailable) return;
+        if (!SermonTreeViewer.IsAvailable)
+        {
+            return;
+        }
 
         var donor = PlayerUpgradesButton(menu);
-        if (donor == null) return;
+        if (donor == null)
+        {
+            return;
+        }
 
         var parent = donor.transform.parent;
-        if (parent == null) return;
+        if (parent == null)
+        {
+            return;
+        }
 
         // Start can run again on a rebuilt menu, and a second entry would be worse than none.
-        if (parent.Find(ButtonName) != null) return;
+        if (parent.Find(ButtonName) != null)
+        {
+            return;
+        }
 
         var clone = UnityEngine.Object.Instantiate(donor.gameObject, parent);
         clone.name = ButtonName;
@@ -85,7 +96,10 @@ internal static class AltarMenuButtonPatch
         clone.transform.SetSiblingIndex(donor.transform.GetSiblingIndex() + 1);
 
         var button = clone.GetComponent<MMButton>();
-        if (button == null) return;
+        if (button == null)
+        {
+            return;
+        }
 
         // The clone carries the donor's listeners, which would open the player upgrades screen.
         button.onClick.RemoveAllListeners();
@@ -95,7 +109,10 @@ internal static class AltarMenuButtonPatch
         button.OnSelected = () =>
         {
             var description = Description(menu);
-            if (description != null) description.text = ButtonDescription;
+            if (description != null)
+            {
+                description.text = ButtonDescription;
+            }
         };
 
         MenuButtonPatch.SetLabel(clone, ButtonLabel);
@@ -116,7 +133,11 @@ internal static class AltarMenuButtonPatch
     /// </summary>
     private static void OnClicked(UIAltarMenuController menu)
     {
-        if (opening) return;
+        if (opening)
+        {
+            return;
+        }
+
         opening = true;
 
         var altar = Interaction_TempleAltar.Instance;
@@ -143,7 +164,10 @@ internal static class AltarMenuButtonPatch
 
         // Without this, OnInteract's `if (!Activated)` guard silently drops the reopen and leaves
         // the player stranded in a frozen scene.
-        if (altar != null) altar.Activated = false;
+        if (altar != null)
+        {
+            altar.Activated = false;
+        }
 
         // Hide, not Cancel. Cancelling raises the altar's DoCancel, which unpauses the sim,
         // resets the camera and releases the followers. The world should stay held while we're
@@ -160,12 +184,11 @@ internal static class AltarMenuButtonPatch
     /// Reopens the altar a frame after the viewer's OnHidden, never straight out of it.
     /// </summary>
     /// <remarks>
-    /// Two things still happen after OnHidden fires, and reopening inside it loses a race with
-    /// both. UIMenuBase.DoHide calls OnHideCompleted immediately afterwards, and the tree's
-    /// override runs a global DOTween.KillAll, which would kill the altar's show tweens the
-    /// instant they started. UIManager's own hide closure also runs after ours, and it's what
-    /// clears _currentInstance. Until it does, the altar's SetMenuInstance is a silent no-op and
-    /// the world is left unpaused behind the menu.
+    /// Two things happen after OnHidden fires, and reopening inside it loses a race with both.
+    /// UIMenuBase.DoHide calls OnHideCompleted immediately afterwards, and the tree's override
+    /// runs a global DOTween.KillAll that would kill the altar's show tweens as they start.
+    /// UIManager's own hide closure also runs after ours and is what clears _currentInstance;
+    /// until it does, SetMenuInstance is a silent no-op and the world stays unpaused.
     /// </remarks>
     private static void ReopenAltar(Interaction_TempleAltar altar)
     {
@@ -174,7 +197,10 @@ internal static class AltarMenuButtonPatch
         // hidden by now with the world paused, so nothing would put the player back in control.
         opening = false;
 
-        if (altar == null) return;
+        if (altar == null)
+        {
+            return;
+        }
 
         var plugin = ArchipelagoPlugin.Instance;
         if (plugin == null)
@@ -194,7 +220,10 @@ internal static class AltarMenuButtonPatch
 
     private static void OpenAltarNow(Interaction_TempleAltar altar)
     {
-        if (altar == null) return;
+        if (altar == null)
+        {
+            return;
+        }
 
         var state = altar.state != null ? altar.state : PlayerFarming.Instance?.state;
         if (state == null)

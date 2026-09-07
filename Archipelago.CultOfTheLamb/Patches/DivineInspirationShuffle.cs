@@ -22,21 +22,18 @@ namespace Archipelago.CultOfTheLamb.Patches;
 /// between tiers changes what the player sees and reaches, but not how many unlocks any tier
 /// costs. Archipelago's rules count items and are untouched.
 ///
-/// Two things have to be rewritten together or the drawn tree silently disagrees with the logic.
-/// One is the configuration's per-tier membership lists. The other is each node component's own
-/// <c>_upgrade</c> field, which is what the menu actually draws and compares against
-/// (`TreeMenu.cs:356`). Rewriting only the first shows you one upgrade and sells
-/// you another.
+/// Two things must be rewritten together: the configuration's per-tier membership lists, and
+/// each node component's own <c>_upgrade</c> field, which is what the menu draws and compares
+/// against (`TreeMenu.cs:356`). Rewriting only the first shows one upgrade and sells another.
 ///
-/// **Central nodes stay in their tier.** Each tier has a `RequiresCentralTier` node, the Temple
-/// spine plus the Refinery, that must be bought to open the next tier. Moving one to a
-/// different tier makes that tier unopenable, which is a softlock rather than a shuffle. Pinning
-/// them also keeps the Temple I to IV progression in order, which the structure prerequisites
-/// expect anyway.
+/// Central nodes stay in their tier. Each tier has a `RequiresCentralTier` node, the Temple
+/// spine plus the Refinery, that must be bought to open the next tier, so moving one makes that
+/// tier unopenable. Pinning them also keeps Temple I to IV in the order the structure
+/// prerequisites expect.
 ///
-/// The intra-tree prerequisite graph is empty in this tree. All four `RequiresUpgrade` entries
-/// have parents outside the 69 (PleasureSystem, TailorSystem, DiscipleSystem, System_PlayerTent),
-/// so there is no ordering constraint left to respect once centrals are pinned.
+/// The intra-tree prerequisite graph is empty. All four `RequiresUpgrade` entries have parents
+/// outside the 69 (PleasureSystem, TailorSystem, DiscipleSystem, System_PlayerTent), so nothing
+/// constrains ordering once centrals are pinned.
 /// </remarks>
 internal static class DivineInspirationShuffle
 {
@@ -44,7 +41,7 @@ internal static class DivineInspirationShuffle
     internal const int ModeRandomExceptFirst = 1;
     internal const int ModeTrueRandom = 2;
 
-    /// <summary>Original upgrade -> the one that takes its place. Null when not shuffling.</summary>
+    // Original upgrade -> the one that takes its place. Null when not shuffling
     private static Dictionary<UpgradeSystem.Type, UpgradeSystem.Type> mapping;
 
     /// <summary>
@@ -54,7 +51,7 @@ internal static class DivineInspirationShuffle
     private static readonly Dictionary<UpgradeTreeNode, UpgradeSystem.Type> originalNodeUpgrades =
         new();
 
-    /// <summary>Tier membership as authored, for putting it back on disconnect.</summary>
+    // Tier membership as authored, for putting it back on disconnect
     private static List<List<UpgradeSystem.Type>> originalTiers;
 
     /// <summary>
@@ -63,7 +60,10 @@ internal static class DivineInspirationShuffle
     /// </summary>
     internal static void Apply(int shuffleMode, int seed)
     {
-        if (shuffleMode == ModeDefault) return;
+        if (shuffleMode == ModeDefault)
+        {
+            return;
+        }
 
         var tree = DivineInspirationPatch.Tree;
         if (tree == null)
@@ -135,7 +135,11 @@ internal static class DivineInspirationShuffle
 
         foreach (var pair in originalNodeUpgrades)
         {
-            if (pair.Key == null) continue;
+            if (pair.Key == null)
+            {
+                continue;
+            }
+
             UpgradeField(pair.Key) = pair.Value;
             NodeRewrite.RefreshAuthoredVisuals(pair.Key);
         }
@@ -155,7 +159,7 @@ internal static class DivineInspirationShuffle
             .ToList();
     }
 
-    /// <summary>Fisher-Yates on a seeded Random, so a reconnect rebuilds the identical tree.</summary>
+    // Fisher-Yates on a seeded Random, so a reconnect rebuilds the identical tree
     private static void Shuffle(IList<UpgradeSystem.Type> values, Random random)
     {
         for (var i = values.Count - 1; i > 0; i--)
@@ -180,14 +184,23 @@ internal static class DivineInspirationShuffle
         [HarmonyPrefix]
         private static void Prefix(TreeMenu __instance)
         {
-            if (mapping == null) return;
+            if (mapping == null)
+            {
+                return;
+            }
 
             var configuration = ConfigurationField(__instance);
-            if (configuration == null || configuration != DivineInspirationPatch.Tree) return;
+            if (configuration == null || configuration != DivineInspirationPatch.Tree)
+            {
+                return;
+            }
 
             foreach (var node in NodesField(__instance))
             {
-                if (node == null) continue;
+                if (node == null)
+                {
+                    continue;
+                }
 
                 if (!originalNodeUpgrades.TryGetValue(node, out var authored))
                 {
@@ -203,25 +216,24 @@ internal static class DivineInspirationShuffle
             }
         }
 
-        /// <summary>Same refresh, used by Restore to put the authored art back.</summary>
-        internal static void RefreshAuthoredVisuals(UpgradeTreeNode node) => RefreshVisuals(node);
+        // Same refresh, used by Restore to put the authored art back
+        internal static void RefreshAuthoredVisuals(UpgradeTreeNode node)
+        {
+            RefreshVisuals(node);
+        }
 
-        /// <summary>
-        /// Makes the node's art match the upgrade it now holds.
-        /// </summary>
-        /// <remarks>
-        /// Writing `_upgrade` alone moves the *name*, which is resolved from the field at
-        /// runtime, but not the icon or category pip, which are baked onto the prefab. That gives
-        /// a node captioned "Demonic Summoning Circle" wearing the Janitor Station's broom.
-        ///
-        /// UpgradeTreeNode.OnValidate() already does exactly this refresh (icon sprite, category
-        /// text and colour, title, localize term) and is pure field assignment with nothing
-        /// editor-only in it, but Unity only calls it in the editor so a build never runs it.
-        /// Calling the game's own routine beats reimplementing four lookups and getting one wrong.
-        /// </remarks>
+        // Makes the node's art match the upgrade it now holds.
+        //
+        // Writing `_upgrade` alone moves the name, resolved from the field at runtime, but not
+        // the icon or category pip, which are baked onto the prefab. UpgradeTreeNode.OnValidate()
+        // already does exactly this refresh (icon sprite, category text and colour, title,
+        // localize term) and is pure field assignment, but Unity calls it only in the editor
         private static void RefreshVisuals(UpgradeTreeNode node)
         {
-            if (OnValidate == null) return;
+            if (OnValidate == null)
+            {
+                return;
+            }
 
             try
             {

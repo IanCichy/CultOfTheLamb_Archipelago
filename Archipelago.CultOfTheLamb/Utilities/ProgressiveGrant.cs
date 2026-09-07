@@ -7,16 +7,14 @@ namespace Archipelago.CultOfTheLamb;
 /// </summary>
 /// <remarks>
 /// A progressive item arrives several times and grants a different thing each time. The Nth copy
-/// gives the Nth tier, so it needs a count that stays right in the face of replays.
+/// gives the Nth tier, so it needs a count that survives replays.
 ///
-/// Counted, not read off the game. Deciding from game state instead, as in "grant the first
-/// tier not already held", looks more idempotent and is actively wrong. Every item replays on
-/// reconnect, so a held copy would skip past its own tier and grant the next, turning N copies
-/// into 2N tiers.
+/// Counted, not read off the game. "Grant the first tier not already held" looks more idempotent
+/// and is wrong: every item replays on reconnect, so a held copy skips past its own tier and
+/// grants the next, turning N copies into 2N tiers.
 ///
-/// The count is safe precisely because an instance of this lives on a service that is rebuilt on
-/// every connect. A replay refills it from zero and arrives at the same answer instead of adding
-/// to it, so this must never be static or persisted.
+/// The count is safe because an instance lives on a service rebuilt on every connect, so a
+/// replay refills it from zero rather than adding to it. This must never be static or persisted.
 /// </remarks>
 internal class ProgressiveGrant
 {
@@ -43,6 +41,9 @@ internal class ProgressiveGrant
         return true;
     }
 
-    /// <summary>Forgets everything, for a service that outlives one connection.</summary>
-    internal void Clear() => granted.Clear();
+    // Forgets everything, for a service that outlives one connection
+    internal void Clear()
+    {
+        granted.Clear();
+    }
 }

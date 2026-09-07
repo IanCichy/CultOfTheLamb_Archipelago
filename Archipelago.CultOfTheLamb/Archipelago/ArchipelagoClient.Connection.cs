@@ -29,7 +29,7 @@ public partial class ArchipelagoClient
     /// </summary>
     public bool Connecting { get; private set; }
 
-    /// <summary>Why the last attempt failed, in words a player can act on. Null when fine.</summary>
+    // Why the last attempt failed, in words a player can act on. Null when fine
     public string LastError { get; private set; }
 
     /// <summary>
@@ -46,16 +46,15 @@ public partial class ArchipelagoClient
     /// </summary>
     private bool loginRefused;
 
-    /// <summary>Asks the reconnect loop to stop at its next opportunity. See StopReconnecting.</summary>
+    // Asks the reconnect loop to stop at its next opportunity. See StopReconnecting
     private bool cancelReconnect;
 
     /// <summary>
     /// Connects without blocking the game.
     /// </summary>
     /// <remarks>
-    /// The synchronous version of this froze the main thread for as long as the login took,
-    /// which was tolerable when connecting meant pressing a key you already knew worked. Behind
-    /// a form where people mistype addresses, it's a multi-second hang with nothing on screen.
+    /// The synchronous version froze the main thread for as long as the login took. Behind a
+    /// form where people mistype addresses, that is a multi-second hang with nothing on screen.
     ///
     /// Drive it with StartCoroutine from a MonoBehaviour.
     /// </remarks>
@@ -534,7 +533,10 @@ public partial class ArchipelagoClient
     /// </summary>
     private void TeardownSession(bool disconnect = false)
     {
-        if (session == null) return;
+        if (session == null)
+        {
+            return;
+        }
 
         session.MessageLog.OnMessageReceived -= Session_OnMessageReceived;
         session.Socket.SocketClosed -= Session_SocketClosed;
@@ -608,7 +610,11 @@ public partial class ArchipelagoClient
         // pending means stop retrying, and at that moment there is no session to tear down.
         StopReconnecting();
 
-        if (session == null) return;
+        if (session == null)
+        {
+            return;
+        }
+
         Dispose();
         // Asked for, so there's nothing to report. This is what distinguishes a clean
         // disconnect from a failed one.
@@ -666,13 +672,13 @@ public partial class ArchipelagoClient
     /// </summary>
     /// <remarks>
     /// Unbounded on purpose. Nothing queues the checks earned while the socket is down, since
-    /// every service re-derives what it owes from the game's own save state at connect, so the
-    /// only thing between a dropped socket and a caught-up multiworld is getting the socket back.
-    /// A five-attempt cap gave up after about fifteen seconds, which loses to the ordinary case of
-    /// a host restarting their server.
+    /// every service re-derives what it owes from save state at connect, so the only thing
+    /// between a dropped socket and a caught-up multiworld is getting the socket back. A
+    /// five-attempt cap gave up after about fifteen seconds, which loses to a host restarting
+    /// their server.
     ///
-    /// The trade is log noise and idle sockets against an unattended recovery, so the delay backs
-    /// off. A server down for an hour costs two attempts a minute rather than twenty.
+    /// The delay backs off, so a server down for an hour costs two attempts a minute rather
+    /// than twenty.
     /// </remarks>
     public IEnumerator AttemptReconnection()
     {
@@ -687,13 +693,22 @@ public partial class ArchipelagoClient
 
             // Checked again after the wait, not just at the top, because the backoff is long
             // enough that the player acting inside it is the expected case rather than a race.
-            if (cancelReconnect) break;
+            if (cancelReconnect)
+            {
+                break;
+            }
 
             // Quiet after the first few. This can run for hours, and a line every thirty seconds
             // buries whatever the player opened the log to find.
             var attemptLine = $"[AP] Reconnection attempt #{ReconnectAttempt}";
-            if (ReconnectAttempt <= 5 || ReconnectAttempt % 10 == 0) Log.LogInfo(attemptLine);
-            else Log.LogDebug(attemptLine);
+            if (ReconnectAttempt <= 5 || ReconnectAttempt % 10 == 0)
+            {
+                Log.LogInfo(attemptLine);
+            }
+            else
+            {
+                Log.LogDebug(attemptLine);
+            }
 
             // Same routine the panel's Connect button uses, so there is one code path for
             // talking to the server and a fix to either can't drift away from the other.
@@ -715,13 +730,16 @@ public partial class ArchipelagoClient
             }
         }
 
-        if (cancelReconnect) Log.LogInfo("[AP] Stopped trying to reconnect.");
+        if (cancelReconnect)
+        {
+            Log.LogInfo("[AP] Stopped trying to reconnect.");
+        }
 
         Reconnecting = false;
         ReconnectAttempt = 0;
     }
 
-    /// <summary>3s, doubling to a 30s ceiling, so 3, 6, 12, 24, 30, 30...</summary>
+    // 3s, doubling to a 30s ceiling, so 3, 6, 12, 24, 30, 30
     private static float ReconnectDelay(int attempt) =>
         Mathf.Min(3f * Mathf.Pow(2f, attempt - 1), 30f);
 
@@ -735,7 +753,10 @@ public partial class ArchipelagoClient
     /// </summary>
     public void StopReconnecting()
     {
-        if (!Reconnecting) return;
+        if (!Reconnecting)
+        {
+            return;
+        }
 
         cancelReconnect = true;
         Reconnecting = false;

@@ -9,23 +9,23 @@ namespace Archipelago.CultOfTheLamb;
 /// Sends location checks, skipping the ones the server already has.
 /// </summary>
 /// <remarks>
-/// Services that derive checks from save state re-derive them on every connect, which is what
-/// catches up progress made while disconnected, but it also re-sends checks from sessions ago,
-/// popping a notification for each. Filtering here leaves each service free to re-derive as
-/// bluntly as it likes.
+/// Services that derive checks from save state re-derive them on every connect, which catches up
+/// progress made while disconnected but also re-sends checks from sessions ago, popping a
+/// notification for each. Filtering here leaves each service free to re-derive bluntly.
 ///
-/// Not the same as a service's own "already sent" flags. Those cover repeat polls within one
+/// Not the same as a service's own "already sent" flags: those cover repeat polls within one
 /// session, this covers everything from previous ones.
 /// </remarks>
 internal static class CheckSender
 {
-    /// <summary>
-    /// Sends <paramref name="checkIds"/> and announces the ones that were genuinely new.
-    /// Safe to hand the full re-derived set on every connect.
-    /// </summary>
+    // Announces only the ones that were genuinely new, so it is safe to hand the full
+    // re-derived set on every connect
     internal static void Send(ArchipelagoSession session, IReadOnlyList<long> checkIds)
     {
-        if (session == null || checkIds == null || checkIds.Count == 0) return;
+        if (session == null || checkIds == null || checkIds.Count == 0)
+        {
+            return;
+        }
 
         // Populated from the Connected packet's checked_locations, so it's already accurate by
         // the time services register.
@@ -55,6 +55,8 @@ internal static class CheckSender
         CheckNotifier.Announce(session, pending);
     }
 
-    internal static void Send(ArchipelagoSession session, long checkId) =>
+    internal static void Send(ArchipelagoSession session, long checkId)
+    {
         Send(session, new[] { checkId });
+    }
 }

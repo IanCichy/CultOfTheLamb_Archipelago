@@ -6,23 +6,20 @@ namespace Archipelago.CultOfTheLamb.Patches;
 /// Temporary instrumentation for the "weapon or curse arrives dealing zero damage" report.
 /// </summary>
 /// <remarks>
-/// Delete this once the cause is known. Every static hypothesis has been ruled out already:
-/// `GetWeaponDamageMultiplier = 0.13 + 0.07 * level` added to a base of 1 can't reach zero,
+/// Delete this once the cause is known. Every static hypothesis is already ruled out:
+/// `GetWeaponDamageMultiplier = 0.13 + 0.07 * level` on a base of 1 can't reach zero,
 /// `GetWeaponAttackRateMultiplier` has no callers, the durability table has no zero entry
-/// (75/50/85/60/100), every family base is a real plain weapon, and `FamilyOf` handles `Sword = 0`
-/// as the last entry of its descending chain. So this records what actually happens instead.
+/// (75/50/85/60/100), every family base is a real plain weapon, and `FamilyOf` handles
+/// `Sword = 0` as the last entry of its descending chain.
 ///
-/// It separates the two questions any fix depends on. The first is whether the bad equipment is
-/// ours: `RecordOffer` logs the type the game chose alongside the one we returned, so a matching
-/// pair means the substitution was a no-op and the equipment came from vanilla or from CheatMenu.
-/// The second is whether the level is at fault: `RecordEquip` logs the level handed to
-/// SetWeapon/SetSpell against the run counter it should have come from. `FoundItemPickUp.WeaponLevel`
-/// defaults to -1 and is only ever assigned by Interaction_WeaponChoice, the legendary podium, or
-/// SetStartingWeapon, so a pickup arriving by any other route passes -1.
+/// Two questions any fix depends on. Is the bad equipment ours: `RecordOffer` logs the type the
+/// game chose against the one we returned, so a matching pair means the substitution was a
+/// no-op. Is the level at fault: `RecordEquip` logs the level handed to SetWeapon/SetSpell
+/// against the run counter. `FoundItemPickUp.WeaponLevel` defaults to -1 and is assigned only by
+/// Interaction_WeaponChoice, the legendary podium, or SetStartingWeapon.
 ///
-/// [Conditional] rather than the usual #if AP_DEBUG_KEYS: it strips the six call sites in
-/// EquipmentPoolPatch in a release build, so a player's log stays clean without each of them
-/// needing its own guard.
+/// [Conditional] rather than #if AP_DEBUG_KEYS, because it strips the six call sites in
+/// EquipmentPoolPatch without each of them needing its own guard.
 /// </remarks>
 internal static class EquipmentDiagnostics
 {
@@ -64,7 +61,13 @@ internal static class EquipmentDiagnostics
         // bad level is worth shouting about.
         var isRealType = type != EquipmentType.None && type != EquipmentType.Invalid;
 
-        if (isRealType && level <= 0) Log.LogWarning(line + "  <-- LEVEL IS ZERO OR NEGATIVE");
-        else Log.LogInfo(line);
+        if (isRealType && level <= 0)
+        {
+            Log.LogWarning(line + "  <-- LEVEL IS ZERO OR NEGATIVE");
+        }
+        else
+        {
+            Log.LogInfo(line);
+        }
     }
 }

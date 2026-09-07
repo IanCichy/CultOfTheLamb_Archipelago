@@ -38,7 +38,10 @@ internal static class DataManagerKilledBossPatch
     [HarmonyPostfix]
     private static void AddKilledBoss_Postfix(string BossSkin, bool __state)
     {
-        if (!__state) return;
+        if (!__state)
+        {
+            return;
+        }
 
         Log.LogInfo($"[AP] Boss kill recorded: \"{BossSkin}\"");
         OnBossKillRecorded?.Invoke(BossSkin);

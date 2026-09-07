@@ -8,14 +8,12 @@ namespace Archipelago.CultOfTheLamb.Services;
 /// upgrade costs, and how long a structure takes to build.
 /// </summary>
 /// <remarks>
-/// All three exist because the game's curves are built for completion over dozens of hours, while
-/// an Archipelago seed wants those same blocks finishable in one. Each is the same shape, one
-/// postfix clamping one public static, so they live together rather than scattered across the
-/// services that happen to care about them.
+/// The game's curves are built for completion over dozens of hours, while an Archipelago seed
+/// wants those blocks finishable in one. All three are the same shape, one postfix clamping one
+/// public static, so they live together.
 ///
-/// Deliberately not tied to whether the matching block is randomized. These are quality of
-/// life, not randomizer settings, so a seed with sermon randomization off should still be able to
-/// cap sermon XP. This registers unconditionally and reads the caps straight from slot data.
+/// Not tied to whether the matching block is randomized. These are quality of life, not
+/// randomizer settings, so a seed with sermon randomization off can still cap sermon XP.
 /// </remarks>
 internal class EconomyService : IService
 {
@@ -37,9 +35,20 @@ internal class EconomyService : IService
         StructureBuildPatch.BuildTimeCap = buildTimeCap;
 
         var applied = new List<string>();
-        if (devotionCap > 0) applied.Add($"Devotion {devotionCap}");
-        if (sermonXpCapTenths > 0) applied.Add($"sermon XP {sermonXpCapTenths / 10f:0.#}");
-        if (buildTimeCap > 0) applied.Add($"build time {buildTimeCap}m");
+        if (devotionCap > 0)
+        {
+            applied.Add($"Devotion {devotionCap}");
+        }
+
+        if (sermonXpCapTenths > 0)
+        {
+            applied.Add($"sermon XP {sermonXpCapTenths / 10f:0.#}");
+        }
+
+        if (buildTimeCap > 0)
+        {
+            applied.Add($"build time {buildTimeCap}m");
+        }
 
         Log.LogInfo(applied.Count == 0
             ? "[AP] No pacing caps this seed - the game's own curves apply."
