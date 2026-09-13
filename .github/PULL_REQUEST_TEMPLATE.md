@@ -50,7 +50,7 @@ Explain why the changes were made:
 
 ---
 
-## Anything else 
+## Anything else
 
 <!--
 Known gaps. things you deliberately left out, anything you're unsure about.

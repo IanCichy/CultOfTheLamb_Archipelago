@@ -23,7 +23,8 @@ public class ArchipelagoPlugin : BaseUnityPlugin
     public const string PluginGUID = "io.github.iancichy.archipelago-cultofthelamb";
     public const string PluginAuthor = "Ian";
     public const string PluginName = "Archipelago.CultOfTheLamb";
-    // Keep in step with manifest.json, the csproj VersionPrefix, and MOD_VERSION in the apworlds worlds/cult_of_the_lamb/__init__.py 
+    // Keep in step with manifest.json, the csproj VersionPrefix, and MOD_VERSION in
+    // worlds/cult_of_the_lamb/__init__.py
     public const string PluginVersion = "0.9.0";
 
     internal static ArchipelagoPlugin Instance { get; private set; }
@@ -66,10 +67,12 @@ public class ArchipelagoPlugin : BaseUnityPlugin
         ArchipelagoHudIndicator.IsConnected = () => AP.IsConnected;
 
         MenuButtonPatch.OnArchipelagoButtonPressed += () => connectPanel.Open();
-        DebugCommands.OnConnectKeyPressed += () => connectPanel.Toggle();
         DebugCommands.OnDebugKeyPressed += () => DebugActions.DumpState(AP);
+#if AP_DEBUG_KEYS
+        DebugCommands.OnConnectKeyPressed += () => connectPanel.Toggle();
         DebugCommands.OnQuestGuideKeyPressed += () => DebugActions.DumpQuestGuide(AP);
         DebugCommands.OnCompleteBishopsKeyPressed += () => DebugActions.CompleteBishopsAndOpenGateway(AP);
+#endif
         AP.OnClientDisconnect += AP_OnClientDisconnect;
         ArchipelagoConsoleCommand.OnArchipelagoCommandCalled += ArchipelagoConsoleCommand_OnArchipelagoCommandCalled;
         ArchipelagoConsoleCommand.OnArchipelagoDisconnectCommandCalled += () => AP.Disconnect();
@@ -153,7 +156,8 @@ public class ArchipelagoPlugin : BaseUnityPlugin
     /// The single place a connection starts, whatever asked for it, whether the panel, a keybind,
     /// or a console command. ArchipelagoConsoleCommand exists to be exactly this seam.
     /// </summary>
-    private void ArchipelagoConsoleCommand_OnArchipelagoCommandCalled(string url, int port, string slot, string password)
+    private void ArchipelagoConsoleCommand_OnArchipelagoCommandCalled(
+        string url, int port, string slot, string password)
     {
         Log.LogDebug($"Connecting to {url}:{port} as {slot}");
 

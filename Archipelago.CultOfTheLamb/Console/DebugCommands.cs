@@ -189,14 +189,15 @@ internal static class DebugCommands
     }
 
     internal static event Action OnDebugKeyPressed;
+
+#if AP_DEBUG_KEYS
     internal static event Action OnConnectKeyPressed;
 
-    /// <summary>
-    /// Like OnDebugKeyPressed, an event rather than a BindFeatureKey handler because its body
-    /// needs the ArchipelagoClient, which lives on the plugin. Never raised without AP_DEBUG_KEYS.
-    /// </summary>
+    // Ctrl+F9. An event rather than a BindFeatureKey handler, because it needs the
+    // ArchipelagoClient, which lives on the plugin
     internal static event Action OnQuestGuideKeyPressed;
 
     // Ctrl+F2. Needs the ArchipelagoClient to re-check the goal after writing
     internal static event Action OnCompleteBishopsKeyPressed;
+#endif
 }

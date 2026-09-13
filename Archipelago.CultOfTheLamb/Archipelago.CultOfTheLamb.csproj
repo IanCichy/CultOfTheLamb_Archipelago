@@ -54,13 +54,4 @@
     <PackageReference Include="UnityEngine.Modules" Version="2021.3.16" IncludeAssets="compile" />
     <PackageReference Include="CultOfTheLamb.GameLibs" Version="1.5.15.979-r.0" />
   </ItemGroup>
-
-  <ItemGroup Condition="Exists('..\lib\COTL_API.dll')">
-    <!-- Optional: xhayper/COTL_API, the community modding API. Not on NuGet - build it
-         locally or grab the DLL from Thunderstore and drop it in lib/. See lib/README.md. -->
-    <Reference Include="COTL_API">
-      <HintPath>..\lib\COTL_API.dll</HintPath>
-      <Private>false</Private>
-    </Reference>
-  </ItemGroup>
 </Project>

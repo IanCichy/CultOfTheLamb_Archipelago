@@ -103,7 +103,7 @@ internal static class NotificationStylePatch
         // The one thing the decompile can't tell us is what _positiveFlair actually contains -
         // it's a serialized prefab reference. Logged once so the first run says what we hit
         // rather than leaving it to a second round of guessing.
-        if (glow.HasValue && !loggedFlairContents)
+        if (glow != null && !loggedFlairContents)
         {
             loggedFlairContents = true;
             Log.LogInfo($"[AP] Notification positive flair '{flair.name}' has {graphics.Length} "

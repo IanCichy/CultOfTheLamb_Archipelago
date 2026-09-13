@@ -64,9 +64,8 @@ internal class RegionUnlockService : IService
             return;
         }
 
-        // TODO: guard with SaveAndLoad.Loaded (confirmed in DcplIdx 9) once a save can
-        // reliably be assumed loaded at this point. For now this assumes Register() and
-        // UnlockNextRegion() only get called while a save is active.
+        // Assumes a save is loaded. Register and UnlockNextRegion only run while one is active.
+        // SaveAndLoad.Loaded (DcplIdx 9) would make that explicit if that ever stops being true.
         if (DataManager.Instance == null)
         {
             Log.LogWarning($"[AP] RegionUnlockService: DataManager.Instance is null, can't unlock {regionName} yet.");

@@ -11,7 +11,7 @@ New to Archipelago? Find more [info](https://archipelago.gg)
 
 ## Requirements
 
-1. **Cult of the Lamb**, base game. 
+1. **Cult of the Lamb**, base game.
    - The Woolhaven DLC is optional
 2. BepInEx 5 for Cult of the Lamb. If
   you install via r2modman (recommended), this is pulled in for you.
@@ -20,7 +20,7 @@ New to Archipelago? Find more [info](https://archipelago.gg)
 
 ## Installation
 
-1. Install [r2modman](https://thunderstore.io/c/cult-of-the-lamb/p/ebkr/r2modman/) 
+1. Install [r2modman](https://thunderstore.io/c/cult-of-the-lamb/p/ebkr/r2modman/)
    and create a profile for Cult of the Lamb.
 
 2. Find **Archipelago_CultOfTheLamb** in the profile's online mod list and install it. The
@@ -29,7 +29,7 @@ New to Archipelago? Find more [info](https://archipelago.gg)
 3. Download `cult_of_the_lamb.apworld` from the
    [latest release](https://github.com/IanCichy/CultOfTheLamb_Archipelago/releases/latest) and
    drop it into your Archipelago install:
-        
+
         Archipelago\custom_worlds\cult_of_the_lamb.apworld
 
 
@@ -60,13 +60,15 @@ Download one of the `.yaml` files from the latest release on GitHub
    - Launch Cult of the Lamb through **r2modman** (click *start modded*)
    - Start a new game or load a previous Archipelago save
 
-  > [!CAUTION]
+> [!CAUTION]
 > It is recommended to use a dedicated AP save. Adding the mod to an existing vanilla game
-> has not been tested. Proceed at your own risk.        
->There is currently no way to denote which save has been played on an Archipelago server previously. Make sure you remember which slot you're saving your game in.
+> has not been tested. Proceed at your own risk.
+>
+> Saves that have received Archipelago items show an AP icon on the save select screen.
+
    - Open the pause menu and click **Archipelago**, which opens a new dialogue box. Fill in your server (e.g. `archipelago.gg:38281`), slot name (the name from your `.yaml` file) and
    password (leave blank if none). Click **Connect**.
-      - The Archipelago dialouge box will tell you it's connected to a server
+      - The Archipelago dialogue box will tell you it's connected to a server
 
 
 
@@ -86,12 +88,12 @@ Download one of the `.yaml` files from the latest release on GitHub
 - Sermon upgrades randomized
 - Tarot cards randomized
 - Divine inspiration randomized with multiple options
-- Toggleable checks: bishops, minibosses, witnesses, follower recruitment, snail shrine, tarot
-  shop, construction, sweeping
+- Checks for every Bishop, miniboss and Witness
+- Toggleable checks: follower recruitment, snail shrine, tarot shop, construction, sweeping
 - Multiple goal options (Bishops, Witnesses, or Narinder)
 - Woolhaven DLC support (only enable `include_woolhaven` in your YAML if you actually own it)
 - Resources bundle filler items
-- Traps 
+- Traps
 - In-game ways to view your progress
 
 ### What's **NOT** Included
@@ -103,17 +105,17 @@ Download one of the `.yaml` files from the latest release on GitHub
 >**There are several in-game ways to track your progress**
 >  - See your Archipelago checklist with the **Quests tab** in the pause menu
 >     - Tracks win condition, region access, and live progress per active
->   check block 
+>   check block
 >     - Will only show up if `archipelago_objective_guide` is enabled
->  
->   - See your unlocked tarot cards at the **tarot card podium** at the south-end of the base 
+>
+>   - See your unlocked tarot cards at the **tarot card podium** at the south-end of the base
 >     - This will always show up even if `randomize_tarot` is not enabled
->   
+>
 >   - See what weapons and curses you have unlocked with the **podiums** at the south-end of the base
 >     - Podiums light up to show which weapon and curse families
 >     you've been granted
 >     - These will only show up if you have `randomize_weapons` and/or `randomize_curses` enabled
->   
+>
 >   - See the sermons you have unlocked in the **Archipelago menu in the temple**
 >     - This menu will always show up even if `randomize_sermons` is not enabled
 
@@ -128,15 +130,15 @@ Archipelago.CultOfTheLamb v0.9.0 loaded.
 [AP] Versions: client 0.9.0, apworld 0.9.0
 ```
 
-The two versions should match - a `MISMATCH` warning means your mod build and your apworld are
-out of step, and usually that the apworld in `custom_worlds\` is older than the mod. If you
-instead see a line about **"Developer debug keys are compiled into this build"**, you have a dev
-build rather than a released one; reinstall the mod through your mod manager.
+The two versions should match. A `MISMATCH` warning means your mod and your apworld are out of
+step, which usually means the apworld in `custom_worlds\` is older than the mod. If you instead see
+a line about **"Developer debug keys are compiled into this build"**, you have a dev build rather
+than a released one. Reinstall the mod through your mod manager.
 
 ## Known issues
 
 - This is a first beta. If something looks wrong, it probably hasn't been seen yet rather than
-  being a known, accepted issue - see [Reporting issues](#reporting-issues).
+  being a known, accepted issue. See [Reporting issues](#reporting-issues).
 
 ## Reporting issues
 
@@ -144,6 +146,10 @@ Open a [GitHub issue](https://github.com/IanCichy/CultOfTheLamb_Archipelago/issu
 `LogOutput.log` and, if it's seed-specific, your YAML. Reports from real multiworld sessions are
 the most valuable thing this beta can get - "the checklist said one thing and the server said
 another" or "this item never arrived" matter more than they might seem to.
+
+## AI disclosure
+
+This mod is AI-assisted. See [AIdisclosure.md](AIdisclosure.md) for details.
 
 ## Credits
 

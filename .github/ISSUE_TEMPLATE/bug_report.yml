@@ -7,7 +7,7 @@ body:
       value: |
         Thanks for taking the time to report this.
 
-        **Before you start: press F9 in game.** That dumps the mod's state into the log, which usually answers everything 
+        **Before you start: press F9 in game.** That dumps the mod's state into the log, which usually answers everything
         we'd otherwise have to ask you.
 
         The log lives at:
@@ -20,7 +20,7 @@ body:
     attributes:
       label: Mod version
       description: Shown in the log as `Archipelago.CultOfTheLamb vX.Y.Z`, and in r2modman's mod list.
-      placeholder: "0.8.0"
+      placeholder: "0.9.0"
     validations:
       required: true
 
@@ -31,7 +31,7 @@ body:
       description: >-
         The log prints both halves on connect: `[AP] Versions: client X, apworld Y`. If they don't
         match, that mismatch is very likely your bug.
-      placeholder: "0.8.0"
+      placeholder: "0.9.0"
     validations:
       required: false
 
@@ -85,7 +85,7 @@ body:
     attributes:
       label: Solo or multiworld?
       options:
-        - Solo 
+        - Solo
         - Multiworld with other people
         - Not sure
     validations:

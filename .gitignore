@@ -28,10 +28,7 @@ x86/
 local.props
 Directory.Build.props.user
 
-# External DLLs not distributed with the repo (e.g. COTL_API.dll)
-lib/*.dll
-
-# AP world build artifact (regenerate with: cd worlds && zip -r ../cult_of_the_lamb.apworld cult_of_the_lamb/)
+# AP world build artifact (regenerate with: py -3.12 build_apworld.py)
 *.apworld
 
 # Python

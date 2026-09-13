@@ -1,8 +1,8 @@
 # Security
 
 This is a single-player game mod. It runs locally under BepInEx and talks to whatever Archipelago
-server you point it at — it has no accounts, no credentials of its own, and stores nothing beyond
-save-adjacent files in your BepInEx profile folder.
+server you point it at. It has no accounts or credentials of its own, and stores nothing beyond a
+few files next to your saves in your BepInEx profile folder.
 
 There's no formal disclosure process. If you find something that looks like a real security issue
 rather than a bug, open an issue and mark it clearly, or contact the maintainer directly.

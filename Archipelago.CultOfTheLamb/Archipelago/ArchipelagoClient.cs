@@ -5,7 +5,7 @@ using System;
 namespace Archipelago.CultOfTheLamb;
 
 /// <summary>
-/// Core connection state and services 
+/// Core connection state and services
 /// </summary>
 /// <remarks>
 /// Session, login and reconnect live in the ArchipelagoClient.Connection.cs partial.

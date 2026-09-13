@@ -273,7 +273,8 @@ public partial class ArchipelagoClient
         session.MessageLog.OnMessageReceived += Session_OnMessageReceived;
         session.Socket.SocketClosed += Session_SocketClosed;
         session.Socket.ErrorReceived += Socket_ErrorReceived;
-        ArchipelagoConsoleCommand.OnArchipelagoReconnectCommandCalled += ArchipelagoConsoleCommand_OnArchipelagoReconnectCommandCalled;
+        ArchipelagoConsoleCommand.OnArchipelagoReconnectCommandCalled +=
+            ArchipelagoConsoleCommand_OnArchipelagoReconnectCommandCalled;
 
         // Before any service, because both the shop panels and the sent-check popups read it.
         // The scout is async, so this only starts the round trip. Every reader falls back to
@@ -541,7 +542,8 @@ public partial class ArchipelagoClient
         session.MessageLog.OnMessageReceived -= Session_OnMessageReceived;
         session.Socket.SocketClosed -= Session_SocketClosed;
         session.Socket.ErrorReceived -= Socket_ErrorReceived;
-        ArchipelagoConsoleCommand.OnArchipelagoReconnectCommandCalled -= ArchipelagoConsoleCommand_OnArchipelagoReconnectCommandCalled;
+        ArchipelagoConsoleCommand.OnArchipelagoReconnectCommandCalled -=
+            ArchipelagoConsoleCommand_OnArchipelagoReconnectCommandCalled;
 
         LocationCheckService?.Unregister();
         LocationCheckService = null;

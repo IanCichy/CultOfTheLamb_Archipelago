@@ -1,9 +1,9 @@
 {
-	"name": "Archipelago_CultOfTheLamb",
-	"version_number": "0.9.0",
-	"website_url": "https://github.com/IanCichy/CultOfTheLamb_Archipelago",
-	"description": "Play Cult of the Lamb in an Archipelago multiworld. Regions, weapons, curses, sermon upgrades, Tarot cards, Divine Inspiration, buildings and Followers become items and checks shared with other players.",
-	"dependencies": [
-		"BepInEx-BepInExPack_CultOfTheLamb-5.4.2101"
-	]
+  "name": "Archipelago_CultOfTheLamb",
+  "version_number": "0.9.0",
+  "website_url": "https://github.com/IanCichy/CultOfTheLamb_Archipelago",
+  "description": "Play Cult of the Lamb in an Archipelago multiworld. Regions, weapons, curses, sermon upgrades, Tarot cards, Divine Inspiration, buildings and Followers become items and checks shared with other players.",
+  "dependencies": [
+    "BepInEx-BepInExPack_CultOfTheLamb-5.4.2101"
+  ]
 }

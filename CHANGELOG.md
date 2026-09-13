@@ -1,76 +1,53 @@
 # Changelog
 
-## 0.9.0 - First public beta
+## 0.9.0: First public beta
 
-The first build published for anyone else to play. Everything below `0.1.0` was
-pre-release development, so this section covers the whole mod rather than one increment.
+The first public release, so this covers everything the mod does. Later releases will list what
+changed.
 
-### Randomized systems
-- **Region access.** The four Pathway doors become a single `Progressive Bishop's Domain` item:
-  one region is free per seed and the other three unlock in a randomized order. Doors are locked
-  at both the interaction and the physical-collider route, since vanilla opens them on the
-  follower-count requirement alone and never consults the unlocked-door save state.
-- **Weapon and curse families**, **sermon upgrades**, **Tarot cards** and **Divine Inspiration**
-  all become two-sided systems - each sends checks as you earn it and receives its own unlocks
-  from the multiworld, so you still play the system but no longer choose what it gives you.
-- **Faucet-only check sources**, each toggleable: Bishops, minibosses and Witnesses; follower
-  recruitment milestones; Snail Shrine offerings; Tarot shop slots; construction; sweeping.
-- **Goal**: beat N of the four Bishops, N of the four Witnesses, or Narinder.
-- Woolhaven DLC content is supported and gated behind `include_woolhaven`.
-- Filler, resources and traps pad the pool, with `trap_percentage` as the counterweight.
+### Part of the multiworld
 
-### In-game support
-- **Sermon tree viewer** ("Archipelago" on the Temple Altar menu): opens the game's own sermon
-  upgrade tree as a read-only view, with the real node art, the real layout, and full controller
-  support. Randomizing sermons replaces `SermonController.PlayerUpgrade`, which was the game's
-  only routine way into that tree - so without this there is no way at all to see which sermon
-  upgrades you hold. Nothing can be unlocked from it, and each node shows what the upgrade does.
-  The tier thresholds are hidden, since Archipelago grants upgrades outright and ignores them.
-- **Weapon and curse podiums in the base**: a line of the game's own crusade podiums - every
-  weapon, a gap, then every curse - lit for the families Archipelago has granted and locked for
-  the ones it hasn't. These are the only randomized system the game can't show natively; the
-  weapon and curse wheels are in-run only, and there is no collection screen for them. Teleport
-  curses are included on a Woolhaven seed, since that family arrives through a sermon upgrade
-  rather than the curse pool. Position is configurable under `[Displays]` and they can be turned
-  off entirely. Purely decorative - nothing is written to save data.
-- **Archipelago objective guide** (`archipelago_objective_guide`, on by default): an Archipelago
-  checklist in the game's own quest log - win condition, region access, and one live-progress
-  line per active check block. Guidance only; it creates no locations and no items.
-  `objective_guide_pinning` controls how much of it sits on the on-screen tracker.
-- **Vanilla follower quests trimmed** (`vanilla_follower_quests`, default `thin_trickle`): most
-  of the game's ~87 built-in follower quests are taken out of rotation, keeping the ritual
-  quests, the crusade collection quests and the follower story chains. A trim rather than a wipe
-  because turning a quest in is the game's main follower-loyalty-XP source.
+- **Region access.** The four Bishop regions unlock through a Progressive Bishop's Domain item. Pick
+  vanilla order, randomized, randomized with a safe start, or everything open.
+- **Weapons and curses.** You're only offered the families you've been sent, and equipping a family
+  for the first time sends a check.
+- **Sermon upgrades.** Filling the sermon bar sends a check, and the upgrades arrive as items.
+- **Tarot cards.** Earning a card sends a check, and cards arrive as items.
+- **Divine Inspiration.** Several modes, from checks only up to the multiworld handing out the
+  upgrades, with an optional shuffle of which tier each upgrade sits in.
+- **More checks.** Bishops, minibosses and Witnesses are always checks. Follower milestones, Snail
+  Shrine offerings, tarot shop slots, buildings and sweeping can each be turned on or off.
+- **Goals.** Beat a number of Bishops, a number of Witnesses, or Narinder.
+- **Filler and traps**, with `trap_percentage` to control how many traps show up.
+- **Woolhaven DLC** content behind `include_woolhaven`, including optional Legendary weapon offers.
 
-### Fixes in the run-up to the beta
-- **Fixed a hard lock in the base-upgrade flow.** Granting a base-tier upgrade (e.g. from a
-  multiworld item) while the base wasn't loaded, or out of order, could throw mid-routine and
-  leave the player permanently uncontrollable - menus blocked, character gone, no recovery short
-  of a hard exit. The upgrade is now deferred until the base is safely live, a downgrade is
-  refused and repaired to the correct tier instead of silently rebuilding it lower, and a
-  finalizer restores the game's own state if the routine fails for any other reason.
-- **Fixed the game's 15 default tarot cards becoming permanently unreachable locations.**
-  Cult of the Lamb can never re-unlock a card you start with, so treating them like any other
-  tarot check left dead locations in every seed that the fill could still place progression items
-  on - stranding other players' items behind a check that could never fire. Default cards are now
-  excluded entirely: no item, no location, you simply keep them as in vanilla. This shrinks the
-  Tarot pool by the 15 default cards, so a seed has fewer locations than it used to -
-  **seeds generated before this update are incompatible.**
-- **Missed checks are now re-derived on every connect**, not just some. Bishop, miniboss, Witness
-  and sermon checks previously only sent from live events, so anything earned while disconnected
-  was gone for good; they now re-scan save state at connect and send whatever hasn't landed yet.
-  Re-sending is free and needs nothing persisted.
-- **Reconnection no longer gives up.** A dropped connection used to stop retrying after ~15
-  seconds; it now retries indefinitely with backoff (3s up to a 30s ceiling), so an unattended
-  client recovers on its own once the server comes back.
-- **Check sends moved off the main thread**, removing a hitch when several checks catch up at
-  once on connect.
-- Ships an `archipelago.json` manifest inside the `.apworld`, required by newer Archipelago
-  versions to load the world at all.
+### Pacing
 
-## 0.1.0 - Initial scaffold
-- BepInEx 5 plugin skeleton: connection lifecycle, reconnection, item receive queue.
-- Archipelago Python world: regions (Anura/Darkwood/Anchordeep/Silk Cradle), starter item/
-  location tables, options, rules. Generation verified end-to-end against a real
-  Archipelago checkout.
-- No gameplay hooks yet - item and location tables only.
+- Optional caps on how much Devotion a Divine Inspiration point costs, how much XP a sermon upgrade
+  costs, and how long buildings take, so a seed fits in a normal play session.
+- Most of the game's follower quests can be taken out of rotation, so errands don't crowd out
+  the crusades.
+- Choose how many weapons, curses and tarot cards you start with.
+
+### In game
+
+- **Connect from the pause menu or main menu.** Click Archipelago and fill in your server, slot
+  and password.
+- **An AP icon in the corner** shows whether you're connected.
+- **AP saves are marked** on the save select screen once they've received an Archipelago item.
+- **A popup for every check you send**, naming the item and who it's for.
+- **Shop slots that are checks** show the AP logo and the item they hold.
+- **An Archipelago checklist in the quest log** with your goal, region access and progress on each
+  active check type.
+- **The sermon upgrade tree** can be viewed from the Temple altar, since randomizing sermons
+  removes the game's own way to see it.
+- **Displays in the base** for your weapon and curse families and your tarot collection.
+- **Press F9** to write the mod's state to the log for bug reports. A popup confirms it worked.
+
+### Connection
+
+- Reconnects by itself if the connection drops, and keeps trying until the server is back.
+- Progress made while disconnected is sent when you reconnect, for bosses, sermons, followers,
+  buildings, sweeping, Snail Shrines and Divine Inspiration. Tarot cards earned or bought while
+  disconnected are not.
+- Warns in the log if the mod and apworld versions don't match.

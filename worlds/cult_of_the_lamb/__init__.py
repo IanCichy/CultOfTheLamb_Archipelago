@@ -64,7 +64,9 @@ class CultOfTheLambWorld(World):
         "Curses": {name for name, data in item_table.items() if data.category == "Curse"},
         "Tarot Cards": {name for name, data in item_table.items() if data.category == "Tarot"},
         "Relics": {name for name, data in item_table.items() if data.category == "Relic"},
-        "Sermon Upgrades": {name for name, data in item_table.items() if data.category == "Sermon"},
+        "Sermon Upgrades": {
+            name for name, data in item_table.items() if data.category == "Sermon"
+        },
         "Divine Inspiration": {
             name for name, data in item_table.items() if data.category == "DivineInspiration"
         },

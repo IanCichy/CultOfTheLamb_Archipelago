@@ -6,13 +6,13 @@ body:
     attributes:
       value: |
         Before you suggest something, it helps to know what this mod is actually going for.
-        
-        This is meant to be played as part of an AP world, but isn't meant to turn Cult of the Lamb into a fully randomized experience.  
+
+        This is meant to be played as part of an AP world, but isn't meant to turn Cult of the Lamb into a fully randomized experience.
         The priority is keeping the core gameplay feeling good first, with randomization layered on top.
-        
-        The best suggestions are the ones that point at a specific problem. 
-        What is something that feels repetitive, unclear, or missing right now, and explain how the change would fix it. 
-        
+
+        The best suggestions are the ones that point at a specific problem.
+        What is something that feels repetitive, unclear, or missing right now, and explain how the change would fix it.
+
   - type: textarea
     id: idea
     attributes:

@@ -10,14 +10,14 @@ using UnityEngine;
 namespace Archipelago.CultOfTheLamb.Console;
 
 /// <summary>
-/// The bodies behind DebugCommands' keybinds. Each one exercises exactly one candidate AP
-/// feature against the real game API so a single debug build can prove or kill all of them in
-/// one sitting. Every API called here was read out of the decompiled source first. See
-/// DcplIdx 4b.
-///
-/// These are hardcoded single samples, not a general grant API. Once a feature
-/// is proven, the real implementation belongs in a Service driven by received AP items.
+/// The code behind DebugCommands' keys. Each one tests one feature against the real game API, so a
+/// single debug build can check all of them in one sitting. Every API here was read out of the
+/// decompiled source first (DcplIdx 4b).
 /// </summary>
+/// <remarks>
+/// These are hardcoded single samples, not a general grant API. Once a feature works, the real
+/// version belongs in a Service driven by received AP items.
+/// </remarks>
 internal static class DebugActions
 {
     // Chosen for visibility, since an extra heart container is immediately obvious in the HUD.
@@ -25,14 +25,9 @@ internal static class DebugActions
     private const TarotCards.Card SampleTarotCard = TarotCards.Card.Sun;
     private const PlayerFleeceManager.FleeceType SampleFleece = PlayerFleeceManager.FleeceType.Gold;
 
-    /// <summary>
-    /// Lists what's reachable through Resources, written alongside the name table.
-    ///
-    /// The decompile has ~80 Resources.Load paths, but a path appearing in code doesn't mean the
-    /// asset shipped there. "Prefabs/Structures/Statue - Sword" is referenced by DungeonDecorator
-    /// and resolves to null at runtime. Enumerating is the only way to know what a pedestal can
-    /// be built from.
-    /// </summary>
+    // Lists what can actually be loaded through Resources. A path showing up in the decompile
+    // doesn't mean the asset shipped there ("Prefabs/Structures/Statue - Sword" loads as null), so
+    // listing them is the only way to know what a pedestal can be built from
     private static void DumpResourcePrefabs(StringBuilder sb)
     {
         sb.AppendLine();
@@ -85,15 +80,9 @@ internal static class DebugActions
         }
     }
 
-    /// <summary>
-    /// Every Addressables key the game has registered, filtered to things a weapon display could
-    /// be built from.
-    ///
-    /// The crusade podiums are real scene objects (Interaction_WeaponSelectionPodium, with
-    /// podiumOn/podiumOff/Lighting child art) authored into dungeon rooms, so the art exists.
-    /// The only question is whether it can be addressed from the base. Nothing in Resources
-    /// answers that, and this does.
-    /// </summary>
+    // Every Addressables key, filtered to things a weapon display could be built from. The crusade
+    // podium art exists in dungeon rooms, and the question is whether the base can load it.
+    // Resources can't answer that, but this can
     private static void DumpAddressableKeys(StringBuilder sb)
     {
         sb.AppendLine();
@@ -142,13 +131,9 @@ internal static class DebugActions
         }
     }
 
-    /// <summary>
-    /// Ctrl+F7 dumps every weapon podium in the loaded scene, meaning hierarchy, renderers,
-    /// scale and which of podiumOn/podiumOff/Lighting is active.
-    ///
-    /// Press it standing next to a real one mid-crusade and the output is the ground truth our
-    /// base clone has to match. The prefab's authored structure isn't in the decompile.
-    /// </summary>
+    // Ctrl+F7. Dumps every weapon podium in the scene: hierarchy, renderers, scale, and which of
+    // podiumOn, podiumOff and Lighting is active. Run it next to a real podium mid-crusade to see
+    // what our base copy has to match, since the prefab layout isn't in the decompile
     internal static void DumpPodiumsInScene()
     {
         var found = 0;
@@ -202,14 +187,9 @@ internal static class DebugActions
     private static string State(GameObject go) =>
         go == null ? "(null)" : go.activeInHierarchy ? "ON" : "off";
 
-    /// <summary>
-    /// Ctrl+F6 drops a row of weapon pedestals in front of the player, alternating received and
-    /// not-received so both tints can be compared side by side.
-    ///
-    /// A scratch harness for the placement pass, not the real feature. The statue is authored for
-    /// dungeon decoration, so its size and sorting at base scale can only be found by looking at
-    /// it. Press again to clear and respawn.
-    /// </summary>
+    // Ctrl+F6. Drops a row of weapon pedestals in front of the player, alternating received and
+    // not received so both looks sit side by side. A test harness for placement, not the real
+    // feature. Press again to clear and respawn
     internal static void SpawnEquipmentPedestals()
     {
         var player = PlayerFarming.Instance;
@@ -247,13 +227,11 @@ internal static class DebugActions
             NotificationBase.Flair.Positive);
     }
 
-    /// <summary>F6 grants resource filler items. Lowest-risk feature, and the API is already
-    /// used by two other mods.</summary>
+    // F6. Grants resource filler items
     internal static void GiveResources()
     {
-        // forceNormalInventory is true because Inventory.AddItem otherwise routes into the
-        // *dungeon* inventory whenever BiomeGenerator.Instance exists (Inventory.cs:251),
-        // which would make results depend on whether we're on a crusade.
+        // forceNormalInventory, or Inventory.AddItem puts it in the crusade inventory whenever
+        // BiomeGenerator.Instance exists (Inventory.cs:251)
         GiveItem(InventoryItem.ITEM_TYPE.LOG, 10);
         GiveItem(InventoryItem.ITEM_TYPE.STONE, 10);
         GiveItem(InventoryItem.ITEM_TYPE.BERRY, 5);
@@ -268,23 +246,15 @@ internal static class DebugActions
         Log.LogInfo($"[AP] Debug: gave {quantity}x {type}");
     }
 
-    /// <summary>
-    /// F2 lists the sermon upgrades you currently own, to the log. Randomizing sermons removes
-    /// the game's own way of showing this tree.
-    /// </summary>
-    /// <remarks>
-    /// Deliberately does NOT open UIUpgradePlayerTreeMenuController. That menu can't be dismissed
-    /// (empty OnCancelButtonInput) and its only exit is DoUnlock(), so opening it to "just look"
-    /// hands out a free upgrade the randomizer never granted.
-    ///
-    /// The player-facing viewer is SermonTreeViewer. This stays as the log-only diagnostic, a
-    /// second opinion since both read UpgradePlayerConfiguration.
-    /// </remarks>
+    // F2. Lists the sermon upgrades you own to the log.
+    //
+    // Doesn't open UIUpgradePlayerTreeMenuController on purpose. That menu can't be closed and its
+    // only exit hands out an upgrade, so opening it just to look gives a free upgrade the
+    // multiworld never sent. SermonTreeViewer is the player-facing view, and this is the log one
     internal static void ListOwnedSermonUpgrades()
     {
-        // Filter against the game's own sermon tree rather than guessing by name prefix.
-        // Prefix matching was wrong. "Relic_Pack_Default" starts with "Relic" but isn't a
-        // sermon upgrade at all, and showed up in the list as an untranslated term.
+        // Filter against the game's own sermon tree, not by name prefix. "Relic_Pack_Default"
+        // starts with "Relic" but isn't a sermon upgrade
         var tree = GameManager.GetInstance()?.UpgradePlayerConfiguration?.AllUpgrades;
         if (tree == null)
         {
@@ -322,15 +292,9 @@ internal static class DebugActions
             NotificationBase.Flair.None);
     }
 
-    /// <summary>
-    /// F3 fills the sermon bar so the very next sermon pays out immediately.
-    ///
-    /// Exists because testing sermon randomization otherwise means grinding real sermons, one
-    /// per in-game day, each needing a flock's worth of accumulated XP. SermonController reads
-    /// the stored XP when the sermon starts and pays out if it already meets the target
-    /// (SermonController.cs:82), so pre-filling it here is enough. The reward still runs
-    /// through the game's own code path rather than us faking the event.
-    /// </summary>
+    // F3. Fills the sermon bar so the next sermon pays out straight away, instead of grinding one
+    // sermon per in-game day. SermonController pays out if the stored XP already meets the target
+    // (SermonController.cs:82), so the reward still goes through the game's own code
     internal static void FillSermonBar()
     {
         if (DataManager.Instance == null)
@@ -349,14 +313,11 @@ internal static class DebugActions
             NotificationBase.Flair.Positive);
     }
 
-    /// <summary>F7 grants a sermon or ability upgrade. The biggest payoff feature, at roughly
-    /// 35 items and 35 locations.</summary>
+    // F7. Grants a sermon or ability upgrade
     internal static void UnlockSampleSermon()
     {
-        // Prefer the visible sample, but any real save is likely to have it already, and an
-        // "already unlocked" result proves GetUnlocked works while proving nothing about the
-        // grant path, which is the thing under test. So fall back to whatever is
-        // still locked.
+        // Prefer the visible sample, but a real save probably has it already, and "already
+        // unlocked" doesn't test the grant path. So fall back to anything still locked
         var target = SampleUpgrade;
         if (UpgradeSystem.GetUnlocked(target))
         {
@@ -382,16 +343,13 @@ internal static class DebugActions
             granted ? NotificationBase.Flair.Positive : NotificationBase.Flair.None);
     }
 
-    /// <summary>
-    /// What tier the Temple and Shrine structures are, as opposed to what
-    /// UnlockedUpgrades claims. A mismatch means an UpgradeBaseRoutine died before its swap, so
-    /// the tier is recorded as upgraded and never built, which is the state the
-    /// base-upgrade hard lock used to leave behind. Read-only.
-    ///
-    /// Don't add a companion key that calls BiomeBaseManager.UpgradeBase directly. Invoking that
-    /// routine outside the game's own flow is a good way to hard-lock a save, and it leaves
-    /// Temple_IV queued in UnlocksToReveal so the upgrade cutscene replays on the next altar visit.
-    /// </summary>
+    // What tier the Temple and Shrine buildings really are, compared with what UnlockedUpgrades
+    // says. A mismatch means an upgrade routine died before swapping the buildings, which is the
+    // state the old base-upgrade hard lock left behind. Read only.
+    //
+    // Don't add a key that calls BiomeBaseManager.UpgradeBase directly. Running that outside the
+    // game's own flow can hard-lock a save, and it replays the upgrade cutscene on the next altar
+    // visit
     internal static void DumpBaseStructureTiers()
     {
         foreach (var brain in StructureManager.GetAllStructuresOfType<Structures_Temple>())
@@ -461,11 +419,8 @@ internal static class DebugActions
             granted ? NotificationBase.Flair.Positive : NotificationBase.Flair.None);
     }
 
-    /// <summary>
-    /// DataManager.AllTrinkets is the master card list and PlayerFoundTrinkets is what the save
-    /// has. TarotCards.GetUnfoundTrinkets() computes this diff itself, but going through the
-    /// two lists directly keeps the debug path independent of that helper's own filtering.
-    /// </summary>
+    // A card the save hasn't found yet, from AllTrinkets minus PlayerFoundTrinkets. Done by hand
+    // rather than with GetUnfoundTrinkets, so its extra filtering can't hide anything
     private static bool TryFindUnfoundTarot(out TarotCards.Card card)
     {
         var found = DataManager.Instance?.PlayerFoundTrinkets;
@@ -487,8 +442,7 @@ internal static class DebugActions
         return false;
     }
 
-    /// <summary>F10 unlocks a fleece. There is no UnlockFleece API, and the save state is a
-    /// List&lt;int&gt;.</summary>
+    // F10. Unlocks a fleece. There's no UnlockFleece API, the save just holds a List<int> of ids
     internal static void UnlockSampleFleece()
     {
         var dataManager = DataManager.Instance;
@@ -513,29 +467,21 @@ internal static class DebugActions
         ApNotification.Show($"Archipelago: unlocked fleece {SampleFleece}", NotificationBase.Flair.Positive);
     }
 
-    /// <summary>F11 exercises the notification pipeline, including the I2 term-registration
-    /// fix.</summary>
+    // F11. Runs the notification pipeline, including registering the I2 term
     internal static void ShowSampleNotification()
     {
         Log.LogInfo("[AP] Debug: showing sample notifications (one per flair).");
 
-        // Distinct text per flair matters. NotificationCentre dedupes by key within a frame,
-        // and ApNotification derives the key from the text, so identical strings would collapse
-        // into a single popup and make this look broken.
+        // Different text per flair. Popups with the same text share a key and collapse into one
+        // within a frame, which would look broken
         ApNotification.Show("Archipelago: neutral notification", NotificationBase.Flair.None);
         ApNotification.Show("Archipelago: positive notification", NotificationBase.Flair.Positive);
         ApNotification.Show("Archipelago: negative notification", NotificationBase.Flair.Negative);
     }
 
-    /// <summary>
-    /// F4 writes the internal-name -> display-name table for every unlockable system to a
-    /// file next to the BepInEx log.
-    ///
-    /// These display names only exist at runtime. The decompile has the I2 *term keys*
-    /// (e.g. "UpgradeSystem/PUpgrade_WeaponCritHit/Name") but the English text lives in a
-    /// Unity asset. AP item/location names are effectively permanent once seeds exist, so we
-    /// want the real names before generating the tables rather than renaming later.
-    /// </summary>
+    // F4. Writes the internal name to display name table for every unlockable system to a file
+    // next to the BepInEx log. The English names only exist at runtime, and AP item and location
+    // names are permanent once seeds exist, so the real names matter before naming anything
     internal static void DumpUnlockableNames()
     {
         var sb = new StringBuilder();
@@ -585,16 +531,15 @@ internal static class DebugActions
 
         sb.AppendLine();
         sb.AppendLine("## DoctrineUpgradeSystem.DoctrineType");
-        foreach (DoctrineUpgradeSystem.DoctrineType d in System.Enum.GetValues(typeof(DoctrineUpgradeSystem.DoctrineType)))
+        foreach (DoctrineUpgradeSystem.DoctrineType d
+            in System.Enum.GetValues(typeof(DoctrineUpgradeSystem.DoctrineType)))
         {
             sb.AppendLine($"{d}\t{Safe(() => DoctrineUpgradeSystem.GetLocalizedName(d))}");
         }
 
-        // The weapon and curse families this world pools. Added late, and their absence is why two
-        // of them shipped with invented names. The display names in items.py were taken from
-        // TarotCards/{X}/Name, a term family that only happens to carry some weapon names, and
-        // silently returns the key itself for the rest. The real term is UpgradeSystem/{X}/Name
-        // (EquipmentData.cs:15), which is what GetLocalisedTitle reads.
+        // The weapon and curse families. Their names come from UpgradeSystem/{X}/Name
+        // (EquipmentData.cs:15). TarotCards/{X}/Name only covers some weapons and returns the key
+        // for the rest, which is how two families first shipped with made up names
         sb.AppendLine();
         sb.AppendLine("## EquipmentType (weapon + curse families)");
         foreach (EquipmentType e in System.Enum.GetValues(typeof(EquipmentType)))
@@ -622,19 +567,16 @@ internal static class DebugActions
         ApNotification.Show("Archipelago: wrote name table", NotificationBase.Flair.Positive);
     }
 
-    /// <summary>
-    /// Dumps the three upgrade-tree definitions, the authoritative answer to which upgrades are
-    /// sermon upgrades and which are Woolhaven-only. The trees are ScriptableObjects, so neither
-    /// is answerable from the decompile, and the wiki was out of date on both.
-    /// </summary>
-    /// <remarks>
-    ///  - UpgradeTreeConfiguration      : the Divine Inspiration building/ritual tree
-    ///  - UpgradePlayerConfiguration    : the Temple sermon tree  (the one we randomize)
-    ///  - DLCUpgradeTreeConfiguration   : the Woolhaven tree
-    ///
-    /// AllUpgradesRequiringUpgrade is the real prerequisite graph. Not needed for granting, since
-    /// UnlockAbility ignores prerequisites, but useful for checking the progressive chains.
-    /// </remarks>
+    // The three upgrade tree definitions, which answer which upgrades are sermon upgrades and which
+    // are Woolhaven only. They're ScriptableObjects, so the decompile can't answer it, and the wiki
+    // was out of date.
+    //
+    //   UpgradeTreeConfiguration     the Divine Inspiration tree
+    //   UpgradePlayerConfiguration   the Temple sermon tree, the one we randomize
+    //   DLCUpgradeTreeConfiguration  the Woolhaven tree
+    //
+    // AllUpgradesRequiringUpgrade is the real prerequisite graph. Granting doesn't need it, since
+    // UnlockAbility ignores prerequisites, but it's handy for checking the progressive chains
     private static void DumpUpgradeTrees(StringBuilder sb)
     {
         var gameManager = GameManager.GetInstance();
@@ -657,16 +599,11 @@ internal static class DebugActions
         DumpStructureCoupling(sb);
     }
 
-    /// <summary>
-    /// The tree *shape*, meaning node positions and prerequisite edges, which the
-    /// ScriptableObjects above do not carry. UpgradeTreeConfiguration has AllUpgrades and tiers
-    /// but no layout, and its AllUpgradesRequiringUpgrade is nearly empty
-    /// (DivineInspirationShuffle.cs:36-38). The authored graph lives on the menu prefabs instead,
-    /// so this reads them to size up an in-game viewer.
-    ///
-    /// Read-only, and deliberately never instantiates. Configure() writes node state and would
-    /// damage the shared prefab, taking the game's own tree menu down with it.
-    /// </summary>
+    // The tree layout: node positions and prerequisite lines, which the ScriptableObjects don't
+    // have. That lives on the menu prefabs, so this reads those.
+    //
+    // Read only, and never instantiates. Configure() writes node state and would damage the shared
+    // prefab, breaking the game's own tree menu
     private static void DumpTreePrefabs(StringBuilder sb)
     {
         sb.AppendLine();
@@ -719,10 +656,8 @@ internal static class DebugActions
 
             var rect = Safe2(() => node.RectTransform);
 
-            // anchoredPosition is the only usable coordinate here. A prefab asset isn't in a scene,
-            // so transform.position reads as zero for every node. That was measured, and the
-            // localPos column shows it. Every node is a direct child of one NodesContainer, so
-            // these are already in a single comparable space.
+            // anchoredPosition, because a prefab isn't in a scene and transform.position reads zero
+            // for every node. All nodes share one parent, so these are comparable
             var anchored = rect == null ? Vector2.zero : rect.anchoredPosition;
 
             var local = rect == null
@@ -771,10 +706,8 @@ internal static class DebugActions
             + $"  size {maxX - minX:F1} x {maxY - minY:F1}");
         sb.AppendLine($"# Edge candidates: PrerequisiteNodes={prereqEdges}, NodeConnections={connectionEdges}");
 
-        // The third possible edge source is the menu's own line renderers. Read as components
-        // rather than through UIUpgradeTreeMenuBase<T>.NodeConnections, which would need the
-        // concrete generic argument per template. A line may span more than two nodes, which is
-        // why the count alone isn't enough to reconstruct the graph.
+        // The menu's own line renderers are a third source of edges. A line can span more than two
+        // nodes, so the count alone can't rebuild the graph
         var lines = template.GetComponentsInChildren<NodeConnectionLine>(true);
         sb.AppendLine($"# NodeConnectionLines: {lines?.Length ?? 0}");
         if (lines == null)
@@ -840,9 +773,8 @@ internal static class DebugActions
         {
             foreach (var upgrade in all)
             {
-                // Description too, because the sermon viewer folds it under each node's name,
-                // and whether I2 has a term for these is the only way to tell why one
-                // comes out blank.
+                // The description too, since the sermon viewer shows it under each name and this
+                // is how to tell why one comes out blank
                 sb.AppendLine($"{upgrade}\t{Safe(() => UpgradeSystem.GetLocalizedName(upgrade))}"
                     + $"\tDESC: {Safe(() => UpgradeSystem.GetLocalizedDescription(upgrade))}");
             }
@@ -864,17 +796,12 @@ internal static class DebugActions
         DumpTiers(sb, tree);
     }
 
-    /// <summary>
-    /// The tier table, and specifically the cumulative NumRequiredToUnlock thresholds, which
-    /// are the whole reason this dump exists.
-    ///
-    /// A node is available when NumUnlockedUpgrades() >= NumRequiredNodesForTier(its tier)
-    /// AND its own prerequisites are met (UpgradeTreeNode.cs:296). The first half is a
-    /// cumulative *count* of upgrades unlocked anywhere in the tree rather than a set of
-    /// specific ones, which is what lets Archipelago express tier access as a plain
-    /// "N progression items received" rule with no graph traversal. Those N values live only
-    /// in the ScriptableObject, so this is the only way to read them.
-    /// </summary>
+    // The tier table, mainly the NumRequiredToUnlock thresholds.
+    //
+    // A node opens once NumUnlockedUpgrades() reaches its tier's threshold and its own
+    // prerequisites are met (UpgradeTreeNode.cs:296). The threshold is a count of unlocks anywhere
+    // in the tree, which is why Archipelago can gate tiers with a simple "N items" rule. Those
+    // numbers only live in the ScriptableObject, so this is the way to read them
     private static void DumpTiers(StringBuilder sb, UpgradeTreeConfiguration tree)
     {
         var tiers = tree.TierConfigurations;
@@ -907,15 +834,12 @@ internal static class DebugActions
         }
     }
 
-    /// <summary>
-    /// The tech -> building -> tech coupling, and whether it ever forms a cycle. If an upgrade's
-    /// required building is itself gated behind that same upgrade, Archipelago can't gate both
-    /// systems in one seed without generating something unwinnable. Two sprints depended on the
-    /// answer, and it isn't readable from the decompile.
-    ///
-    /// Only direct and one-hop relationships are reported. A wrong "no cycles" from a half-right
-    /// traversal is worse than an honest list someone can read.
-    /// </summary>
+    // The upgrade to building to upgrade chain, and whether it ever loops. If an upgrade's required
+    // building sits behind that same upgrade, a seed gating both can't be won, and the decompile
+    // can't answer it.
+    //
+    // Only direct and one-step links are listed. A wrong "no loops" from a half-right search is
+    // worse than a plain list someone can read
     private static void DumpStructureCoupling(StringBuilder sb)
     {
         sb.AppendLine();
@@ -988,10 +912,8 @@ internal static class DebugActions
         }
     }
 
-    /// <summary>
-    /// I2 returns null for unregistered terms and some lookups throw when the localization
-    /// system isn't fully up, and a half-written table is worse than a marked-up one.
-    /// </summary>
+    // I2 returns null for missing terms and some lookups throw before localization is ready, so this
+    // marks those instead of leaving the table half written
     private static string Safe(System.Func<string> get)
     {
         try
@@ -1005,15 +927,12 @@ internal static class DebugActions
         }
     }
 
-    /// <summary>
-    /// Which Snail Shrines are lit, and the ShrineNumber of any shrine in the current scene.
-    ///
-    /// The second part is the point. locations.py currently puts all five shrines in "Cult"
-    /// (always reachable) because which ShrineNumber sits in which hub is a serialized prefab
-    /// field the decompile can't show. Four of the five sit behind hub access, so
-    /// Archipelago believes them reachable earlier than they are. Standing in a hub and
-    /// pressing F9 records the mapping needed to region-scope them properly.
-    /// </summary>
+    // Which Snail Shrines are lit, and the ShrineNumber of any shrine in this scene.
+    //
+    // The second part is the useful one. locations.py puts all five shrines in "Cult" because
+    // which ShrineNumber is in which hub is a prefab field the decompile can't show, and four of
+    // them are really behind hub access. Pressing F9 in each hub records the mapping needed to fix
+    // that
     private static void DumpSnailShrines()
     {
         var dataManager = DataManager.Instance;
@@ -1045,27 +964,20 @@ internal static class DebugActions
         }
     }
 
-    /// <summary>
-    /// Ctrl+F2 records all four Bishops as beaten and breaks every chain on the Gateway door,
-    /// so the Narinder goal can be tested without a full playthrough.
-    /// </summary>
-    /// <remarks>
-    /// Save writes only. DoorRoomChainDoor.Start reads BossesCompleted and DoorRoomChainProgress
-    /// and sets DoorActive at >= 5 chains (there are five breaks for four Bishops, since the
-    /// fourth triggers the fifth), so the door is open the next time the Door Room loads.
-    ///
-    /// Does not send the four Bishop location checks. Those fire from Interaction_MonsterHeart
-    /// when a heart is actually taken. The goal re-check below is what this key is for.
-    /// </remarks>
+    // Ctrl+F2. Marks all four Bishops beaten and breaks every chain on the Gateway door, so the
+    // Narinder goal can be tested without a full playthrough.
+    //
+    // Save writes only. DoorRoomChainDoor.Start opens the door at 5 chains (four Bishops, and the
+    // fourth breaks the fifth), so it's open the next time the Door Room loads.
+    //
+    // Doesn't send the Bishop checks, since those fire when a heart is taken. The goal re-check
+    // below is the point
     internal static void CompleteBishopsAndOpenGateway(ArchipelagoClient ap)
     {
-        // Refuses on any other goal even though the key is compiled out of normal builds. On a
-        // Bishops or Witnesses seed this would just be a way to win instantly, since Recheck()
-        // counts straight from BossesCompleted and would report victory to the server.
-        // Requires a *confirmed* narinder goal rather than merely failing to see another one.
-        // Written the other way round, a disconnected session (GoalService null) slipped through
-        // and wrote BossesCompleted anyway. Connecting afterwards on a Bishops seed then made
-        // GoalService.Register()'s catch-up check report instant victory. Same failure, deferred.
+        // Only on a confirmed Narinder goal, even in a debug build. On a Bishops or Witnesses seed
+        // this would win instantly, since Recheck() counts BossesCompleted. Checking for "not some
+        // other goal" instead let a disconnected session through, and the win got reported on the
+        // next connect
         if (ap?.GoalService == null || ap.GoalService.Goal != Services.GoalService.GoalNarinder)
         {
             Log.LogWarning("[AP] This key only works while connected to a narinder seed - on any "
@@ -1103,16 +1015,11 @@ internal static class DebugActions
         ap?.GoalService?.Recheck();
     }
 
-    /// <summary>
-    /// Everything about the objective guide, then a sweep and rebuild.
-    /// </summary>
-    /// <remarks>
-    /// The I2 read back per line is why this has its own key: a term that never registered and a
-    /// broken UI both show a blank quest line. That is what found the blank notification bug.
-    ///
-    /// The save list counts are the leak detector. After a disconnect every one must be zero, or
-    /// a player keeps Archipelago lines in a vanilla quest log.
-    /// </remarks>
+    // Ctrl+F9. Everything about the objective guide, then a sweep and rebuild.
+    //
+    // It reads each line's text back from I2, because a missing term and a broken UI both show a
+    // blank line. The save list counts catch leaks: after a disconnect they must all be zero, or a
+    // vanilla quest log keeps Archipelago lines
     internal static void DumpQuestGuide(ArchipelagoClient ap)
     {
         Log.LogInfo("[AP] ---- objective guide ----");
@@ -1148,10 +1055,8 @@ internal static class DebugActions
         Log.LogInfo("[AP] ---- end objective guide ----");
     }
 
-    /// <summary>
-    /// What the weapon and curse pools look like from both sides. The game's own pool is
-    /// printed in full so you can compare it before and after a session.
-    /// </summary>
+    // The weapon and curse pools from both sides. The game's pool is printed in full so you can
+    // compare it before and after a session
     private static void DumpEquipmentPools(ArchipelagoClient ap)
     {
         foreach (var service in new[] { ap?.WeaponPoolService, ap?.CursePoolService })
@@ -1238,13 +1143,9 @@ internal static class DebugActions
             NotificationBase.Flair.Positive, ApColors.Blue);
     }
 
-    /// <summary>
-    /// The one thing the log and the debt store can't tell you is whether the managed
-    /// collection's invariant holds right now. While connected the game's own collection must
-    /// contain zero managed cards. If ManagedCollection.Tick() stops sweeping they reappear as
-    /// real unlocks and their checks are stranded, silently, since the sweep only logs what it
-    /// hasn't already accounted for.
-    /// </summary>
+    // Whether the tarot collection is in the state it should be. While connected, the game's
+    // collection must hold zero managed cards. If the sweep stops working they come back as real
+    // unlocks and strand their checks, without any log line
     private static void DumpTarotState()
     {
         var found = DataManager.Instance?.PlayerFoundTrinkets;
@@ -1323,16 +1224,11 @@ internal static class DebugActions
         }
     }
 
-    /// <summary>
-    /// Settles the one open question left from the research pass, which internal boss name
-    /// carries which display name (Amdusias against Valefar against Barbatos, and so on). Press
-    /// F9 inside a boss room and every encounter in it prints its name alongside its I2
-    /// DisplayName term and that term's translation.
-    ///
-    /// Resources.FindObjectsOfTypeAll rather than FindObjectsOfType. MiniBossManager
-    /// deactivates every encounter except the selected one (MiniBossManager.cs:129), so the
-    /// active-only search would return just one of the four.
-    /// </summary>
+    // Which internal boss name goes with which display name (Amdusias, Valefar, Barbatos and so
+    // on). Press F9 in a boss room and each encounter prints its name, its I2 term and the text.
+    //
+    // Resources.FindObjectsOfTypeAll, because MiniBossManager turns off every encounter except the
+    // chosen one (MiniBossManager.cs:129), so an active-only search finds just one of four
     private static void DumpMiniBossesInScene()
     {
         var miniBosses = Resources.FindObjectsOfTypeAll<MiniBossController>();
@@ -1368,13 +1264,9 @@ internal static class DebugActions
     private static string Describe(Sprite sprite) =>
         sprite == null ? "(none)" : $"\"{sprite.name}\" bounds={sprite.bounds.size}";
 
-    /// <summary>
-    /// F1, standing in a hub shop, dumps every shop in the scene and the renderer hierarchy
-    /// behind each slot. A slot's art has no single source. Stalls get theirs from
-    /// InventoryItemDisplay.SetImage, but tarot slots never call it, so their card art is
-    /// authored on the prefab and only findable by walking the hierarchy. This is how you check
-    /// ShopIconService's guess picked the card and not a shadow or a highlight decal.
-    /// </summary>
+    // F1, in a hub shop. Dumps every shop in the scene and the renderers behind each slot. Tarot
+    // slot art is set on the prefab rather than through SetImage, so walking the hierarchy is the
+    // only way to check ShopIconService picked the card and not a shadow or highlight
     internal static void DumpShopSlots()
     {
         var shops = Object.FindObjectsOfType<shopKeeperManager>();
@@ -1418,10 +1310,9 @@ internal static class DebugActions
 
                 Log.LogInfo($"[AP]     slot \"{slot.name}\" active={slot.activeInHierarchy} {sale}");
 
-                // A slot can draw through three different things and the prefab decides which,
-                // so dump all of them rather than assuming. InventoryItemDisplay's own wiring
-                // goes first, because SetImage writes to whichever of its targets is non-null,
-                // so the nulls are as informative as the values.
+                // A slot can draw through three different things, so dump them all.
+                // InventoryItemDisplay goes first, since SetImage writes to whichever of its
+                // targets isn't null, so the nulls matter too
                 var display = slot.GetComponent<InventoryItemDisplay>();
                 if (display == null)
                 {
