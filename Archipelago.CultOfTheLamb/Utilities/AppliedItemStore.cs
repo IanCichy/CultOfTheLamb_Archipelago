@@ -9,14 +9,8 @@ namespace Archipelago.CultOfTheLamb;
 /// Remembers how many received items have already been applied to a given save.
 /// </summary>
 /// <remarks>
-/// The server replays a slot's entire item history on every connect, and the client must drain
-/// it or lose items received while disconnected. Re-applying is only harmless for idempotent
-/// grants: Inventory.AddItem stacks, so before this existed spamming F5 was an infinite
-/// resource generator.
-///
 /// The key includes the save slot as well as the AP seed and slot, since "already applied" is a
-/// property of the save file rather than the client install. It lives in a sidecar file because
-/// DataManager is MessagePack-serialized with fixed [Key(N)] attributes.
+/// property of the save file rather than the client install.
 ///
 /// Known limitation: reloading an earlier autosave of the same slot leaves the count ahead of
 /// what that save received, so those items are skipped.
@@ -54,15 +48,52 @@ internal static class AppliedItemStore
         }
     }
 
-    // Identity of "this playthrough": which save, on which seed, as which slot.
-    //
-    // Built from SaveSlot.Current rather than the raw SAVE_SLOT. The game parks a Woolhaven
-    // save at slot+10 and moves SAVE_SLOT between the two while writing, so the raw value can
-    // key the same save two ways in one session. A key that misses reads the count as 0 and
-    // re-applies the entire item history
+    // Identity of this playthrough: which save, on which seed, as which slot.
     internal static string BuildKey(string seed, int apSlot)
     {
         return $"save{SaveSlot.Current}:{seed ?? "noseed"}:{apSlot}";
+    }
+
+    // Whether this save has ever received an AP item, without loading it. Takes a raw slot and
+    // folds Woolhaven's slot+10 down like SaveSlot.Current
+    internal static bool HasHistoryFor(int rawSaveSlot)
+    {
+        var folded = rawSaveSlot >= 10 ? rawSaveSlot - 10 : rawSaveSlot;
+        var prefix = $"save{folded}:";
+
+        foreach (var key in CachedKeys())
+        {
+            if (key.StartsWith(prefix, StringComparison.Ordinal))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    // Re-read only when the store file changes, since the menu asks once per row
+    private static string[] cachedKeys;
+    private static DateTime cachedStamp;
+
+    private static string[] CachedKeys()
+    {
+        try
+        {
+            var stamp = File.Exists(StorePath) ? File.GetLastWriteTimeUtc(StorePath) : DateTime.MinValue;
+            if (cachedKeys != null && stamp == cachedStamp)
+            {
+                return cachedKeys;
+            }
+
+            cachedStamp = stamp;
+            cachedKeys = new List<string>(ReadAll().Keys).ToArray();
+            return cachedKeys;
+        }
+        catch (Exception)
+        {
+            return cachedKeys ?? new string[0];
+        }
     }
 
     private static Dictionary<string, int> ReadAll()

@@ -24,6 +24,12 @@ internal static class EquipmentPoolPatch
     // The curse-side counterpart
     internal static Func<EquipmentType, EquipmentType> SubstituteCurse;
 
+    // How many different weapons the seed can offer. Read by PodiumTypeBalancePatch
+    internal static Func<int> WeaponOfferCount;
+
+    // The curse-side counterpart
+    internal static Func<int> CurseOfferCount;
+
     // Called when a weapon is equipped, which is what sends its check
     internal static Action<EquipmentType> WeaponEquipped;
 

@@ -1150,8 +1150,7 @@ internal static class DebugActions
 
     /// <summary>
     /// What the weapon and curse pools look like from both sides. The game's own pool is
-    /// printed in full because the claim being verified is that it's *never written to* -
-    /// compare the line before and after a session.
+    /// printed in full so you can compare it before and after a session.
     /// </summary>
     private static void DumpEquipmentPools(ArchipelagoClient ap)
     {
@@ -1203,10 +1202,13 @@ internal static class DebugActions
         DumpBaseStructureTiers();
         DumpTarotState();
         DumpEquipmentPools(ap);
+        DumpEquippedAndWeaponData();
+
         if (ap?.DivineInspirationService != null)
         {
             Log.LogInfo($"[AP] {ap.DivineInspirationService.DescribeState()}");
         }
+
         if (ap?.BuildingService != null)
         {
             Log.LogInfo($"[AP] {ap.BuildingService.DescribeState()}");
@@ -1230,6 +1232,10 @@ internal static class DebugActions
         DumpMiniBossesInScene();
         DumpSnailShrines();
         Log.LogInfo("[AP] ---- end dump ----");
+
+        // Post message on screen as feedback for players
+        ApNotification.Show("Archipelago: state written to the log (F9)",
+            NotificationBase.Flair.Positive, ApColors.Blue);
     }
 
     /// <summary>
@@ -1460,5 +1466,30 @@ internal static class DebugActions
                 }
             }
         }
+    }
+
+    // Equipped weapon and curse, fleece, and run levels, for equipment bug reports
+    internal static void DumpEquippedAndWeaponData()
+    {
+        var dataManager = DataManager.Instance;
+        if (dataManager == null)
+        {
+            Log.LogInfo("[AP] No save loaded, so no equipment state to dump.");
+            return;
+        }
+
+        Log.LogInfo($"[AP] Fleece {dataManager.PlayerFleece}"
+            + $" | swaps weapon for curse: {Safe(() => PlayerFleeceManager.FleeceSwapsWeaponForCurse().ToString())}");
+
+        var player = PlayerFarming.Instance;
+        if (player != null)
+        {
+            Log.LogInfo($"[AP] Equipped weapon {player.currentWeapon} lvl {player.currentWeaponLevel}"
+                + $" | curse {player.currentCurse} lvl {player.currentCurseLevel}");
+        }
+
+        Log.LogInfo($"[AP] StartingEquipmentLevel {DataManager.StartingEquipmentLevel}"
+            + $" | CurrentRunWeaponLevel {dataManager.CurrentRunWeaponLevel}"
+            + $" | CurrentRunCurseLevel {dataManager.CurrentRunCurseLevel}");
     }
 }

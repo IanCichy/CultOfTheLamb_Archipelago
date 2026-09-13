@@ -12,7 +12,7 @@ namespace Archipelago.CultOfTheLamb.Services;
 /// the multiworld has granted, and equipping one for the first time sends a check.
 /// </summary>
 /// <remarks>
-/// Vanilla already treats these as progression, just invisibly. See EquipmentPoolPatch for the
+/// Vanilla already treats these as progression. See EquipmentPoolPatch for the
 /// ladder that hands out the Axe, then the Dagger, then the rest on a fixed schedule.
 ///
 /// One instance handles weapons or curses, never both. Nothing here touches save data.
@@ -38,9 +38,9 @@ internal class EquipmentPoolService : IService
         EquipmentType.EnemyBlast,     // 600
         EquipmentType.Tentacles,      // 500
         EquipmentType.Chain,          // 470
-        // Conviction's Guard was cut before release, so nothing should ever be a Shield. Listed
+        // Cut before release. Nothing should ever be a Shield. Listed
         // anyway, because without it a Shield value falls through to Blunderbuss and would send
-        // that family's check, where resolving to an unmanaged family sends nothing.
+        // that check, where resolving to an unmanaged family sends nothing.
         EquipmentType.Shield,         // 460
         EquipmentType.Blunderbuss,    // 450
         EquipmentType.Gauntlet,       // 400
@@ -101,6 +101,16 @@ internal class EquipmentPoolService : IService
     // IndexOutOfRangeException in GetRandomWeaponInPool
     private readonly EquipmentType fallback;
 
+    // Warn once if we ever pick a weapon for a curse, or the reverse. Not on every reroll
+    private bool loggedWrongSide;
+
+    // Re-asks in the current frame. See Substitute
+    private int lastAskFrame = -1;
+    private int asksThisFrame;
+
+    // Where the walk through the candidates starts
+    private int rotation;
+
     internal EquipmentPoolService(
         ArchipelagoSession session,
         bool weapons,
@@ -137,11 +147,13 @@ internal class EquipmentPoolService : IService
         {
             EquipmentPoolPatch.SubstituteWeapon = Substitute;
             EquipmentPoolPatch.WeaponEquipped = Equipped;
+            EquipmentPoolPatch.WeaponOfferCount = DistinctOfferCount;
         }
         else
         {
             EquipmentPoolPatch.SubstituteCurse = Substitute;
             EquipmentPoolPatch.CurseEquipped = Equipped;
+            EquipmentPoolPatch.CurseOfferCount = DistinctOfferCount;
         }
 
         Log.LogInfo($"[AP] {Noun} families active: {managed.Count} managed, "
@@ -157,11 +169,13 @@ internal class EquipmentPoolService : IService
         {
             EquipmentPoolPatch.SubstituteWeapon = null;
             EquipmentPoolPatch.WeaponEquipped = null;
+            EquipmentPoolPatch.WeaponOfferCount = null;
         }
         else
         {
             EquipmentPoolPatch.SubstituteCurse = null;
             EquipmentPoolPatch.CurseEquipped = null;
+            EquipmentPoolPatch.CurseOfferCount = null;
         }
     }
 
@@ -185,6 +199,54 @@ internal class EquipmentPoolService : IService
     // The family the game is allowed to hand over, given the one it chose. Runs inside the
     // game's own selection, so it must never throw and must always answer
     private EquipmentType Substitute(EquipmentType chosen)
+    {
+        // The game re-asks in the same frame when it rejects an answer, so Choose needs to know
+        // which attempt this is to give a different one
+        var frame = UnityEngine.Time.frameCount;
+        if (frame == lastAskFrame)
+        {
+            asksThisFrame++;
+        }
+        else
+        {
+            lastAskFrame = frame;
+            asksThisFrame = 0;
+        }
+
+        var answer = Choose(chosen, asksThisFrame);
+
+        // Never hand over a weapon as a curse, or the reverse
+        if (UsableHere(answer))
+        {
+            return answer;
+        }
+
+        if (!loggedWrongSide)
+        {
+            loggedWrongSide = true;
+            Log.LogWarning($"[AP] {Noun} substitution produced {answer}, which has no "
+                + $"{Noun} data. Using {fallback} instead. Logged once per session.");
+        }
+
+        return fallback;
+    }
+
+    // Whether this type is a weapon on the weapon service, or a curse on the curse service
+    private bool UsableHere(EquipmentType type)
+    {
+        try
+        {
+            return weapons
+                ? EquipmentManager.GetWeaponData(type) != null
+                : EquipmentManager.GetCurseData(type) != null;
+        }
+        catch (Exception)
+        {
+            return false;
+        }
+    }
+
+    private EquipmentType Choose(EquipmentType chosen, int attempt)
     {
         var family = FamilyOf(chosen);
 
@@ -216,7 +278,9 @@ internal class EquipmentPoolService : IService
         // Prefer a granted family the player doesn't own yet. This preserves the game's own
         // unlock ceremony. The ladder was already about to hand over a new weapon here, so
         // redirecting it means the player gets the full first-pickup animation.
-        var unowned = FirstGrantedNotInPool();
+        // First ask only. This always picks the same family, so repeating it on a re-ask makes
+        // the podium's reroll loop give up.
+        var unowned = attempt == 0 ? FirstGrantedNotInPool() : EquipmentType.None;
         if (unowned != EquipmentType.None)
         {
             return unowned;
@@ -229,7 +293,13 @@ internal class EquipmentPoolService : IService
         candidates.AddRange(GrantedNotInPool());
         if (candidates.Count > 0)
         {
-            return candidates[Rng.Next(candidates.Count)];
+            // Start at a random candidate, then step on each re-ask so the answers differ
+            if (attempt == 0)
+            {
+                rotation = Rng.Next(candidates.Count);
+            }
+
+            return candidates[(rotation + attempt) % candidates.Count];
         }
 
         return fallback;
@@ -255,7 +325,8 @@ internal class EquipmentPoolService : IService
         return EquipmentType.None;
     }
 
-    // Everything in the player's real pool whose family has been granted
+    // Everything in the player's real pool whose family has been granted. Skips a weapon sitting
+    // in CursePool, which the game can leave there
     private List<EquipmentType> GrantedInPool()
     {
         var pool = Pool();
@@ -264,7 +335,8 @@ internal class EquipmentPoolService : IService
             return new List<EquipmentType>();
         }
 
-        return pool.Where(entry => granted.Contains(FamilyOf(entry))).ToList();
+        return pool.Where(entry => granted.Contains(FamilyOf(entry)) && UsableHere(entry))
+            .ToList();
     }
 
     // Granted families the player's pool doesn't contain, as their base type. In practice the
@@ -284,6 +356,26 @@ internal class EquipmentPoolService : IService
         }
 
         return granted.Where(family => !pool.Contains(family)).ToList();
+    }
+
+    // How many different offers this pool can make, so PodiumTypeBalancePatch knows whether a
+    // room can hold two of this kind. int.MaxValue when the pool isn't restricted
+    internal int DistinctOfferCount()
+    {
+        if (!randomizing || managed.Count == 0 || Pool() == null)
+        {
+            return int.MaxValue;
+        }
+
+        var distinct = new HashSet<EquipmentType>(GrantedInPool());
+
+        foreach (var family in GrantedNotInPool())
+        {
+            distinct.Add(family);
+        }
+
+        // Never zero. With nothing granted, Choose still answers with the fallback
+        return Math.Max(1, distinct.Count);
     }
 
     // The game's real pool, read fresh every call because DataManager.Instance changes when a
@@ -441,6 +533,6 @@ internal class EquipmentPoolService : IService
         return $"{Noun}s: {managed.Count} managed, {granted.Count} granted "
             + $"({string.Join(", ", granted)}), {sent.Count} check(s) sent this session, "
             + $"legendary chance {legendaryChance:P0}."
-            + $"\n  Game's own pool ({pool?.Count ?? 0}, never written to): {poolText}";
+            + $"\n  Game's own pool ({pool?.Count ?? 0}): {poolText}";
     }
 }
