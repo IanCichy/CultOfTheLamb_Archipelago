@@ -120,6 +120,35 @@ internal static class BaseUpgradeGuardPatch
         return ui == null || !ui.ForceBlockMenus;
     }
 
+    // Whether every player is walking around normally. Coming back from a crusade, the teleporter
+    // holds the player in a locked CustomAnimation with a black silhouette material, and only its
+    // warp-in-burst_end animation event clears it. Starting the upgrade in that window swallows the
+    // event and leaves the player black until the next scene change
+    private static bool PlayerIsFree()
+    {
+        if (PlayerFarming.players == null || PlayerFarming.players.Count == 0)
+        {
+            return false;
+        }
+
+        foreach (var player in PlayerFarming.players)
+        {
+            var state = player == null ? null : player.state;
+            if (state == null || state.LockStateChanges)
+            {
+                return false;
+            }
+
+            if (state.CURRENT_STATE != StateMachine.State.Idle
+                && state.CURRENT_STATE != StateMachine.State.Moving)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     [HarmonyPatch(typeof(BiomeBaseManager), "UpgradeBase")]
     [HarmonyPrefix]
     private static bool UpgradeBase_Prefix(UpgradeSystem.Type upgradeType)
@@ -187,7 +216,9 @@ internal static class BaseUpgradeGuardPatch
             return;
         }
 
-        if (!BaseIsReady())
+        // Player too, since this starts the cutscene on its own timing rather than from the game's
+        // own flow, and can land in the middle of arriving back at the base
+        if (!BaseIsReady() || !PlayerIsFree())
         {
             if (!loggedWaiting)
             {
