@@ -3,18 +3,16 @@ using System.Collections.Generic;
 namespace Archipelago.CultOfTheLamb;
 
 /// <summary>
-/// Tracks which tier of a progressive item the next copy should grant.
+/// Tracks which tier of a progressive item the next copy should grant
 /// </summary>
 /// <remarks>
-/// A progressive item arrives several times and grants a different thing each time. The Nth copy
-/// gives the Nth tier, so it needs a count that survives replays.
+/// A progressive item arrives several times, and the Nth copy gives the Nth tier.
 ///
-/// Counted, not read off the game. "Grant the first tier not already held" looks more idempotent
-/// and is wrong: every item replays on reconnect, so a held copy skips past its own tier and
-/// grants the next, turning N copies into 2N tiers.
+/// It counts copies instead of checking which tiers you hold. Every item replays on reconnect, so
+/// "give the first tier not held" would skip ahead and turn N copies into 2N tiers.
 ///
-/// The count is safe because an instance lives on a service rebuilt on every connect, so a
-/// replay refills it from zero rather than adding to it. This must never be static or persisted.
+/// The count is safe because it lives on a service rebuilt every connect, so a replay starts from
+/// zero. Never make it static or save it.
 /// </remarks>
 internal class ProgressiveGrant
 {

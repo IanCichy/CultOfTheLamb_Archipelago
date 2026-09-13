@@ -68,20 +68,19 @@ internal sealed class QuestGuideEntry
 }
 
 /// <summary>
-/// Puts an Archipelago checklist into the game's own quest log. That means the win condition,
-/// region access, and one live progress line per check block this seed switched on.
+/// Puts an Archipelago checklist into the game's own quest log: the win condition, region access,
+/// and a progress line for each check block this seed turned on.
 /// </summary>
 /// <remarks>
-/// The vanilla quest log fills with follower errands and never mentions the win condition, how
-/// many followers the multiworld wants, or which blocks are active.
+/// The normal quest log is full of follower errands and never mentions the win condition or which
+/// blocks are on.
 ///
-/// Guidance only. Every line is a read-only view over check state the mod already derives, and
-/// nothing here creates a location, sends a check, or affects generation.
+/// Read only. Every line shows check state the mod already tracks. Nothing here sends a check or
+/// changes the seed.
 ///
-/// The mechanism is Objectives_Custom, added straight to ObjectiveManager (DcplIdx 5a). A new
-/// ObjectivesData subclass would not serialize, since the [Union] list is closed.
-/// Objectives_Custom is union member 8 and its CustomQuestType is an int-backed enum, so an
-/// out-of-range cast round-trips and gives us free identity.
+/// Uses Objectives_Custom added straight to ObjectiveManager (DcplIdx 5a). A new objective class
+/// wouldn't save, since the game's saved list only knows its own types. Objectives_Custom stores
+/// its quest type as an int, so an out of range value saves fine and marks the line as ours.
 /// </remarks>
 internal class QuestGuideService : IService
 {

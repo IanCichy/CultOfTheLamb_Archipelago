@@ -5,15 +5,14 @@ using Newtonsoft.Json.Linq;
 namespace Archipelago.CultOfTheLamb;
 
 /// <summary>
-/// Reads values out of the slot data the server sends at connect.
+/// Reads values out of the slot data the server sends at connect
 /// </summary>
 /// <remarks>
-/// Newtonsoft is the client library's serializer, so anything nested arrives as
-/// <see cref="JObject"/> / <see cref="JArray"/> rather than native .NET collections, and every
-/// scalar arrives boxed. Both facts were being rediscovered in a handful of services.
+/// Newtonsoft is the client library's serializer, so nested values arrive as JObject and JArray,
+/// and every scalar arrives boxed.
 ///
-/// **Malformed entries are skipped, not thrown.** This all runs during connect, where an
-/// exception costs the whole session rather than the one value that was wrong.
+/// Bad entries are skipped, not thrown. This all runs during connect, where an exception costs the
+/// whole session instead of one value.
 /// </remarks>
 internal static class SlotData
 {

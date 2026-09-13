@@ -9,17 +9,17 @@ using UnityEngine;
 namespace Archipelago.CultOfTheLamb.Services;
 
 /// <summary>
-/// Marks shop slots that are Archipelago checks, with the AP logo in place of the item's own art
-/// and the scouted item name appended to the buy prompt. Without it, a slot looks identical
-/// whether or not buying it sends a check.
-///
-/// Two entry points, because a shop and a connection can happen in either order. Those are
-/// ShopSlotDisplayPatch.OnShopInitialised (walked into a shop while connected) and the sweep in
-/// Register() (connected while already standing in one). Both enqueue the shop and Tick() does the
-/// work over following frames, since InitTarotShop runs inside shopKeeperManager.Start() before
-/// any card art exists. Item names come from a single pre-scout on connect, because scouting is
-/// async and the buy prompt is rebuilt every frame, so there's no chance to fetch on demand.
+/// Marks shop slots that are Archipelago checks, with the AP logo on the slot and the item's name
+/// in the buy prompt. Without it, you can't tell whether buying a slot sends a check.
 /// </summary>
+/// <remarks>
+/// A shop can load before or after connecting, so there are two ways in: the shop opening while
+/// connected, or connecting while standing in one. Both queue the shop and Tick does the work over
+/// the next few frames, since the card art doesn't exist yet when the shop starts.
+///
+/// Item names come from one scout on connect. Scouting is async and the prompt is rebuilt every
+/// frame, so there's no chance to look them up on the spot.
+/// </remarks>
 internal class ShopIconService : IService
 {
     private readonly ArchipelagoSession session;
@@ -337,16 +337,13 @@ internal class ShopIconService : IService
     }
 
     /// <summary>
-    /// Rewrites the panel that floats over a slot, which otherwise describes the tarot card,
-    /// meaning its name, its lore, and the effect it grants. None of that is what buying the slot
-    /// does any more.
+    /// Rewrites the panel over a slot, which normally describes the tarot card. None of that is
+    /// what buying the slot does anymore.
     /// </summary>
     /// <remarks>
-    /// This panel, not the buy prompt, is where the check's details belong: it has room for them
-    /// and is already what a player reads before deciding to spend.
-    ///
-    /// The item takes the card's name slot, the biggest text on the panel. Who it's for goes in
-    /// the flavour line, and the location in the body.
+    /// This panel is where the check's details go, since it has room and it's what you read before
+    /// buying. The item takes the card name spot, who it's for goes in the flavour line, and the
+    /// location goes in the body.
     /// </remarks>
     private void HandleTarotDisplayBuilt(UITarotDisplay display, TarotCards.Card card)
     {

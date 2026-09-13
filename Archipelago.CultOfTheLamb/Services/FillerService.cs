@@ -16,8 +16,8 @@ internal static class FillerService
 {
     // Resource bundles, keyed by AP item name, each granting several stacks at once. Themed
     // mixes rather than one resource each, since filler is about half of a seed and a small
-    // pile of something you already hold stops reading as a reward. Quantities are generous:
-    // the per-stack cap is 9999 (Inventory.cs:266) and BLACK_GOLD is exempt from it
+    // pile of something you already hold stops reading as a reward. Quantities are generous but
+    // nowhere near the per-stack cap of 9999 (Inventory.cs:266), and BLACK_GOLD has no cap
     private static readonly Dictionary<string, (InventoryItem.ITEM_TYPE Type, int Quantity)[]> Bundles = new()
     {
         ["Construction Bundle"] = new[]

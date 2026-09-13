@@ -9,18 +9,14 @@ using UnityEngine;
 namespace Archipelago.CultOfTheLamb.UI;
 
 /// <summary>
-/// Opens the game's own sermon upgrade tree as a read-only viewer.
+/// Opens the game's own sermon upgrade tree as a read-only viewer
 /// </summary>
 /// <remarks>
-/// Randomizing sermons costs the player the only routine way to see this tree.
-/// SermonUpgradePatch replaces SermonController.PlayerUpgrade, the sole call site of
-/// UIManager.ShowPlayerUpgradeTree. This gives it back, with the real art, connectors and the
-/// game's own controller cursor, which is why it isn't an IMGUI panel.
+/// Randomizing sermons takes away the only normal way to see this tree, so this gives it back
+/// with the game's real art and controller cursor.
 ///
-/// The prefab is instantiated rather than calling ShowPlayerUpgradeTree, which is what sets
-/// `revealType` on a Seasons save, and OnShowCompleted unlocks an upgrade for free when it is
-/// set. The inherited Show(bool) leaves revealType at Count, so that branch is unreachable with
-/// no patch at all.
+/// It creates the prefab directly instead of calling ShowPlayerUpgradeTree. On a Seasons save that
+/// call sets a reveal mode that unlocks an upgrade for free when the menu opens.
 /// </remarks>
 internal static class SermonTreeViewer
 {

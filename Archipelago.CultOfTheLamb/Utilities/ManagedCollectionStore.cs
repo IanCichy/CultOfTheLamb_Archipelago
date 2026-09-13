@@ -6,19 +6,18 @@ using BepInEx;
 namespace Archipelago.CultOfTheLamb;
 
 /// <summary>
-/// Remembers what Archipelago has taken out of a given save and not yet given back. Holding
-/// that promise in memory alone isn't enough. The game autosaves constantly, so the file on disk
-/// is missing those entries for the whole session, and a crash or an alt-F4 would lose real
-/// player data permanently.
+/// Remembers what Archipelago took out of a save and hasn't given back yet
 /// </summary>
 /// <remarks>
-/// Keyed by collection and save slot only, unlike AppliedItemStore's save+seed+slot key.
-/// "We owe this save its cards back" is a property of the save alone, true across a different
-/// seed, a different AP slot, or a reinstall.
+/// Memory alone isn't enough. The game autosaves constantly, so the save on disk is missing those
+/// entries all session, and a crash would lose them for good.
 ///
-/// Sidecar file rather than the game save, because DataManager is MessagePack-serialized with
-/// fixed [Key(N)] attributes. Entries are stored as enum names, which survive the game
-/// reordering an enum where a shifted ordinal would hand back the wrong cards.
+/// Keyed by collection and save slot only. Owing a save its cards back holds no matter which seed
+/// or AP slot you're on.
+///
+/// A separate file rather than the game save, since the save format can't take new fields.
+/// Entries are stored by name, so a game update that reorders the enum can't hand back the wrong
+/// cards.
 /// </remarks>
 internal static class ManagedCollectionStore
 {
@@ -41,15 +40,14 @@ internal static class ManagedCollectionStore
     }
 
     /// <summary>
-    /// What this save is still owed from an earlier session. Entries whose names this build of
-    /// the game doesn't recognise are dropped with a warning rather than throwing, because the store
-    /// outlives game updates, and losing one card beats failing to return the other fifty-nine.
-    ///
-    /// <paramref name="legacyKey"/> is an older, un-namespaced key to fall back to when the
-    /// namespaced one is absent. Tarot shipped before this store was generalised and wrote a bare
-    /// "saveN", so without the fallback a player who updated mid-session would be owed cards under
-    /// a key nothing reads any more. Safe to delete once no such file can exist.
+    /// What this save is still owed from an earlier session. Names this game version doesn't know
+    /// are skipped with a warning, since losing one card beats failing to return the rest.
     /// </summary>
+    /// <remarks>
+    /// legacyKey is the old key tarot used before this store was shared. Without it, a player who
+    /// updated mid-session would be owed cards under a key nothing reads. Safe to remove once no
+    /// such file can exist.
+    /// </remarks>
     internal static List<T> Owed<T>(string collection, int saveSlot, string legacyKey = null)
         where T : struct, Enum
     {

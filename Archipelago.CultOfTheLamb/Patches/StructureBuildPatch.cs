@@ -4,20 +4,17 @@ using HarmonyLib;
 namespace Archipelago.CultOfTheLamb.Patches;
 
 /// <summary>
-/// Reports every finished building.
+/// Reports every finished building
 /// </summary>
 /// <remarks>
-/// <c>Structures_BuildSite.OnBuildComplete</c> is a per-instance <c>Action</c> with no
-/// arguments, so it reports that something finished but not what. <c>Build()</c> has
-/// <c>Data.ToBuildType</c> right there.
+/// OnBuildComplete says something finished but not what, so we patch Build(), which knows the
+/// building type.
 ///
-/// Two classes need patching: simple structures go through <c>Structures_BuildSite</c>,
-/// multi-stage ones through <c>Structures_BuildSiteProject</c>, whose <c>Build()</c> is
-/// private. Patch only the first and every project building silently never fires.
+/// Simple buildings and multi-stage ones use two different classes. Patch only the first and the
+/// multi-stage buildings never report.
 ///
-/// Decorations are not filtered here. Both originals branch on
-/// <c>StructuresData.GetCategory(...) == AESTHETIC</c>, but the service works from an explicit
-/// list of 25 buildings, so filtering twice would be a second place to get it wrong.
+/// Decorations aren't filtered here. The service already works from a list of 25 buildings, and
+/// filtering in two places is two places to get it wrong.
 /// </remarks>
 internal static class StructureBuildPatch
 {

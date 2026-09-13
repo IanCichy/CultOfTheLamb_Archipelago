@@ -667,18 +667,15 @@ public partial class ArchipelagoClient
     }
 
     /// <summary>
-    /// Retries a dropped connection until it succeeds, the server refuses it, or the player stops
-    /// it.
+    /// Keeps retrying a dropped connection until it works, the server refuses, or the player stops it
     /// </summary>
     /// <remarks>
-    /// Unbounded. Nothing queues the checks earned while the socket is down, since
-    /// every service re-derives what it owes from save state at connect, so the only thing
-    /// between a dropped socket and a caught up multiworld is getting the socket back. A
-    /// five attempt cap gave up after about fifteen seconds, which loses to a host restarting
-    /// their server.
+    /// No retry limit. Nothing is queued while offline, since every service works out what it owes
+    /// when it reconnects, so getting the connection back is all that matters. The old limit of
+    /// five tries gave up after about fifteen seconds, which isn't long enough for a server restart.
     ///
-    /// The delay backs off, so a server down for an hour costs two attempts a minute rather
-    /// than twenty.
+    /// The wait between tries grows, so a server that's down for an hour gets two tries a minute
+    /// instead of twenty.
     /// </remarks>
     public IEnumerator AttemptReconnection()
     {

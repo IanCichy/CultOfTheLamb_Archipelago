@@ -89,17 +89,15 @@ internal static class ShopSlotDisplayPatch
     }
 
     /// <summary>
-    /// Decides which tarot slots a shop puts out, by answering the one question it asks.
+    /// Decides which tarot slots a shop shows, by answering the one question it asks
     /// </summary>
     /// <remarks>
-    /// InitTarotShop shows a slot only if the player doesn't own its card, the only state a tarot
-    /// purchase writes. Once these slots became AP checks that was wrong both ways: a card
-    /// granted by the multiworld made the slot vanish and stranded its location, and a sent
-    /// check left the slot buyable again on every visit.
+    /// The shop only shows a slot if you don't own the card. That breaks once slots are checks: a
+    /// card from the multiworld hides the slot and strands its check, and a slot you already bought
+    /// keeps coming back.
     ///
-    /// The answer comes from the location's state instead. Overriding this one call rather than
-    /// rebuilding slots afterwards keeps the game's own initialisation: cost, quantity, prefab
-    /// wiring, sold-out signs.
+    /// So we answer from the check's state instead. Overriding this one call keeps everything else
+    /// the game sets up, like price, stock and the sold out sign.
     /// </remarks>
     [HarmonyPatch(typeof(DataManager), nameof(DataManager.TrinketUnlocked))]
     [HarmonyPrefix]

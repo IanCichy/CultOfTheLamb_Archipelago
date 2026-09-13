@@ -6,17 +6,16 @@ using Archipelago.MultiClient.Net;
 namespace Archipelago.CultOfTheLamb;
 
 /// <summary>
-/// What the multiworld put at each of this slot's locations, so the client can name an item
-/// rather than only the check that held it.
+/// What the multiworld put at each of this slot's locations, so the client can name the item
+/// instead of just the check
 /// </summary>
 /// <remarks>
-/// One bulk scout on connect. Fetching on demand as each check completes would make the
-/// announcement async and force it back through MainThreadQueue, for a lookup wanted within the
-/// same frame. <c>HintCreationPolicy</c> stays at its default of no hint: this is a labelling
-/// convenience, and spending the player's hint points on it would be hostile.
+/// One scout for everything on connect. Scouting per check would make the popup async for
+/// something wanted in the same frame. No hints are created, since spending the player's hint
+/// points on labels would be rude.
 ///
-/// Callers must cope with a miss. There is a round trip between connecting and the scout
-/// landing, and a check completed in that window falls back to the location name.
+/// Callers have to handle a miss. A check done before the scout comes back just shows the
+/// location name.
 /// </remarks>
 internal class ScoutCache
 {

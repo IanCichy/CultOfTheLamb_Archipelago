@@ -6,15 +6,14 @@ using UnityEngine.UI;
 namespace Archipelago.CultOfTheLamb.UI;
 
 /// <summary>
-/// An Archipelago logo in the top-left corner, full colour while connected and dimmed while not.
-/// Without it a session that quietly dropped looks exactly like one that's fine, right up until
-/// a check fails to land.
-///
-/// Deliberately not interactive, because a GraphicRaycaster over the play area risks swallowing
-/// clicks in a game where attacking is a left click. It gets its own canvas because anchoring to
-/// a screen corner needs a full-screen parent, at the cost of no longer inheriting the HUD's
-/// show and hide, so that is mirrored explicitly from HUD_Manager.Hidden.
+/// An Archipelago logo in the top left, full colour while connected and dimmed while not. Without
+/// it, a dropped connection looks fine until a check doesn't land.
 /// </summary>
+/// <remarks>
+/// Not clickable, since something catching clicks over the play area could eat attacks. It has
+/// its own canvas so it can sit in the screen corner, which means it doesn't hide with the HUD by
+/// itself, so that's copied from HUD_Manager.Hidden.
+/// </remarks>
 internal class ArchipelagoHudIndicator : MonoBehaviour
 {
     // Answers whether Archipelago is connected. Set by the plugin

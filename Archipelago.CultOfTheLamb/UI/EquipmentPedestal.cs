@@ -5,17 +5,16 @@ using UnityEngine.AddressableAssets;
 namespace Archipelago.CultOfTheLamb.UI;
 
 /// <summary>
-/// A plinth in the base showing one weapon or curse family, lit when Archipelago has granted it.
+/// A plinth in the base showing one weapon or curse family, lit when Archipelago has granted it
 /// </summary>
 /// <remarks>
-/// Weapons and curses are the only randomized system with no native screen anywhere in the game
-/// (see EquipmentDisplayService), so the display is built rather than unhidden.
+/// Weapons and curses are the only randomized system with no screen in the game (see
+/// EquipmentDisplayService), so this display is built from scratch.
 ///
-/// The art is the game's own crusade podium, loaded through Addressables. It isn't in Resources,
-/// where only 525 GameObjects live and none is a plinth, but it is one of ~33,600 addressable
-/// keys.
+/// The art is the game's own crusade podium, loaded through Addressables, since it isn't in
+/// Resources.
 ///
-/// Purely visual. No StructureBrain, no StructureManager entry, nothing written to save data.
+/// Visual only. Nothing is written to the save.
 /// </remarks>
 internal static class EquipmentPedestal
 {
@@ -145,15 +144,14 @@ internal static class EquipmentPedestal
     }
 
     /// <summary>
-    /// Uses the podium's own lit and unlit art for received vs not.
+    /// Uses the podium's own lit and unlit art for received and not received
     /// </summary>
     /// <remarks>
-    /// The prefab ships both states as separate child groups, so a granted family gets the lit
-    /// stone and an ungranted one the dead stone. Must run before Strip, since these references
-    /// live on the component it destroys.
+    /// The prefab has both states as separate child groups. Must run before Strip, since these
+    /// references live on the component Strip removes.
     ///
-    /// Lighting stays off: it is a large radial glow sized for a dark dungeon room, and in the
-    /// base it washes several metres of ground.
+    /// Lighting stays off. It's a big glow meant for a dark dungeon, and in the base it lights up a
+    /// huge patch of ground.
     /// </remarks>
     private static void ApplyLitState(GameObject plinth, bool received)
     {

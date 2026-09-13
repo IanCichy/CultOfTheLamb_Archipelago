@@ -142,16 +142,12 @@ internal static class AltarMenuButtonPatch
 
         var altar = Interaction_TempleAltar.Instance;
 
-        // Opened from OnHidden rather than immediately, because the altar is UIManager's current
-        // menu instance and SetMenuInstance silently does nothing while that's still true. The
-        // altar's own OnHidden closure clears it, and it runs first because it was registered
-        // when the altar was shown.
+        // Wait for OnHidden instead of opening right away. The altar is still UIManager's current
+        // menu until then, and SetMenuInstance quietly does nothing while it is.
         //
-        // Self-unsubscribing, because UIMenuBase invokes OnHidden and never clears it
-        // (UIMenuBase.cs:335, :375) and the altar menu object outlives a single open. A handler
-        // left attached fires on the *next* ordinary altar close too, opening the viewer nobody
-        // asked for, and since closing that viewer reopens the altar, the two bounce off each
-        // other until a scene change tears the menu down.
+        // The handler removes itself, because OnHidden is never cleared and the altar menu gets
+        // reused. Left attached, it would open the viewer on the next normal altar close too, and
+        // since closing the viewer reopens the altar, the two would keep bouncing off each other.
         Action openViewer = null;
         openViewer = () =>
         {
@@ -181,14 +177,13 @@ internal static class AltarMenuButtonPatch
     }
 
     /// <summary>
-    /// Reopens the altar a frame after the viewer's OnHidden, never straight out of it.
+    /// Reopens the altar one frame after the viewer closes, never from inside OnHidden
     /// </summary>
     /// <remarks>
-    /// Two things happen after OnHidden fires, and reopening inside it loses a race with both.
-    /// UIMenuBase.DoHide calls OnHideCompleted immediately afterwards, and the tree's override
-    /// runs a global DOTween.KillAll that would kill the altar's show tweens as they start.
-    /// UIManager's own hide closure also runs after ours and is what clears _currentInstance;
-    /// until it does, SetMenuInstance is a silent no-op and the world stays unpaused.
+    /// Two things still run after OnHidden. The tree's OnHideCompleted kills every tween, which
+    /// would stop the altar's opening animation. And UIManager only clears its current menu in its
+    /// own hide handler, which runs after ours, so reopening early does nothing and the game stays
+    /// unpaused.
     /// </remarks>
     private static void ReopenAltar(Interaction_TempleAltar altar)
     {

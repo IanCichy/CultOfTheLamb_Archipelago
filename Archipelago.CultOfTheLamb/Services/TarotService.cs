@@ -12,18 +12,16 @@ namespace Archipelago.CultOfTheLamb.Services;
 /// </summary>
 /// <remarks>
 /// The collection is emptied on connect, including the cards the game normally starts you with.
-/// The seed's own starting cards are then granted straight back.
+/// The seed's starting cards are then given straight back.
 ///
-/// Card identity comes from slot data, keyed by AP item name, because display names are nothing
-/// like the TarotCards.Card enum names ("The Burning Dead" is Skull). The revoke, restore,
-/// persist and sweep machinery is <see cref="ManagedCollection{T}"/>; what stays here is
-/// slot-data parsing, the unlock decision, and the patch wiring.
+/// Cards are matched through slot data, keyed by AP item name, since display names don't match the
+/// game's names ("The Burning Dead" is Skull). ManagedCollection does the revoke, restore and
+/// sweep work. This class reads slot data, decides unlocks and wires up the patches.
 ///
-/// A card earned while disconnected is lost, and holding grants outside the collection is why.
-/// ManagedCollection.Restore writes revoked *and* granted cards back into PlayerFoundTrinkets,
-/// so a card the multiworld gave you is indistinguishable from one earned offline. A fix needs a
-/// new persisted record keeping granted separate from revoked at settle time, and it cannot live
-/// in Register(), which runs before any received item has been applied.
+/// A card earned while disconnected is lost. On disconnect, Restore puts back both the cards we
+/// took and the ones the multiworld gave you, so there's no telling an offline card apart from a
+/// granted one. Fixing that needs a new saved record, and it can't live in Register, which runs
+/// before any items are applied.
 /// </remarks>
 internal class TarotService : IService
 {

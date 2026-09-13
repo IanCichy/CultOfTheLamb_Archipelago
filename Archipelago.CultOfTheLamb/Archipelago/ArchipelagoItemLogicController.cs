@@ -84,16 +84,14 @@ public partial class ArchipelagoItemLogicController : IService
     }
 
     /// <summary>
-    /// Everything we need off the library's item DTO, taken here so nothing downstream depends on
-    /// its exact shape.
+    /// Copies what we need off the library's item object, so nothing later depends on its shape
     /// </summary>
     /// <remarks>
-    /// The sender is read at dequeue time. An item's origin is on the packet, and by the time the
-    /// main thread processes the queue there is nothing left to ask.
+    /// Reads the sender now, while it's still on the packet. By the time the main thread gets to
+    /// the item there's nothing left to ask.
     ///
-    /// Null when the item came from our own world, so the popup reads "Received X" rather than
-    /// "Received X from yourself". That happened four times in one test run, since this world's
-    /// own points and cards land on its own locations.
+    /// Null when the item came from our own world, so the popup says "Received X" instead of
+    /// "Received X from yourself". Your own items land on your own locations all the time.
     /// </remarks>
     private PendingItem Capture(ItemInfo item)
     {

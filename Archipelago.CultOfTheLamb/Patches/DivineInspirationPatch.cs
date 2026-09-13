@@ -6,16 +6,14 @@ using UnityEngine;
 namespace Archipelago.CultOfTheLamb.Patches;
 
 /// <summary>
-/// Owns the Divine Inspiration point economy. It reports when the player fills the Devotion
-/// meter, optionally withholds the point it would have paid, and can cap how much Devotion a
-/// point costs.
+/// Controls how Divine Inspiration points are earned. Reports when the Devotion meter fills, can
+/// hold back the point it would have given, and can cap what a point costs.
 /// </summary>
 /// <remarks>
-/// Patched at <c>UpgradeSystem.AbilityPoints</c>'s setter rather than PlayerFarming's
-/// <c>++</c> (`PlayerFarming.cs:2024`). That `++` is the only non-debug award site today, but
-/// the setter catches every path and is where the "new upgrade point" notification fires from.
+/// Patches the UpgradeSystem.AbilityPoints setter instead of the one place PlayerFarming adds a
+/// point, since the setter catches every path and is where the "new point" popup comes from.
 ///
-/// Inert unless a session sets it.
+/// Does nothing unless a session turns it on.
 /// </remarks>
 internal static class DivineInspirationPatch
 {
@@ -51,8 +49,8 @@ internal static class DivineInspirationPatch
         }
     }
 
-    // Logged once per session the first time an award is swallowed. Withholding is otherwise
-    // completely silent, which makes "is this working?" unanswerable from a log
+    // Logged once per session, the first time a point is held back. Otherwise withholding is
+    // silent, and there'd be no way to tell from the log whether it's working
     private static bool loggedFirstWithhold;
 
     // Lets the next session report its own first withhold
@@ -111,15 +109,13 @@ internal static class DivineInspirationPatch
     internal static int DevotionCap;
 
     /// <summary>
-    /// Caps what the next point costs.
+    /// Caps what the next point costs
     /// </summary>
     /// <remarks>
-    /// The curve runs 1, 13, 29 ... to 465 and holds there (`DataManager.TargetXP`, 41 entries,
-    /// clamped by index), roughly 24,000 Devotion for all 69 points. Capping the tail leaves the
-    /// early curve intact.
+    /// The cost climbs from 1 to 465 and stays there, about 24,000 Devotion for all 69 points.
+    /// Capping only the top keeps the early curve the same.
     ///
-    /// A postfix, not a prefix: `AllUnlockedMultiplier` triples the cost inside GetTargetXP once
-    /// nothing is left to unlock, so clamping afterwards also neutralises that cliff.
+    /// A postfix, so it also catches the game tripling the cost once there's nothing left to unlock.
     /// </remarks>
     [HarmonyPatch(typeof(DataManager), nameof(DataManager.GetTargetXP))]
     internal static class DevotionCost

@@ -3,17 +3,14 @@ using System.Collections.Generic;
 namespace Archipelago.CultOfTheLamb;
 
 /// <summary>
-/// Miniboss/Witness kill key -> AP location id, filled from slot data at connect.
+/// Miniboss and Witness kill key to AP location id, filled from slot data at connect
 /// </summary>
 /// <remarks>
-/// The key is what DataManager.KilledBosses stores: MiniBossController.name, which is also the
-/// boss's follower-skin name. That equivalence is what makes these strings recoverable from code
-/// (DcplIdx 3a). They are not the display names players see, which live in I2 as
-/// MiniBossController.DisplayName.
+/// The key is what DataManager.KilledBosses stores, MiniBossController.name, which is also the
+/// boss's follower skin name (DcplIdx 3a). These aren't the names players see.
 ///
-/// The ids used to be written here as `3_051_000 + N`, N being the row's position in
-/// locations.py's dict, so reordering that dict silently repointed every boss check. The world
-/// sends them now. The key strings stay because they're game knowledge, not seed data.
+/// The location ids come from the world in slot data. Only the key strings live here, since
+/// they're game knowledge, not seed data.
 /// </remarks>
 internal static class BossKeyMapping
 {

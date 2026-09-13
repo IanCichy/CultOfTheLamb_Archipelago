@@ -6,14 +6,12 @@ using Archipelago.MultiClient.Net.Packets;
 namespace Archipelago.CultOfTheLamb.Services;
 
 /// <summary>
-/// Watches for the seed's win condition and reports it to the server.
+/// Watches for the seed's win condition and reports it to the server
 /// </summary>
 /// <remarks>
-/// Counting lives in GoalProgress, shared with the objective guide's win-condition line. Both
-/// tracks read the game's own save state rather than a session tally, and both are written by
-/// the time our handlers run: Interaction_MonsterHeart adds to BossesCompleted before raising
-/// OnHeartTaken, and our AddKilledBoss patch is a postfix. So the count is right after a
-/// reconnect, or if the player beat bosses before ever connecting.
+/// The counting lives in GoalProgress, shared with the quest log's win condition line. It reads
+/// the game's save, which is already updated by the time our handlers run, so the count is right
+/// after a reconnect or if you beat bosses before ever connecting.
 /// </remarks>
 internal class GoalService : IService
 {

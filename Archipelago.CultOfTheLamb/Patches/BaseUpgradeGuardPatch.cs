@@ -6,31 +6,22 @@ using Lamb.UI;
 namespace Archipelago.CultOfTheLamb.Patches;
 
 /// <summary>
-/// Stops a Temple/Shrine upgrade from hard-locking the game when it runs at a moment the base
-/// isn't live.
+/// Stops a Temple or Shrine upgrade from locking up the game when it runs while the base isn't loaded
 /// </summary>
 /// <remarks>
-/// BiomeBaseManager.UpgradeBaseRoutine takes control before it validates anything.
+/// BiomeBaseManager.UpgradeBaseRoutine hides the player and blocks menus before it checks
+/// anything. If it then throws because there's no Shrine to find, nothing puts them back. You're
+/// left with no character and no input, and have to quit. We hit this three times in one session.
 ///
-///     ForceBlockMenus = true;                          // :915
-///     foreach (pf in players) pf.SetActive(false);      // :918  the player disappears
-///     shrine = BuildingShrine.Shrines[0].gameObject;    // :920  throws when the list is empty
-///     ... released only at :990 and :1074
+/// It happens because we grant the upgrade the moment the item arrives, and the game actually
+/// runs it later during an altar interaction, when the base buildings aren't loaded. Normal play
+/// can't hit it, since you buy base upgrades at the Shrine.
 ///
-/// There is no try/finally, so an exception at :920 leaves menus blocked and the player
-/// deactivated for the rest of the process: no character, no input, hard exit the only way out.
-/// Observed three times in one session.
+/// The upgrade is delayed, not skipped. Skipping would record the unlock without swapping in the
+/// new buildings.
 ///
-/// The cause is calling UpgradeSystem.UnlockAbility from ItemLogic.ProcessQueue on whatever
-/// frame an item lands. The unlock is flushed later, during an altar interaction, when the base
-/// structures aren't enabled and BuildingShrine.Shrines is empty. Vanilla can't reach it, since
-/// a base upgrade is bought at a shrine.
-///
-/// Deferred rather than skipped: the routine removes the old Shrine and Temple and places the
-/// next tier, so dropping the call would record the unlock while the buildings never changed.
-///
-/// Symptom only. The root cause is granting building upgrades outside the shrine flow, which
-/// wants a dequeue gate in ProcessQueue and is tracked separately.
+/// This only guards the symptom. The real fix is not granting building upgrades outside the
+/// Shrine, which is tracked separately.
 /// </remarks>
 [HarmonyPatch]
 internal static class BaseUpgradeGuardPatch
@@ -101,18 +92,17 @@ internal static class BaseUpgradeGuardPatch
         return null;
     }
 
-    // Both unguarded index-0 accesses have to be satisfied, because the routine swaps the
-    // Shrine and the Temple as a pair:
+    // The routine grabs both of these without checking, since it swaps the Shrine and Temple
+    // together:
     //
     //     BuildingShrine.Shrines[0]                                        // :920
     //     StructureManager.GetAllStructuresOfType<Structures_Temple>()[0]  // :994
     //
-    // An earlier version checked only the first, which let a fresh cult through (a new save has
-    // a Shrine but no Temple) and threw at :994 instead. That is the worse site: it lands after
-    // :990-991 have reactivated the player and put it into CustomAnimation, so the player exists
-    // but cannot move.
+    // Checking only the Shrine isn't enough. A new save has a Shrine but no Temple, and the throw
+    // at :994 is the worse one, since the player is back but can't move.
     //
-    // The menu flag is included because the routine drives a camera sequence
+    // Menus are checked too, because the routine plays a camera sequence that shouldn't start
+    // under an open menu.
     private static bool BaseIsReady()
     {
         if (BuildingShrine.Shrines == null || BuildingShrine.Shrines.Count == 0)
@@ -289,8 +279,9 @@ internal static class BaseUpgradeGuardPatch
         }
     }
 
-    // Runs when the routine's MoveNext throws. Restores the two things it takes up front and
-    // never gives back on failure, menus and the player object, then swallows the exception
+    // Runs when the routine throws. Gives back the menus and the player it took at the start,
+    // then swallows the exception, since it's already been reported and rethrowing just breaks
+    // the same coroutine again
     private static Exception RoutineFinalizer(Exception __exception)
     {
         if (__exception == null)

@@ -14,26 +14,20 @@ using TreeMenu = Lamb.UI.UIUpgradeTreeMenuBase<Lamb.UI.UIUpgradeUnlockOverlayCon
 namespace Archipelago.CultOfTheLamb.Patches;
 
 /// <summary>
-/// Rearranges which tier each Divine Inspiration upgrade sits in.
+/// Shuffles which tier each Divine Inspiration upgrade sits in
 /// </summary>
 /// <remarks>
-/// Logic neutral by construction. The tier gate is a *count*,
-/// <c>NumUnlockedUpgrades() &gt;= NumRequiredNodesForTier(tier)</c>, so moving an upgrade
-/// between tiers changes what the player sees and reaches, but not how many unlocks any tier
-/// costs. Archipelago's rules count items and are untouched.
+/// This can't break logic. A tier opens after a number of unlocks, not specific ones, so moving
+/// upgrades around changes what you see but not how many unlocks each tier needs.
 ///
-/// Two things must be rewritten together: the configuration's per tier membership lists, and
-/// each node component's own <c>_upgrade</c> field, which is what the menu draws and compares
-/// against (`TreeMenu.cs:356`). Rewriting only the first shows one upgrade and sells another.
+/// Two things have to change together: the tier lists in the config, and each node's own _upgrade
+/// field, which is what the menu actually draws. Change only the lists and the menu shows one
+/// upgrade but sells another.
 ///
-/// Central nodes stay in their tier. Each tier has a `RequiresCentralTier` node, the Temple
-/// spine plus the Refinery, that must be bought to open the next tier, so moving one makes that
-/// tier unopenable. Pinning them also keeps Temple I to IV in the order the structure
-/// prerequisites expect.
+/// The central nodes stay put. Each tier has one that must be bought to open the next, so moving
+/// it would lock that tier. It also keeps Temple I to IV in order.
 ///
-/// The intra tree prerequisite graph is empty. All four `RequiresUpgrade` entries have parents
-/// outside the 69 (PleasureSystem, TailorSystem, DiscipleSystem, System_PlayerTent), so nothing
-/// constrains ordering once centrals are pinned.
+/// Nothing else limits the order. The only prerequisites in this tree point at systems outside it.
 /// </remarks>
 internal static class DivineInspirationShuffle
 {

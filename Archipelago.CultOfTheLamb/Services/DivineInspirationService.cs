@@ -8,18 +8,18 @@ using Newtonsoft.Json.Linq;
 namespace Archipelago.CultOfTheLamb.Services;
 
 /// <summary>
-/// Makes the Divine Inspiration tree, the buildings-and-rituals tree at the Shrine, an
-/// Archipelago system.
-///
-/// Checks are **sequential**, so the Nth upgrade unlocked in that tree is the Nth check. That's
-/// the only shape that works in all three active modes, because in checks_and_techs the player
-/// never picks anything and a per-upgrade location would fire for whatever the multiworld handed
-/// over rather than for something the player did. It also sidesteps the tree's prerequisites,
-/// 11 of the 69 of which sit behind external systems, since the player unlocks things in whatever
-/// order the game allows. The count comes from the tree's own <c>NumUnlockedUpgrades()</c> rather
-/// than a tally kept here, so it survives reconnects and catches up unlocks made while
-/// disconnected.
+/// Makes the Divine Inspiration tree, the buildings and rituals tree at the Shrine, an
+/// Archipelago system
 /// </summary>
+/// <remarks>
+/// Checks go in order: your Nth upgrade in the tree is the Nth check. That's the only way that
+/// works in every mode. When the multiworld hands out the upgrades, a check per upgrade would fire
+/// for whatever arrived instead of for something you did.
+///
+/// It also dodges the tree's prerequisites, since you unlock things in whatever order the game
+/// allows. The count comes from the tree itself, so it survives reconnects and catches unlocks
+/// made while disconnected.
+/// </remarks>
 internal class DivineInspirationService : IService
 {
     internal const int ModeOff = 0;
@@ -183,7 +183,7 @@ internal class DivineInspirationService : IService
     // instead, so a reconnect or an offline session catches up on its own.
     //
     // Meter fills only. Points from the multiworld go straight into AbilityPoints without
-    // touching Level
+    // touching Level, which is right, since the player didn't earn those
     private static int EarnedCount() => DataManager.Instance?.Level ?? 0;
 
     private void OnPointEarned()

@@ -8,20 +8,17 @@ using UnityEngine.SceneManagement;
 namespace Archipelago.CultOfTheLamb.UI;
 
 /// <summary>
-/// The relic-and-tarot lectern, copied out of the game and stood in the base.
+/// The relic and tarot lectern, copied out of the game and stood in the base
 /// </summary>
 /// <remarks>
-/// The game never spawns one. Every lectern is placed by hand in a room prefab and held as a
-/// serialized reference (RelicRoomManager.relicBook), so it has no Addressables key of its own
-/// and there is no spawn path to copy. Interaction carries around 25 fields, including
-/// OutlineTarget, LockPosition and ActivateDistance, so copying a real one beats building it.
+/// The game never spawns one. Each lectern is placed by hand in a room prefab, so there's no spawn
+/// path to reuse. Interaction has dozens of fields, so copying a real one beats building one.
 ///
-/// The prefab is kept whole, unlike the crusade podium. Interaction_RelicBook never reads
-/// BiomeGenerator.CurrentRoom, never destroys itself in Start, and writes nothing to the save,
-/// so none of EquipmentPedestal.Strip is needed.
+/// Unlike the crusade podium, the prefab is kept whole. The relic book never reads the current
+/// room, never destroys itself, and doesn't write to the save.
 ///
-/// The tarot page shows Archipelago's granted cards already: TarotVisibility lends them to
-/// UITarotCardsMenuController.OnShowStarted, which is the menu this opens.
+/// The tarot page already shows your Archipelago cards, since TarotVisibility lends them to the
+/// menu this opens.
 /// </remarks>
 internal static class CollectionBook
 {

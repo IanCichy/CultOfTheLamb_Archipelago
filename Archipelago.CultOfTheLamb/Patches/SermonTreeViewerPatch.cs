@@ -6,17 +6,15 @@ using TMPro;
 namespace Archipelago.CultOfTheLamb.Patches;
 
 /// <summary>
-/// Lets the sermon tree be dismissed, but only the copy SermonTreeViewer opened.
-///
-/// UIUpgradePlayerTreeMenuController.OnCancelButtonInput is an empty override. The
-/// vanilla flows that open this tree hand out a reward and must not be escaped. Restoring cancel
-/// for everyone would let a player back out of the Hearts of the Faithful ritual and forfeit it.
-/// It could also soft-lock the game waiting for a pick that can no longer happen, since
-/// RitualFlockOfTheFaithful blocks on the menu closing. So the scope is the viewer instance
-/// itself, by reference, rather than an "AP is browsing" flag. A flag left set by an exception or
-/// a scene change would reopen that hole, while a stale instance reference never
-/// matches again.
+/// Lets the player close the sermon tree, but only the copy SermonTreeViewer opened
 /// </summary>
+/// <remarks>
+/// The game blocks cancel on this menu on purpose. Its normal uses hand out a reward, and backing
+/// out of Hearts of the Faithful would lose it or leave the ritual waiting forever.
+///
+/// So this checks for our exact menu object rather than an "AP is browsing" flag. A flag left on
+/// after an error would reopen that hole, but an old object reference never matches again.
+/// </remarks>
 [HarmonyPatch(typeof(UIUpgradePlayerTreeMenuController))]
 internal static class SermonTreeViewerPatch
 {
@@ -49,16 +47,14 @@ internal static class SermonTreeViewerPatch
         AccessTools.FieldRefAccess<UpgradeTreeNodeInfoCard, TextMeshProUGUI>("_nodeNameText");
 
     /// <summary>
-    /// Adds the upgrade's description under its name on the focused node.
+    /// Adds the upgrade's description under its name on the selected node
     /// </summary>
     /// <remarks>
-    /// The card is the label the player sees. UpgradeTreeNodeInfoCard.Configure writes
-    /// GetLocalizedName into it on every selection. UpgradeTreeNode's own `_title` is a different
-    /// object that isn't what renders here, which is why setting that one changed nothing.
+    /// The info card is the label you actually see. UpgradeTreeNode has its own _title, but that
+    /// isn't what's drawn here.
     ///
-    /// A postfix, because Configure re-writes the text on every selection, so appending
-    /// afterwards is the only thing that survives. Vanilla puts the description in the
-    /// hold-to-confirm overlay, which a read-only viewer never opens.
+    /// A postfix, because Configure rewrites the text on every selection. The game normally shows
+    /// the description in the hold-to-confirm popup, which a read-only viewer never opens.
     /// </remarks>
     [HarmonyPatch(typeof(UpgradeTreeNodeInfoCard), nameof(UpgradeTreeNodeInfoCard.Configure))]
     [HarmonyPostfix]

@@ -25,22 +25,21 @@ internal interface IManagedBacking<T> where T : struct, Enum
 }
 
 /// <summary>
-/// Holds part of a game collection outside the save, so Archipelago can hand it out instead.
+/// Holds part of a game collection outside the save, so Archipelago can hand it out instead
 /// </summary>
 /// <typeparam name="T">The game enum stored in the collection, such as TarotCards.Card.</typeparam>
 /// <remarks>
-/// Fleeces, follower forms, doctrines, structures and outfits are all this shape.
+/// Fleeces, follower forms, doctrines, structures and outfits all work the same way.
 ///
-/// The gate problem: every route the game has to offer you something first checks you don't
-/// already own it, so unlocking an Archipelago grant for real closes that gate and strands the
-/// check riding on it. Grants live in <c>granted</c> and are never written to the game's
-/// collection, and anything that needs to see them gets them lent back.
+/// The game only offers you something you don't already own. So if an Archipelago grant were
+/// unlocked for real, it would close that door and strand the check behind it. Grants are kept in
+/// granted instead, and lent to whatever needs to see them.
 ///
-/// The symmetry problem: emptying the collection edits real save data, so everything taken is
-/// put back on disconnect.
+/// Emptying the collection changes real save data, so everything taken out is put back on
+/// disconnect.
 ///
-/// Where a system has a single reward method to intercept, as sermons do, prefer a Harmony
-/// prefix there. This is for collections that can only be managed after the fact.
+/// If a system has one reward method to intercept, like sermons, patch that instead. This is for
+/// collections that can only be fixed up after the fact.
 /// </remarks>
 internal class ManagedCollection<T> where T : struct, Enum
 {
@@ -197,8 +196,8 @@ internal class ManagedCollection<T> where T : struct, Enum
             + "They're returned if you disconnect.");
     }
 
-    // What we took off the save, and what Archipelago granted. Grants are included because they
-    // only ever live in memory, and quitting to the desktop runs no teardown
+    // What we took off the save, and what Archipelago granted. Grants are saved too because they
+    // only live in memory, and quitting to desktop skips teardown, so the player would lose them
     private void PersistDebt()
     {
         var owed = new HashSet<T>(revoked);

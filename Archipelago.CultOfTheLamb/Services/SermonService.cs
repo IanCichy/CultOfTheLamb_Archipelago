@@ -49,8 +49,8 @@ internal class SermonService : IService
         SendChecksUpTo(EarnedCount());
     }
 
-    // How many sermon upgrades this save has taken, ever. Monotonic, and vanilla keeps
-    // counting while disconnected, since Unregister hands the pick-an-upgrade flow back
+    // How many sermon upgrades this save has ever taken. It only goes up, and it keeps counting
+    // while disconnected, since the game takes back over and counts them itself
     private static int EarnedCount() => DataManager.Instance?.Doctrine_PlayerUpgrade_Level ?? 0;
 
     // Pays for every sermon the save says was taken, so ones earned while disconnected still
