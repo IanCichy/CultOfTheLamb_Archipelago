@@ -42,7 +42,7 @@ internal class ShopIconService : IService
     private const int MaxDecorateAttempts = 30;
 
     // The buy prompt names the card, not its contents. The item is already spelled out on the
-    // panel floating above the slot, and repeating it makes for a very long one-line prompt.
+    // panel floating above the slot, and repeating it makes for a long one-line prompt.
     private const string CardName = "AP Tarot";
 
     // Shown until the scout lands, and only until then. Once we know what a slot holds, the
@@ -199,7 +199,7 @@ internal class ShopIconService : IService
         return true;
     }
 
-    // Returns false if there's nothing to mark *yet*, and the caller retries for a few frames.
+    // Returns false if there's nothing to mark yet, and the caller retries for a few frames.
     // Two steps, because a slot draws its card in two layers: swap the sprite underneath, then
     // switch off the Spine skeleton painting a card's face over it. The first alone leaves the
     // vanilla face covering ours
@@ -259,10 +259,10 @@ internal class ShopIconService : IService
         return hidden;
     }
 
-    // The renderer actually drawing the thing for sale. `enabled` is the whole trick: a tarot
-    // slot's own SpriteRenderer, the obvious one InventoryItemDisplay.SetImage writes to, is
-    // *disabled* and draws nothing, so writing to it fails silently. Of what's left the biggest
-    // sprite is the item; shadows, highlights and price pips are smaller. F1 in a shop dumps it
+    // The renderer drawing the item for sale, found by checking enabled. A tarot slot's own
+    // SpriteRenderer, the one InventoryItemDisplay.SetImage writes to, is disabled and draws
+    // nothing, so writing to it does nothing. Of the rest, the biggest sprite is the item, since
+    // shadows, highlights and price pips are smaller. F1 in a shop dumps it
     private static SpriteRenderer FindArtRenderer(GameObject slot)
     {
         SpriteRenderer best = null;
@@ -336,15 +336,12 @@ internal class ShopIconService : IService
             buyItem, string.Format(ScriptLocalization.UI_ItemSelector_Context.Buy, CardName, cost));
     }
 
-    /// <summary>
-    /// Rewrites the panel over a slot, which normally describes the tarot card. None of that is
-    /// what buying the slot does anymore.
-    /// </summary>
-    /// <remarks>
-    /// This panel is where the check's details go, since it has room and it's what you read before
-    /// buying. The item takes the card name spot, who it's for goes in the flavour line, and the
-    /// location goes in the body.
-    /// </remarks>
+    // Rewrites the panel over a slot, which normally describes the tarot card. None of that is
+    // what buying the slot does anymore.
+    //
+    // This panel is where the check's details go, since it has room and it's what you read before
+    // buying. The item takes the card name spot, who it's for goes in the flavour line, and the
+    // location goes in the body
     private void HandleTarotDisplayBuilt(UITarotDisplay display, TarotCards.Card card)
     {
         if (!cardToCheckId.TryGetValue(card.ToString(), out var checkId))
@@ -370,11 +367,9 @@ internal class ShopIconService : IService
             display, scouted.ItemName, recipient, $"<i>{scouts.LocationName(checkId)}</i>");
     }
 
-    /// <summary>
-    /// Whether a card's shop slot has been spent, for the TrinketUnlocked override. True once
-    /// its check is sent, false while it's still there to buy, and null for cards this seed
-    /// doesn't map at all, which are left entirely to the game.
-    /// </summary>
+    // Whether a card's shop slot has been spent, for the TrinketUnlocked override. True once
+    // its check is sent, false while it's still there to buy, and null for cards this seed
+    // doesn't map at all, which are left entirely to the game
     private bool? SlotIsSpent(TarotCards.Card card)
     {
         if (!cardToCheckId.TryGetValue(card.ToString(), out var checkId))

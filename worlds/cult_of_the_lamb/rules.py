@@ -64,7 +64,7 @@ def set_rules(world: "CultOfTheLambWorld") -> None:
         #   filler of its own to pay for them. Excluding the tail overdraws the seed's filler
         #   and generation fails outright with "not enough filler items for excluded
         #   locations".
-        # - Nothing can be *blocked* down there anyway. The deepest band already requires every
+        # - Nothing can be blocked down there anyway. The deepest band already requires every
         #   Progressive Bishop's Domain copy, so an item placed at "Divine Inspiration 65" can't
         #   gate anything the player hasn't already reached. It would only be tedious rather
         #   than unwinnable, and the band rule alone keeps it out of the early spheres.
@@ -72,7 +72,7 @@ def set_rules(world: "CultOfTheLambWorld") -> None:
             set_depth_rules(world, "DivineInspiration", exclude_tail=False)
 
         # Buildings are gated behind Divine Inspiration upgrades, but Archipelago can't express
-        # that: in every mode except checks_and_techs the *player* chooses which upgrades to
+        # that: in every mode except checks_and_techs the player chooses which upgrades to
         # buy, so the multiworld never learns which buildings are available. Bands instead -
         # and locations.py orders this block by the unlocking upgrade's tier, so they at least
         # approximate the truth rather than keying off an arbitrary list order.
@@ -88,7 +88,7 @@ def set_rules(world: "CultOfTheLambWorld") -> None:
     if world.divine_inspiration_is_curated:
         set_curated_di_rules(world)
 
-    # Deliberately outside the `regions_are_gated` block above, and deliberately not using
+    # Outside the `regions_are_gated` block above on purpose, and not using
     # set_depth_rules: these have real logic rather than an approximated band, so they hold up
     # in an all_unlocked seed too. set_rule overwrites rather than composes, so a location can
     # only have one of the two, and the item requirement is the true one.

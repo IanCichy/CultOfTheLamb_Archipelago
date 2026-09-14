@@ -55,9 +55,7 @@ internal static class EquipmentPoolPatch
                 return;
             }
 
-            var chosen = __result;
             __result = substitute(__result);
-            EquipmentDiagnostics.RecordOffer("weapon", chosen, __result);
         }
     }
 
@@ -74,9 +72,7 @@ internal static class EquipmentPoolPatch
                 return;
             }
 
-            var chosen = __result;
             __result = substitute(__result);
-            EquipmentDiagnostics.RecordOffer("curse", chosen, __result);
         }
     }
 
@@ -161,12 +157,9 @@ internal static class EquipmentPoolPatch
     [HarmonyPatch(typeof(PlayerWeapon), nameof(PlayerWeapon.SetWeapon))]
     internal static class WeaponEquip
     {
-        // WeaponLevel is taken purely for the diagnostic, which only compiles into a debug build -
-        // see EquipmentDiagnostics. Harmony still injects the parameter either way.
         [HarmonyPostfix]
-        private static void Postfix(EquipmentType weaponType, int WeaponLevel)
+        private static void Postfix(EquipmentType weaponType)
         {
-            EquipmentDiagnostics.RecordEquip("weapon", weaponType, WeaponLevel);
             WeaponEquipped?.Invoke(weaponType);
         }
     }
@@ -176,9 +169,8 @@ internal static class EquipmentPoolPatch
     internal static class CurseEquip
     {
         [HarmonyPostfix]
-        private static void Postfix(EquipmentType Spell, int CurseLevel)
+        private static void Postfix(EquipmentType Spell)
         {
-            EquipmentDiagnostics.RecordEquip("curse", Spell, CurseLevel);
             CurseEquipped?.Invoke(Spell);
         }
     }

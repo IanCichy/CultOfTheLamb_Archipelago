@@ -21,7 +21,7 @@ SKIP_SUFFIXES = (".pyc", ".pyo")
 MANIFEST_NAME = "archipelago.json"
 
 # Archipelago 0.7.0 refuses to load an apworld without a manifest; 0.6.x only warns. The two
-# version numbers are the manifest *format*, not ours - copied from worlds that ship one today.
+# version numbers are the manifest format, not ours, copied from worlds that ship one today.
 MANIFEST_FORMAT_VERSION = 7
 GAME_NAME = "Cult of the Lamb"
 AUTHORS = ["IanCichy"]

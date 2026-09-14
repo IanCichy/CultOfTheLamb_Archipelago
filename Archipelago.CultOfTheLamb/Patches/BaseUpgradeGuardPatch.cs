@@ -6,22 +6,23 @@ using Lamb.UI;
 namespace Archipelago.CultOfTheLamb.Patches;
 
 /// <summary>
-/// Stops a Temple or Shrine upgrade from locking up the game when it runs while the base isn't loaded
+/// Stops a Temple or Shrine upgrade from locking up the game when it runs while the base isn't
+/// loaded
 /// </summary>
 /// <remarks>
-/// BiomeBaseManager.UpgradeBaseRoutine hides the player and blocks menus before it checks
-/// anything. If it then throws because there's no Shrine to find, nothing puts them back. You're
-/// left with no character and no input, and have to quit. We hit this three times in one session.
+/// BiomeBaseManager.UpgradeBaseRoutine hides the player and blocks menus before it checks anything.
+/// If it then throws because there's no Shrine to find, nothing puts them back. You're left with no
+/// character and no input, and have to quit.
 ///
-/// It happens because we grant the upgrade the moment the item arrives, and the game actually
-/// runs it later during an altar interaction, when the base buildings aren't loaded. Normal play
-/// can't hit it, since you buy base upgrades at the Shrine.
+/// It happens because we grant the upgrade the moment the item arrives, and the game runs
+/// it later during an altar interaction, when the base buildings aren't loaded. Normal play can't
+/// hit it, since you buy base upgrades at the Shrine.
 ///
 /// The upgrade is delayed, not skipped. Skipping would record the unlock without swapping in the
 /// new buildings.
 ///
-/// This only guards the symptom. The real fix is not granting building upgrades outside the
-/// Shrine, which is tracked separately.
+/// This only guards the symptom. The real fix is not granting building upgrades outside the Shrine,
+/// which is tracked separately.
 /// </remarks>
 [HarmonyPatch]
 internal static class BaseUpgradeGuardPatch
@@ -161,13 +162,12 @@ internal static class BaseUpgradeGuardPatch
 
         // The routine doesn't check what you already have. It removes the current Shrine and
         // Temple and places whichever tier it was handed. Run it with a tier at or below the one
-        // standing and it silently *downgrades* the base. Vanilla never does, because tiers are
+        // standing and it silently downgrades the base. Vanilla never does, because tiers are
         // bought in ascending order at the shrine. We can, because they arrive from the multiworld
         // and the game defers each reveal into UnlocksToReveal until the next altar visit, by
         // which point a later tier may already have been applied.
         //
-        // Observed once. A queued Building_Temple2 flushed onto a tier-IV base and rebuilt it
-        // as II.
+        // For example, a queued Building_Temple2 landing on a tier IV base would rebuild it as II.
         var requested = TierOf(upgradeType);
         var current = CurrentTier();
 
@@ -251,8 +251,8 @@ internal static class BaseUpgradeGuardPatch
     // The prefix's repair branch only fires when something calls UpgradeBase, and after a
     // downgrade nothing is left in UnlocksToReveal to call it, so that path is unreachable.
     //
-    // Observed state: Temple and Shrine standing at tier II while UnlockedUpgrades holds
-    // Temple_IV, after a queued Building_Temple2 flushed onto an already-upgraded base.
+    // That leaves the Temple and Shrine at tier II while UnlockedUpgrades holds Temple_IV, after a
+    // queued Building_Temple2 lands on an already upgraded base.
     //
     // Runs at most once per session, or a repair that doesn't take re-fires a multi second
     // cutscene every tick

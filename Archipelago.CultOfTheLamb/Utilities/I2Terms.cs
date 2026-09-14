@@ -39,7 +39,8 @@ internal static class I2Terms
 
         var source = LocalizationManager.Sources[0];
 
-        // SaveSource is false so we don't write our terms into the game's shipped localization asset.
+        // SaveSource is false so we don't write our terms into the game's shipped localization
+        // asset.
         var termData = source.GetTermData(key) ?? source.AddTerm(key, eTermType.Text, SaveSource: false);
         if (termData == null)
         {
@@ -56,11 +57,9 @@ internal static class I2Terms
         return true;
     }
 
-    /// <summary>
-    /// Reads a term straight back out of I2. Only used for diagnostics, comparing this against
-    /// what was registered is the one thing that distinguishes "the term never landed" from a
-    /// UI fault, and both look identical in game (blank text).
-    /// </summary>
+    // Reads a term straight back out of I2. Only used for diagnostics, comparing this against
+    // what was registered is the one thing that distinguishes "the term never landed" from a
+    // UI fault, and both look identical in game (blank text)
     internal static string Read(string key)
     {
         try

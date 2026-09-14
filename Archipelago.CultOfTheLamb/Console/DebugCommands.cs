@@ -35,7 +35,7 @@ internal static class DebugCommands
         // ---- the only key in a normal build ----
 
         // The whole bug-reporting flow is "press F9, send LogOutput.log", so this has to survive
-        // in every build or an alpha loses its main diagnostic.
+        // in every build or bug reports lose their main diagnostic.
         debugKey = Bind(config, "DumpStateKey", KeyCode.F9,
             "Dumps Archipelago client state, the game's boss-kill records, and every "
             + "MiniBossController in the current scene (internal name -> display name) to the log.");
@@ -164,13 +164,11 @@ internal static class DebugCommands
         }
     }
 
-    /// <summary>
-    /// Runs a keybind's handler if it was pressed.
-    ///
-    /// A debug keybind must never take the game down with it. These call into game APIs that
-    /// may not be initialized depending on where the player is, such as the main menu or
-    /// mid-crusade.
-    /// </summary>
+    // Runs a keybind's handler if it was pressed.
+    //
+    // A debug keybind must never take the game down with it. These call into game APIs that
+    // may not be initialized depending on where the player is, such as the main menu or
+    // mid-crusade
     private static void Fire(ConfigEntry<KeyboardShortcut> key, Action handler)
     {
         if (key == null || !key.Value.IsDown())

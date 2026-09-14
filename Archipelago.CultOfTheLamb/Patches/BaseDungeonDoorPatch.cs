@@ -16,10 +16,8 @@ namespace Archipelago.CultOfTheLamb.Patches;
 [HarmonyPatch(typeof(Interaction_BaseDungeonDoor))]
 internal static class BaseDungeonDoorPatch
 {
-    /// <summary>
-    /// Strips AP-locked regions out of the save's unlocked-door set before the door reads it,
-    /// so Unlocked evaluates false and the blocking collider stays on.
-    /// </summary>
+    // Strips AP-locked regions out of the save's unlocked-door set before the door reads it,
+    // so Unlocked evaluates false and the blocking collider stays on
     [HarmonyPatch("OnEnableInteraction")]
     [HarmonyPrefix]
     private static void OnEnableInteraction_Prefix(Interaction_BaseDungeonDoor __instance)

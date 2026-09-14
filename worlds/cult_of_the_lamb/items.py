@@ -5,12 +5,12 @@ from BaseClasses import Item, ItemClassification
 
 # Base ids for this world.
 #
-# **These do not need to be globally unique.** Archipelago namespaces the datapackage by game:
+# These do not need to be globally unique. Archipelago namespaces the datapackage by game:
 # "different games may reuse these names or IDs" (docs/network protocol.md), and "locations can
 # share IDs with other games' locations" (docs/world api.md). There is no registry to check them
 # against, and moving them would invalidate every existing seed for no gain.
 #
-# The two real constraints, both asserted below the table: ids must be unique *within* this world,
+# The two real constraints, both asserted below the table: ids must be unique within this world,
 # and must fit in 1..2^53-1 (Archipelago recommends staying under 2^31-1, which these do).
 offset = 3_050_000
 
@@ -81,7 +81,7 @@ PROGRESSIVE_REGION_ACCESS = "Progressive Bishop's Domain"
 # The three numbered chains below are progressive. Everything else is its own named item.
 # They are progressive for pacing rather than correctness. UnlockAbility ignores prerequisites
 # entirely, but Might of the Devout sets your starting weapon level, so VI before I is a power
-# spike out of sequence. The five curse packs stay individual. Each adds three *different*
+# spike out of sequence. The five curse packs stay individual. Each adds three different
 # curses, and "Curse of the Beguiler" reads far better in someone else's multiworld.
 SERMON_ITEM_OFFSET = 400
 
@@ -246,7 +246,7 @@ def poolable_equipment(equipment: List[EquipmentData], include_woolhaven: bool):
 # than the Temple sermon tree. 69 upgrades across 5 tiers, all read from a live F4 dump rather
 # than guessed. They're Unity ScriptableObject data and aren't in the decompile at all.
 #
-# Tier access is a *count*, not a prerequisite chain. UpgradeTreeNode.cs:296 gates a tier on
+# Tier access is a count, not a prerequisite chain. UpgradeTreeNode.cs:296 gates a tier on
 # NumUnlockedUpgrades() >= a cumulative threshold, so "have you bought K things" rather than
 # "have you bought these things". That's what makes DI a real sphere source. See rules.py.
 #
@@ -504,19 +504,19 @@ assert set(_DI_CURATED_COVERAGE) == {u.internal for u in DIVINE_INSPIRATION}, (
     "the curated Divine Inspiration tables do not cover exactly the 69 upgrades")
 
 
-# A curated set of buildings whose *first* construction sends a check. Not every buildable -
+# A curated set of buildings whose first construction sends a check. Not every buildable -
 # StructuresData.AllStructures has 332 entries, ~85 of them real base-game buildings, which would
 # nearly double a seed.
 #
 # `internal` is the StructureBrain.TYPES name the client reads off Data.ToBuildType. `tier` is the
 # tier of the Divine Inspiration upgrade that unlocks it (from the F4 coupling dump), and exists
-# so the depth bands in rules.py mean something: a tier-1 building really is available from the
-# start, and Kitchen really isn't.
+# so the depth bands in rules.py mean something: a tier-1 building is available from the
+# start, and Kitchen isn't.
 #
-# **Every entry must be free of external-system prerequisites.** Ten DI upgrades sit behind
+# Every entry must be free of external-system prerequisites. Ten DI upgrades sit behind
 # PleasureSystem, TailorSystem or DiscipleSystem. Those are Drinkhouse, Mating Tent, Nursery,
 # Drum Circle, Tailor, both Disciple shrines and the Re-Indoctrination Stone. PleasureSystem
-# comes from a doctrine branch, so a player who picks Work or Faith can *never* build those, and
+# comes from a doctrine branch, so a player who picks Work or Faith can never build those, and
 # a check on one would be dead for the whole seed. Leader Tent is fine despite needing
 # System_PlayerTent, which GameManager.cs:171 grants unconditionally outside Survival mode.
 #
@@ -534,7 +534,7 @@ class BuildingData(NamedTuple):
 BUILDINGS = [
     # Tier 1 is buildable from the start.
     BuildingData("Temple", "TEMPLE", 1),
-    # "Sleeping Bag", singular, is the structure. The Divine Inspiration *upgrade* that unlocks
+    # "Sleeping Bag", singular, is the structure. The Divine Inspiration upgrade that unlocks
     # it is "Sleeping Bags", plural. Both are right, because they're different things.
     BuildingData("Sleeping Bag", "BED", 1),
     BuildingData("Body Pit", "BODY_PIT", 1),
@@ -593,7 +593,7 @@ class TarotCardData(NamedTuple):
     dlc: bool = False
     # Co-op only. In AllTrinkets, but meaningless in a solo seed, so never pooled.
     coop: bool = False
-    # Unlocked from the start of a vanilla run, and crucially unlockable *only* that way.
+    # Unlocked from the start of a vanilla run, and unlockable only that way.
     # GameManager.Awake seeds them straight into PlayerFoundTrinkets and nothing in the game ever
     # routes one through UnlockTrinket. Taking one away is therefore permanent, so these are left
     # out of the managed pool entirely rather than becoming a location nobody can check. See
@@ -716,7 +716,7 @@ POSTGAME_TAROT_CARDS = {
 
 # Cards earned through content locked to a single crusade region. Their checks live in that
 # region rather than in Cult, which makes them real logic instead of an approximated depth
-# band. The player genuinely cannot get them without that region open.
+# band. The player cannot get them without that region open.
 #
 # The knucklebones cards all follow one shape: you meet the opponent during a crusade in that
 # region, after which they move to Ratau's house and you play them there. Meeting them is the
@@ -854,7 +854,7 @@ def poolable_tarot_cards(
 
 
 # Weapons and curses are 'progression', unlike the sermon and tarot items. That isn't a
-# judgement about power. It's that rules.py genuinely references them. "Weapon - Apostate's
+# judgement about power. It's that rules.py references them. "Weapon - Apostate's
 # Cleaver" cannot be checked until Archipelago grants the Axe, because until then the client
 # won't let a podium offer one. An item only earns this classification when a rule names it,
 # and these are the first in this world that do.
@@ -907,8 +907,8 @@ DI_EARLY_ITEM_NAMES: Tuple[str, ...] = tuple(
 DI_GATE_ITEM = DI_PROGRESSIVE_CULT
 
 # Three real checks, replacing one that compared a dict's length to its own key set and so could
-# never fail. A duplicate *name* silently overwrites an earlier entry, losing an item and leaving
-# its id unused. A duplicate *code* gives two names the same id, so the client applies the wrong
+# never fail. A duplicate name silently overwrites an earlier entry, losing an item and leaving
+# its id unused. A duplicate code gives two names the same id, so the client applies the wrong
 # item. An id that runs past the location range collides with a location.
 _codes = [data.code for data in item_table.values() if data.code is not None]
 _duplicate_codes = {code for code, count in Counter(_codes).items() if count > 1}
@@ -921,7 +921,7 @@ assert max(_codes) < location_offset, (
     f"{location_offset} - the two would collide")
 
 
-# Catches the duplicate *name* case, which the id checks above can't see: each block is built by a
+# Catches the duplicate name case, which the id checks above can't see: each block is built by a
 # dict comprehension over a source list, so two rows with the same display name collapse into one
 # entry before anything downstream could notice. Comparing what landed against what the source
 # lists hold is the cheapest thing that still fails when that happens.
@@ -943,7 +943,7 @@ for _category, _expected in _expected_counts.items():
 #
 # Checking the raw source rows instead. Their display names are distinct even within a progressive
 # chain ("Might of the Devout I", "II"), because _chain_for maps them onto a shared item name
-# afterwards, so a genuine duplicate here really is a mistake.
+# afterwards, so a duplicate here is a mistake.
 _sermon_displays = [display for display, _, _ in SERMON_UPGRADES]
 assert len(_sermon_displays) == len(set(_sermon_displays)), (
     "two sermon rows share a display name, so one silently overwrote the other")
@@ -953,7 +953,7 @@ filler_table = [name for name, data in item_table.items() if data.category == "F
 trap_table = [name for name, data in item_table.items() if data.category == "Trap"]
 
 # Relative frequency in the filler pool. Filler is roughly half of a seed's items right now,
-# so an even split would make the common case feel repetitive. Resources are deliberately the
+# so an even split would make the common case feel repetitive. Resources are the
 # bulk, with Follower Level Up rarer because it compounds (each level permanently raises
 # that Follower's sermon-point contribution, so it accelerates every later sermon).
 #

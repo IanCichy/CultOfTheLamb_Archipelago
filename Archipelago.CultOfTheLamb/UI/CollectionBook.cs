@@ -140,7 +140,7 @@ internal static class CollectionBook
     // walks it in memory and Instantiate clones just the lectern's subtree. The room is never
     // built. Detaching does lose any scale or rotation its parents applied.
     //
-    // The Addressables handle is deliberately never released. Releasing it would drop the
+    // The Addressables handle is never released. Releasing it would drop the
     // refcount to zero and unload the bundle, taking the sprites and materials the clone still
     // points at, and the book would render as nothing
     private static bool HarvestFromSourceRoom()

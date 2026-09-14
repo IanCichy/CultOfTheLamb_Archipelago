@@ -152,17 +152,15 @@ public class ArchipelagoPlugin : BaseUnityPlugin
     private const float FollowerPollIntervalSeconds = 1f;
     private float followerPollTimer;
 
-    /// <summary>
-    /// The single place a connection starts, whatever asked for it, whether the panel, a keybind,
-    /// or a console command. ArchipelagoConsoleCommand exists to be exactly this seam.
-    /// </summary>
+    // The single place a connection starts, whatever asked for it, whether the panel, a keybind,
+    // or a console command. ArchipelagoConsoleCommand exists to be exactly this seam
     private void ArchipelagoConsoleCommand_OnArchipelagoCommandCalled(
         string url, int port, string slot, string password)
     {
         Log.LogDebug($"Connecting to {url}:{port} as {slot}");
 
         // An explicit connect supersedes a pending retry. Otherwise the retry loop would keep
-        // dialling the *old* details underneath the ones just typed in.
+        // dialling the old details underneath the ones just typed in.
         AP.StopReconnecting();
 
         StartCoroutine(AP.ConnectRoutine($"{url}:{port}", slot, password));

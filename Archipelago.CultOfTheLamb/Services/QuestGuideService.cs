@@ -26,18 +26,14 @@ internal enum GuideHudMode
 /// </summary>
 internal sealed class QuestGuideEntry
 {
-    /// <summary>
-    /// Objectives.CustomQuestTypes value, cast from an int well past the enum's 148 real
-    /// members. Stable per entry forever, because it is the identity written into the player's
-    /// save and the tail of the I2 term key.
-    /// </summary>
+    // Objectives.CustomQuestTypes value, cast from an int well past the enum's 148 real
+    // members. Stable per entry forever, because it is the identity written into the player's
+    // save and the tail of the I2 term key
     internal Objectives.CustomQuestTypes QuestType { get; }
 
-    /// <summary>
-    /// The term Objectives_Custom.Text will look up. Derived rather than passed in, because it
-    /// has to match exactly what the game computes, $"Objectives/Custom/{CustomQuestType}",
-    /// where an unnamed enum value ToString()s to its number. Otherwise the line renders blank.
-    /// </summary>
+    // The term Objectives_Custom.Text will look up. Derived rather than passed in, because it
+    // has to match exactly what the game computes, $"Objectives/Custom/{CustomQuestType}",
+    // where an unnamed enum value ToString()s to its number. Otherwise the line renders blank
     internal string TermKey => "Objectives/Custom/" + (int)QuestType;
 
     // Which of the two groups this line belongs to (pinned, or log-only)
@@ -84,10 +80,8 @@ internal sealed class QuestGuideEntry
 /// </remarks>
 internal class QuestGuideService : IService
 {
-    /// <summary>
-    /// Every group we own starts with this. Teardown sweeps by prefix rather than by the two
-    /// exact ids, so a group renamed in a future version still gets cleaned out of old saves.
-    /// </summary>
+    // Every group we own starts with this. Teardown sweeps by prefix rather than by the two
+    // exact ids, so a group renamed in a future version still gets cleaned out of old saves
     internal const string GroupPrefix = "Archipelago/Objectives/";
 
     internal const string GoalGroupId = GroupPrefix + "GroupTitles/Goal";
@@ -236,13 +230,10 @@ internal class QuestGuideService : IService
         }
     }
 
-    /// <summary>
-    /// The server's checked-location set as a hash set, refreshed once per tick.
-    ///
-    /// AllLocationsChecked is a linear-scan collection, and the checklist asks about ~200 ids
-    /// across its blocks. Doing that against a few hundred checked locations every second is
-    /// pure waste, and hashing it once is not.
-    /// </summary>
+    // The server's checked location set as a hash set, refreshed once per tick.
+    //
+    // AllLocationsChecked is scanned linearly, and the checklist asks about ~200 ids. Doing that
+    // every second is wasteful when hashing once is cheap
     private readonly HashSet<long> checkedSnapshot = new();
 
     // Progress last rendered per line, so an unchanged tick composes no strings
@@ -344,10 +335,10 @@ internal class QuestGuideService : IService
 
         // Index, Follower and TargetFollowerID all stay at their -1 defaults, and all three
         // matter (DcplIdx 5a):
-        //   Index    - TailorMenu_Assign.cs:152 compares Index == 53 against every live objective.
-        //   Follower - ObjectivesData.Complete() spawns a follower turn-in when it isn't -1.
-        //   TargetFollowerID - Objectives_Custom.Text runs the string through string.Format when
-        //                      it isn't -1, so a stray brace would throw inside a UI paint.
+        //   Index: TailorMenu_Assign.cs:152 compares Index == 53 against every live objective.
+        //   Follower: ObjectivesData.Complete() spawns a follower turn-in when it isn't -1.
+        //   TargetFollowerID: Objectives_Custom.Text runs the string through string.Format when it
+        //   isn't -1, so a stray brace would throw inside a UI paint.
         objective.FailLocked = true;
         objective.AutoRemoveQuestOnceComplete = false;
 
@@ -363,11 +354,9 @@ internal class QuestGuideService : IService
         }
     }
 
-    /// <summary>
-    /// The UniqueGroupID the game assigned our group. ObjectiveManager.Add picks it (reusing
-    /// whatever an existing objective with the same GroupId already has), so it is read back
-    /// rather than chosen.
-    /// </summary>
+    // The UniqueGroupID the game assigned our group. ObjectiveManager.Add picks it (reusing
+    // whatever an existing objective with the same GroupId already has), so it is read back
+    // rather than chosen
     private static string UniqueGroupIdFor(DataManager dataManager, string groupId) =>
         AllOurObjectives(dataManager)
             .FirstOrDefault(o => o.GroupId == groupId && !string.IsNullOrEmpty(o.UniqueGroupID))
@@ -375,23 +364,18 @@ internal class QuestGuideService : IService
 
     // ------------------------------------------------------------------ refreshing
 
-    /// <summary>
-    /// ObjectiveManager.OnObjectiveUpdated's backing field. UIObjective subscribes to that event
-    /// and re-reads ObjectivesData.Text when it fires for its own objective, which is exactly
-    /// the refresh a changed counter needs.
-    /// </summary>
+    // ObjectiveManager.OnObjectiveUpdated's backing field. UIObjective subscribes to that event
+    // and re-reads ObjectivesData.Text when it fires for its own objective, which is exactly
+    // the refresh a changed counter needs
     private static readonly FieldInfo ObjectiveUpdatedEvent =
         AccessTools.Field(typeof(ObjectiveManager), "OnObjectiveUpdated");
 
-    /// <summary>
-    /// Repaints the on-screen tracker after a counter moved. Only the HUD needs this, since the
-    /// pause-menu log rebuilds from DataManager on every open.
-    ///
-    /// Deliberately **not** ObjectiveManager.UpdateObjective, the obvious API. That one runs
-    /// TryComplete(), and Objectives_Custom.CheckComplete() passes instantly while
-    /// ResultFollowerID == TargetFollowerID == -1, so every line would tick itself off the
-    /// moment its text changed.
-    /// </summary>
+    // Repaints the on-screen tracker after a counter moved. Only the HUD needs this, since the
+    // pause menu log rebuilds from DataManager every time it opens.
+    //
+    // Not ObjectiveManager.UpdateObjective, the obvious choice. That runs TryComplete(), and
+    // Objectives_Custom.CheckComplete() passes straight away while ResultFollowerID ==
+    // TargetFollowerID == -1, so every line would tick itself off the moment its text changed
     private void RefreshTrackedText(DataManager dataManager)
     {
         // Only when the field itself is missing, i.e. a game update renamed it. LocalizeAll is
@@ -448,14 +432,12 @@ internal class QuestGuideService : IService
     // Save slot the idle sweep has already cleaned. See SweepLoadedSaveOnce
     private static int lastSweptSlot = -1;
 
-    /// <summary>
-    /// The disconnected idle sweep, run once per loaded save rather than every tick.
-    ///
-    /// SweepAll is several full list scans, one of them over CompletedObjectivesHistory, which
-    /// grows without bound. A player who never connects would otherwise pay that every second
-    /// forever to keep finding nothing. Once per save still covers the case the sweep exists
-    /// for, since a crash mid-session is cleaned when that save is next loaded.
-    /// </summary>
+    // The disconnected idle sweep, run once per loaded save rather than every tick.
+    //
+    // SweepAll is several full list scans, one of them over CompletedObjectivesHistory, which
+    // grows without bound. A player who never connects would otherwise pay that every second
+    // forever to keep finding nothing. Once per save still covers the case the sweep exists
+    // for, since a crash mid-session is cleaned when that save is next loaded
     internal static void SweepLoadedSaveOnce()
     {
         if (DataManager.Instance == null || GameManager.GetInstance() == null)
@@ -474,14 +456,12 @@ internal class QuestGuideService : IService
         SweepAll();
     }
 
-    /// <summary>
-    /// Removes every trace of the guide from the loaded save.
-    ///
-    /// DataManager.Objectives and friends are save-persisted, so without this a player who
-    /// disconnects, or crashes, is left with Archipelago lines in a vanilla quest log forever.
-    /// Static and self-contained so the plugin can also run it while disconnected, the same way
-    /// ManagedCollection.SettleIfOwed cleans up after a session that never got to end cleanly.
-    /// </summary>
+    // Removes every trace of the guide from the loaded save.
+    //
+    // DataManager.Objectives and friends are save-persisted, so without this a player who
+    // disconnects, or crashes, is left with Archipelago lines in a vanilla quest log forever.
+    // Static and self-contained so the plugin can also run it while disconnected, the same way
+    // ManagedCollection.SettleIfOwed cleans up after a session that never got to end cleanly
     internal static void SweepAll()
     {
         var dataManager = DataManager.Instance;
@@ -539,11 +519,9 @@ internal class QuestGuideService : IService
 
     // ------------------------------------------------------------------ the lines
 
-    /// <summary>
-    /// Which lines this seed gets. Every entry is gated on the same slot-data key that decides
-    /// whether the matching service registers at all, so the guide can never advertise a block
-    /// that isn't running.
-    /// </summary>
+    // Which lines this seed gets. Every entry is gated on the same slot-data key that decides
+    // whether the matching service registers at all, so the guide can never advertise a block
+    // that isn't running
     private List<QuestGuideEntry> BuildEntries(
         int goal,
         int requiredCount,
@@ -638,11 +616,9 @@ internal class QuestGuideService : IService
         return result;
     }
 
-    /// <summary>
-    /// Braces would reach string.Format inside a UI paint and newlines break the tracker's
-    /// per-line strikethrough. Both are author errors, so they're caught at construction with a
-    /// loud log rather than left to surface as a blank or broken line in game.
-    /// </summary>
+    // Braces would reach string.Format inside a UI paint and newlines break the tracker's
+    // per-line strikethrough. Both are author errors, so they're caught at construction with a
+    // loud log rather than left to surface as a blank or broken line in game
     private static void AssertTextIsSafe(IEnumerable<QuestGuideEntry> built)
     {
         foreach (var entry in built)
@@ -725,13 +701,11 @@ internal class QuestGuideService : IService
         target.Add(new QuestGuideEntry(id, ChecklistGroupId, debugName, () => CountChecked(ids), buildText));
     }
 
-    /// <summary>
-    /// How many of a block's locations the server has recorded.
-    ///
-    /// Counting the server's record rather than the save means a player running two saves
-    /// against one slot sees the slot's progress rather than that save's, which is the right
-    /// answer to "how much of this seed is done".
-    /// </summary>
+    // How many of a block's locations the server has recorded.
+    //
+    // Counting the server's record rather than the save means a player running two saves
+    // against one slot sees the slot's progress rather than that save's, which is the right
+    // answer to "how much of this seed is done"
     private (int Current, int Target) CountChecked(IReadOnlyList<long> ids)
     {
         // A plain loop rather than ids.Count(predicate): the predicate closes over a mutable
@@ -764,12 +738,10 @@ internal class QuestGuideService : IService
 
     // ------------------------------------------------------------------ diagnostics
 
-    /// <summary>
-    /// Included in the F9 state dump, and the whole of the Ctrl+F9 dump.
-    ///
-    /// The I2 read-back per line is the point. A term that never registered and a UI fault look
-    /// identical in game (a blank line), and only this tells them apart.
-    /// </summary>
+    // Included in the F9 state dump, and the whole of the Ctrl+F9 dump.
+    //
+    // The I2 read-back per line is the point. A term that never registered and a UI fault look
+    // identical in game (a blank line), and only this tells them apart
     internal string DescribeState()
     {
         var dataManager = DataManager.Instance;
@@ -817,8 +789,8 @@ internal class QuestGuideService : IService
         return string.Join("\n", lines);
     }
 
-    /// <summary>Sweeps, then forces a rebuild on the next tick, so one session can exercise
-    /// add, sweep and re-add without reconnecting.</summary>
+    // Sweeps, then forces a rebuild on the next tick, so one session can test add, sweep and re-add
+    // without reconnecting
     internal void ForceRebuild()
     {
         SweepAll();

@@ -55,14 +55,14 @@ class TarotTestBase(WorldTestBase):
         starting = {card.internal for card in self.world.starting_tarot_cards}
         shop_locations = shop_location_by_internal()
 
-        # Keys are AP *item* names ("Tarot Card - The Stray"); the matching location happens to
+        # Keys are AP item names ("Tarot Card - The Stray"). The matching location happens to
         # read the same way, but it is built from the card's in-game name, so derive it from
         # that rather than from the key.
         location_by_internal = {c.internal: f"Tarot Card - {c.display}" for c in TAROT_CARDS}
 
         for item_name, internal in slot_data["tarotCards"].items():
             if internal in starting:
-                # Deliberately locationless: granted at connect, so there is nothing to earn.
+                # No location, since it's granted at connect and there's nothing to earn.
                 self.assertNotIn(
                     internal, slot_data["tarotCardLocations"], f"{item_name} starts owned"
                 )

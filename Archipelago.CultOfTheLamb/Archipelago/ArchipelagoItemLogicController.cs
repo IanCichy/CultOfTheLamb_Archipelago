@@ -47,7 +47,7 @@ public partial class ArchipelagoItemLogicController : IService
         session.Items.ItemReceived += Items_ItemReceived;
 
         // The server replays every item the slot has ever received as part of login, and that
-        // lands *before* this subscription exists so reacting only to the live event drops
+        // lands before this subscription exists so reacting only to the live event drops
         // the entire backlog. That silently breaks any reconnect (previously-unlocked regions
         // stay locked) and breaks connecting to a seed already in progress.
         //
@@ -83,16 +83,13 @@ public partial class ArchipelagoItemLogicController : IService
         pendingItemIds.Enqueue(Capture(helper.DequeueItem()));
     }
 
-    /// <summary>
-    /// Copies what we need off the library's item object, so nothing later depends on its shape
-    /// </summary>
-    /// <remarks>
-    /// Reads the sender now, while it's still on the packet. By the time the main thread gets to
-    /// the item there's nothing left to ask.
-    ///
-    /// Null when the item came from our own world, so the popup says "Received X" instead of
-    /// "Received X from yourself". Your own items land on your own locations all the time.
-    /// </remarks>
+    // Copies what we need off the library's item object, so nothing later depends on its shape
+    //
+    // Reads the sender now, while it's still on the packet. By the time the main thread gets to
+    // the item there's nothing left to ask.
+    //
+    // Null when the item came from our own world, so the popup says "Received X" instead of
+    // "Received X from yourself". Your own items land on your own locations all the time
     private PendingItem Capture(ItemInfo item)
     {
         var fromSomeoneElse = item.Player != null
@@ -138,24 +135,18 @@ public partial class ArchipelagoItemLogicController : IService
     // How many items have been granted to this save
     private int appliedCount;
 
-    /// <summary>
-    /// How many queued items are a replay of ones this save already got.
-    /// </summary>
-    /// <remarks>
-    /// The server resends the full history on connect and we have to drain it. Re-granting stacks
-    /// anything non-idempotent, Inventory.AddItem above all, which made reconnect spamming an
-    /// infinite resource generator.
-    /// </remarks>
+    // How many queued items are a replay of ones this save already got.
+    //
+    // The server resends the full history on connect, and it has to be drained. Granting again
+    // would stack anything that isn't idempotent, Inventory.AddItem above all, so reconnecting over
+    // and over would hand out free resources
     private int replaysRemaining;
 
-    /// <summary>
-    /// Turns a received AP item into an actual game effect.
-    /// </summary>
-    /// <remarks>
-    /// Replayed items are not skipped wholesale. The services that reset on Register (regions,
-    /// sermons, equipment) need the replay to rebuild their state, and all of them are idempotent.
-    /// Only the stacking grants are suppressed, meaning filler and Follower Level Up.
-    /// </remarks>
+    // Turns a received AP item into an actual game effect.
+    //
+    // Replayed items are not skipped wholesale. The services that reset on Register (regions,
+    // sermons, equipment) need the replay to rebuild their state, and all of them are idempotent.
+    // Only the stacking grants are suppressed, meaning filler and Follower Level Up
     private void ApplyItem(long itemId, string senderName, bool isTrap)
     {
         var itemName = session.Items.GetItemName(itemId);
@@ -175,7 +166,7 @@ public partial class ArchipelagoItemLogicController : IService
 
             // Sends were announced but receives weren't, so an incoming item was only
             // visible in the AP terminal unless the game happened to show its own banner
-            // (resources do, an unlocked upgrade doesn't). Announce every genuinely new
+            // (resources do, an unlocked upgrade doesn't). Announce every new
             // item. Replays are silent, since the player already saw them.
             //
             // Named sender when there is one, so this reads as the mirror of the sent popup.

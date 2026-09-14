@@ -136,7 +136,7 @@ internal class EquipmentDisplayService : IService
 
         // A toggle flipped since we placed. Tearing down here rather than letting Refresh() run is
         // what makes turning one display off remove it. The early-out above only fires
-        // when *both* are off, so without this, unticking the podiums while the book is on left
+        // when both are off, so without this, unticking the podiums while the book is on left
         // them standing with no way to place them again.
         if (placed && (pedestalsPlaced != enabled.Value || bookPlaced != bookEnabled.Value))
         {
@@ -178,8 +178,7 @@ internal class EquipmentDisplayService : IService
         var curseCount = enabled.Value ? PlaceGroup(curses, curseOrigin) : 0;
 
         // The pool check keeps a seed that randomizes no equipment from getting a lone Teleport
-        // podium. This service registers unconditionally for the book's sake, where it used to
-        // exist only when a pool did.
+        // podium. This service always registers, since the book needs it even with no pools.
         if (enabled.Value && showTeleport && (weapons != null || curses != null))
         {
             // On the end of the curse row rather than in its own cluster. It is a curse family,
@@ -246,7 +245,7 @@ internal class EquipmentDisplayService : IService
     }
 
     // Re-lights a podium when its family arrives mid-session. Only touches ones whose state
-    // actually changed
+    // changed
     private void Refresh()
     {
         RefreshPool(weapons);

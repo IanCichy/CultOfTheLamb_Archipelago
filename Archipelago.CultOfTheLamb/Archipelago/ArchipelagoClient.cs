@@ -18,11 +18,9 @@ public partial class ArchipelagoClient : IDisposable
     public delegate void ClientDisconnected(string reason);
     public event ClientDisconnected OnClientDisconnect;
 
-    /// <summary>
-    /// A retry is pending or in flight. Written only by the reconnect machinery in
-    /// ArchipelagoClient.Connection. An outside setter could desync it from the cancel flag and
-    /// the live coroutine, and the UI reads it to decide whether its buttons do anything.
-    /// </summary>
+    // A retry is pending or in flight. Written only by the reconnect machinery in
+    // ArchipelagoClient.Connection. An outside setter could desync it from the cancel flag and
+    // the live coroutine, and the UI reads it to decide whether its buttons do anything
     public bool Reconnecting { get; private set; }
 
     public static string ConnectedPlayerName { get; private set; }

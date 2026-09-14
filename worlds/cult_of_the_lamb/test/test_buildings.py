@@ -54,7 +54,7 @@ class TestBuildingsOn(BuildingTestBase):
         and the depth bands read that order. A wrong tier puts a late building in an early band."""
         di_tiers = {u.display: u.tier for u in DIVINE_INSPIRATION}
 
-        # Display names line up between the two tables for most entries; check the ones that do,
+        # Display names line up between the two tables for most entries. Check the ones that do,
         # which is enough to catch a systematically wrong column.
         checked = 0
         for building in BUILDINGS:

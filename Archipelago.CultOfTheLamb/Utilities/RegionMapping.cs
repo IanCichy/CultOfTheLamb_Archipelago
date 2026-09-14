@@ -24,14 +24,10 @@ internal static class RegionMapping
         { "Silk Cradle", FollowerLocation.Dungeon1_4 },
     };
 
-    /// <summary>
-    /// Bishop kill slot to AP location id, filled from slot data at connect.
-    /// </summary>
-    /// <remarks>
-    /// The ids used to be hardcoded here as <c>3_051_000 + N</c>, which made reordering
-    /// locations.py silently repoint the four checks the goal depends on. Empty until
-    /// <see cref="Populate"/> runs, and every reader is on a connected path.
-    /// </remarks>
+    // Bishop kill slot to AP location id, filled from slot data at connect.
+    //
+    // Coming from slot data means reordering locations.py can't repoint the four checks the goal
+    // depends on. Empty until Populate runs, and every reader is on a connected path
     internal static Dictionary<FollowerLocation, long> BishopLocationToCheckId { get; private set; }
         = new();
 

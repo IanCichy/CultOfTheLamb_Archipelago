@@ -17,13 +17,10 @@ internal static class RegionLockState
 {
     private static readonly HashSet<FollowerLocation> unlocked = new();
 
-    /// <summary>
-    /// Whether an AP session is managing regions.
-    /// </summary>
-    /// <remarks>
-    /// Locking is enforced only while this is true, or a disconnected session would have every
-    /// door permanently locked.
-    /// </remarks>
+    // Whether an AP session is managing regions.
+    //
+    // Locking is enforced only while this is true, or a disconnected session would have every
+    // door permanently locked
     internal static bool Active { get; set; }
 
     internal static void Reset()
@@ -37,13 +34,10 @@ internal static class RegionLockState
         unlocked.Add(location);
     }
 
-    /// <summary>
-    /// True for the 4 base-game Bishop regions, the only ones AP gates.
-    /// </summary>
-    /// <remarks>
-    /// Asks the region table, not the check-id map. Which dungeons exist is game knowledge, true
-    /// before a connection, where the id map is seed data and empty until one.
-    /// </remarks>
+    // True for the 4 base-game Bishop regions, the only ones AP gates.
+    //
+    // Asks the region table, not the check-id map. Which dungeons exist is game knowledge, true
+    // before a connection, where the id map is seed data and empty until one
     internal static bool IsManaged(FollowerLocation location) =>
         RegionMapping.RegionToDungeonLocation.ContainsValue(location);
 

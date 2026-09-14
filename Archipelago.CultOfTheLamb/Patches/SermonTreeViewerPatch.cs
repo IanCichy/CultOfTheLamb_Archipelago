@@ -46,16 +46,13 @@ internal static class SermonTreeViewerPatch
     private static readonly AccessTools.FieldRef<UpgradeTreeNodeInfoCard, TextMeshProUGUI> CardName =
         AccessTools.FieldRefAccess<UpgradeTreeNodeInfoCard, TextMeshProUGUI>("_nodeNameText");
 
-    /// <summary>
-    /// Adds the upgrade's description under its name on the selected node
-    /// </summary>
-    /// <remarks>
-    /// The info card is the label you actually see. UpgradeTreeNode has its own _title, but that
-    /// isn't what's drawn here.
-    ///
-    /// A postfix, because Configure rewrites the text on every selection. The game normally shows
-    /// the description in the hold-to-confirm popup, which a read-only viewer never opens.
-    /// </remarks>
+    // Adds the upgrade's description under its name on the selected node
+    //
+    // The info card is the label you actually see. UpgradeTreeNode has its own _title, but that
+    // isn't what's drawn here.
+    //
+    // A postfix, because Configure rewrites the text on every selection. The game normally shows
+    // the description in the hold-to-confirm popup, which a read-only viewer never opens
     [HarmonyPatch(typeof(UpgradeTreeNodeInfoCard), nameof(UpgradeTreeNodeInfoCard.Configure))]
     [HarmonyPostfix]
     private static void InfoCard_Configure_Postfix(UpgradeTreeNodeInfoCard __instance, UpgradeTreeNode node)

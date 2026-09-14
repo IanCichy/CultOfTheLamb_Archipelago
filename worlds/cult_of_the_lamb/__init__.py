@@ -30,7 +30,7 @@ from .options import (
 from .regions import REGION_NAMES, SACRIFICE_GATED_REGION, create_regions
 from .rules import set_rules
 
-# Sent in slot data and logged by the client next to its own version, so a tester's log says which
+# Sent in slot data and logged by the client next to its own version, so a player's log says which
 # apworld built the seed. It is not enforced. A mismatch is something to notice while reading a
 # log, not a reason to refuse a connection. Keep in step with ArchipelagoPlugin.PluginVersion.
 MOD_VERSION = "0.9.0"
@@ -175,7 +175,7 @@ class CultOfTheLambWorld(World):
         # again a second later.
         #
         # Handed back to the game for the same reasons as the shop cards above. They get no item
-        # and no location, are not revoked, and the player simply keeps them as they would in
+        # and no location, are not revoked, and the player keeps them as they would in
         # vanilla.
         cards = [c for c in cards if not c.default]
 
@@ -207,7 +207,7 @@ class CultOfTheLambWorld(World):
 
         if order == RegionAccessOrder.option_randomized_safe_start:
             # Silk Cradle's door costs a Follower sacrifice to open, which is a punishing
-            # opening move before there's a flock to spare - so shuffle until it isn't first.
+            # opening move before there's a flock to spare. So shuffle until it isn't first.
             # Rejection sampling rather than picking-then-shuffling keeps every other ordering
             # equally likely.
             while True:
@@ -334,7 +334,7 @@ class CultOfTheLambWorld(World):
         # wherever. distribute_early_items has a non-advancement branch (Fill.py:441), so neither
         # needs to be progression to qualify.
         #
-        # Deliberately not LocationProgressType.PRIORITY. Priority locations are filled from the
+        # Not LocationProgressType.PRIORITY. Priority locations are filled from the
         # progression pool only (Fill.py:524), so marking checks priority would push these out
         # rather than pull them early. Keep this list short. Overfilling sphere 1 logs "Ran out
         # of early locations" and silently falls back to a normal fill.
@@ -360,7 +360,7 @@ class CultOfTheLambWorld(World):
         remaining = len(self.multiworld.get_unfilled_locations(self.player)) - len(item_pool)
 
         # A negative `remaining` means more items than places to put them, and `range()` of a
-        # negative number is simply empty. Without this the over-full pool ships and AP fails
+        # negative number is empty. Without this the over-full pool ships and AP fails
         # much later with "Unplaced Items remaining in itempool", naming nothing the player set.
         #
         # curated_checks is how you get here. It always contributes all 38 of its items while
@@ -409,7 +409,7 @@ class CultOfTheLambWorld(World):
 
             # Guidance only. No location, no item, no rule. The client renders these as an
             # objective group in the game's own quest log, reading each line's progress back
-            # out of the keys already in this dict. Deliberately independent of the trim
+            # out of the keys already in this dict. Independent of the trim
             # below, because wanting a quieter game and wanting a checklist aren't the same wish.
             "objectiveGuide": bool(self.options.archipelago_objective_guide.value),
             "objectiveGuidePinning": self.options.objective_guide_pinning.value,
@@ -544,7 +544,7 @@ class CultOfTheLambWorld(World):
             "divineInspirationShuffleSeed": self.random.getrandbits(31),
 
             # Pacing caps. Independent of whether the matching block is randomized, because
-            # they're quality of life rather than randomizer settings, so a seed with sermons off
+            # they're quality of life rather than randomization settings, so a seed with sermons off
             # still gets the sermon cap. All three are the same shape client-side. Each is one
             # postfix clamping a single public static.
             "sermonXpCap": self.options.sermon_xp_cap.value,

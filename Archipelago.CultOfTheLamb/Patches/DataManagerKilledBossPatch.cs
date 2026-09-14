@@ -18,10 +18,8 @@ namespace Archipelago.CultOfTheLamb.Patches;
 [HarmonyPatch(typeof(DataManager))]
 internal static class DataManagerKilledBossPatch
 {
-    /// <summary>
-    /// Fires with the internal boss key (e.g. "Boss Mama Worm", "Boss Beholder 1",
-    /// "Boss Beholder 1_P2"), and only for a *newly* recorded kill.
-    /// </summary>
+    // Fires with the internal boss key (e.g. "Boss Mama Worm", "Boss Beholder 1",
+    // "Boss Beholder 1_P2"), and only for a newly recorded kill
     internal static event Action<string> OnBossKillRecorded;
 
     // AddKilledBoss dedups internally, so it's called on every re-kill but only mutates the

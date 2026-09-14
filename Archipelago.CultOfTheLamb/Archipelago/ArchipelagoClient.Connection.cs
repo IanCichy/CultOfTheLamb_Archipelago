@@ -20,44 +20,33 @@ namespace Archipelago.CultOfTheLamb;
 /// </summary>
 public partial class ArchipelagoClient
 {
-    /// <summary>
-    /// Whether an attempt is in flight. This is the only thing about the connection that
-    /// *isn't* already answerable. IsConnected is computed from the socket and so can't go
-    /// stale, LastError says whether the last attempt failed, and a UI derives everything it
-    /// shows from those three. Tracking a parallel status enum alongside them only creates a
-    /// second answer to "am I connected" that agrees by convention.
-    /// </summary>
+    // Whether an attempt is in flight. This is the only thing about the connection that
+    // isn't already answerable. IsConnected is computed from the socket and so can't go
+    // stale, LastError says whether the last attempt failed, and a UI derives everything it
+    // shows from those three. Tracking a parallel status enum alongside them only creates a
+    // second answer to "am I connected" that agrees by convention
     public bool Connecting { get; private set; }
 
     // Why the last attempt failed, in words a player can act on. Null when fine
     public string LastError { get; private set; }
 
-    /// <summary>
-    /// Which retry the reconnect loop is on, or 0 when it isn't running. Shown in the panel so a
-    /// player can tell "still trying" from "wedged". The loop is unbounded, so without a visible
-    /// count a long backoff is indistinguishable from nothing happening.
-    /// </summary>
+    // Which retry the reconnect loop is on, or 0 when it isn't running. Shown in the panel so a
+    // player can tell "still trying" from "wedged". The loop is unbounded, so without a visible
+    // count a long backoff is indistinguishable from nothing happening
     public int ReconnectAttempt { get; private set; }
 
-    /// <summary>
-    /// The last attempt reached the server and was turned away, rather than failing to reach it.
-    /// The distinction is the reconnect loop's stopping condition. An unreachable server is
-    /// worth retrying forever, a refused login never is.
-    /// </summary>
+    // The last attempt reached the server and was turned away, rather than failing to reach it.
+    // The distinction is the reconnect loop's stopping condition. An unreachable server is
+    // worth retrying forever, a refused login never is
     private bool loginRefused;
 
     // Asks the reconnect loop to stop at its next opportunity. See StopReconnecting
     private bool cancelReconnect;
 
-    /// <summary>
-    /// Connects without blocking the game.
-    /// </summary>
-    /// <remarks>
-    /// The synchronous version froze the main thread for as long as the login took. Behind a
-    /// form where people mistype addresses, that is a multi-second hang with nothing on screen.
-    ///
-    /// Drive it with StartCoroutine from a MonoBehaviour.
-    /// </remarks>
+    // Connects without blocking the game. Logging in can take a few seconds, and with a mistyped
+    // address that would freeze the game with nothing on screen.
+    //
+    // Drive it with StartCoroutine from a MonoBehaviour
     public IEnumerator ConnectRoutine(string url, string slotName, string password = null)
     {
         // A second attempt spawns its own thread and tears down the session the first is still
@@ -93,7 +82,7 @@ public partial class ArchipelagoClient
         var finished = new StrongBox<bool>();
 
         // ConnectToServer touches no Unity API, which is what makes this safe to run off the
-        // main thread. ProcessLoginResult below very much does, so it stays on it.
+        // main thread. ProcessLoginResult below does, so it stays on it.
         //
         // A dedicated thread rather than Task.Run, because this parks on a blocking socket call
         // for as long as the timeout, and tying up a thread-pool worker for seconds is what pools
@@ -150,11 +139,8 @@ public partial class ArchipelagoClient
         OnClientDisconnect?.Invoke(reason);
     }
 
-    /// <summary>
-    /// Network-only connection. Creates the session and attempts login.
-    /// Safe to call from any thread (no Unity API calls).
-    /// Returns null if session creation fails.
-    /// </summary>
+    // Network only. Creates the session and tries to log in. Safe to call from any thread, since it
+    // touches no Unity APIs. Returns null if the session can't be created
     private LoginResult ConnectToServer(string url, string slotName, string password)
     {
         try
@@ -167,7 +153,7 @@ public partial class ArchipelagoClient
             return null;
         }
 
-        // NOTE: this Version is the **Archipelago network protocol version** we claim to
+        // NOTE: this Version is the Archipelago network protocol version we claim to
         // speak, NOT this mod's version. The server rejects the login with
         // 'IncompatibleVersion' if it's below its minimum supported client version, so it
         // has to track the AP releases we support (currently generating/hosting on 0.6.6).
@@ -180,10 +166,8 @@ public partial class ArchipelagoClient
             password: password);
     }
 
-    /// <summary>
-    /// Processes a login result. Must run on the Unity main thread, because it constructs every
-    /// service, and those register Harmony hooks and touch Unity APIs as they start.
-    /// </summary>
+    // Processes a login result. Must run on the Unity main thread, because it constructs every
+    // service, and those register Harmony hooks and touch Unity APIs as they start
     private void ProcessLoginResult(LoginResult result)
     {
         if (!result.Successful)
@@ -194,7 +178,7 @@ public partial class ArchipelagoClient
                 Log.LogError($"[AP] {err}");
             }
 
-            // Not `session = null`: a refused login leaves a *connected* socket, so that would
+            // Not `session = null`: a refused login leaves a connected socket, so that would
             // orphan it and its polling loop. Safe this early, since the handlers attach on the
             // success path below and no service has registered yet.
             TeardownSession(disconnect: true);
@@ -228,9 +212,9 @@ public partial class ArchipelagoClient
         BossKeyMapping.Populate(successResult.SlotData);
         RegionMapping.Populate(successResult.SlotData);
 
-        // Both halves in one line, because the pair is what matters and a tester's log is how we
-        // find out they're mismatched. Not enforced, because during alpha we may ship a
-        // mismatched pair knowingly, and refusing the connection would be worse than saying so.
+        // Both halves on one line, since the pair is what matters and a player's log is how a
+        // mismatch gets spotted. Not enforced, because refusing the connection would be worse than
+        // saying so.
         var worldVersion = SlotData.GetString(successResult.SlotData, "worldVersion") ?? "unknown";
         Log.LogInfo($"[AP] Versions: client {ArchipelagoPlugin.PluginVersion}, apworld "
             + $"{worldVersion}." + (worldVersion != ArchipelagoPlugin.PluginVersion
@@ -283,7 +267,7 @@ public partial class ArchipelagoClient
         Scouts.ScoutAll();
         CheckNotifier.Scouts = Scouts;
 
-        // Unconditional, because the pacing caps are quality of life rather than randomizer
+        // Unconditional, because the pacing caps are quality of life rather than randomization
         // settings, so they apply whether or not the matching block is being randomized this seed.
         EconomyService = new EconomyService(
             (int)SlotData.GetLong(successResult.SlotData, "divineInspirationDevotionCap"),
@@ -450,11 +434,9 @@ public partial class ArchipelagoClient
         ItemLogic.Register();
     }
 
-    /// <summary>
-    /// One EquipmentPoolService, weapons or curses. The two halves read four differently-named
-    /// slot-data keys and are otherwise identical, so the naming lives here rather than being
-    /// duplicated at both call sites.
-    /// </summary>
+    // One EquipmentPoolService, weapons or curses. The two halves read four differently-named
+    // slot-data keys and are otherwise identical, so the naming lives here rather than being
+    // duplicated at both call sites
     private EquipmentPoolService BuildEquipmentService(
         IReadOnlyDictionary<string, object> slotData,
         bool weapons,
@@ -474,12 +456,10 @@ public partial class ArchipelagoClient
             legendaryChance);
     }
 
-    /// <summary>
-    /// Sermon item name -> the UpgradeSystem.Type names it unlocks, in order (see
-    /// worlds/cult_of_the_lamb/__init__.py's fill_slot_data). Comes through as a JObject of
-    /// JArrays, since Newtonsoft is the library's serializer rather than native .NET
-    /// collections.
-    /// </summary>
+    // Sermon item name -> the UpgradeSystem.Type names it unlocks, in order (see
+    // worlds/cult_of_the_lamb/__init__.py's fill_slot_data). Comes through as a JObject of
+    // JArrays, since Newtonsoft is the library's serializer rather than native .NET
+    // collections
     private static Dictionary<string, List<string>> ParseSermonUpgrades(
         IReadOnlyDictionary<string, object> slotData)
     {
@@ -494,10 +474,8 @@ public partial class ArchipelagoClient
         return result;
     }
 
-    /// <summary>
-    /// TarotCards.Card enum name -> location id. Keyed by enum name because that's what a
-    /// BuyEntry exposes. Display names differ completely ("The Burning Dead" is Skull).
-    /// </summary>
+    // TarotCards.Card enum name -> location id. Keyed by enum name because that's what a
+    // BuyEntry exposes. Display names differ completely ("The Burning Dead" is Skull)
     private static Dictionary<string, long> ParseTarotShopLocations(
         IReadOnlyDictionary<string, object> slotData)
     {
@@ -528,10 +506,8 @@ public partial class ArchipelagoClient
         return result;
     }
 
-    /// <summary>
-    /// Unsubscribes session-level events and nulls the session.
-    /// Optionally disconnects the socket if still connected.
-    /// </summary>
+    // Unsubscribes the session's events and clears it. Disconnects the socket too, if asked and
+    // it's still open
     private void TeardownSession(bool disconnect = false)
     {
         if (session == null)
@@ -603,9 +579,7 @@ public partial class ArchipelagoClient
         TeardownSession(disconnect: true);
     }
 
-    /// <summary>
-    /// Intentional disconnect initiated by the user (e.g. console command).
-    /// </summary>
+    // A disconnect the player asked for, such as from the console command
     public void Disconnect()
     {
         // First, and outside the null-session guard, because "disconnect" while a retry is
@@ -631,11 +605,9 @@ public partial class ArchipelagoClient
         Session_SocketClosed(message);
     }
 
-    /// <summary>
-    /// The socket dropped, on the MultiClient websocket thread. The whole body is deferred, not
-    /// just the teardown. TeardownSession writes to save-data lists that Update() is iterating,
-    /// and OnClientDisconnect reaches StartCoroutine, which Unity refuses off the main thread.
-    /// </summary>
+    // The socket dropped, on the MultiClient websocket thread. The whole body is deferred, not
+    // just the teardown. TeardownSession writes to save-data lists that Update() is iterating,
+    // and OnClientDisconnect reaches StartCoroutine, which Unity refuses off the main thread
     private void Session_SocketClosed(string reason)
     {
         // Deferring opens a race. A fast reconnect can replace the session before this runs, and
@@ -644,9 +616,8 @@ public partial class ArchipelagoClient
         var closed = session;
 
         // Every drop that reaches this handler is unplanned, so every one of them should retry.
-        // Previously only Socket_ErrorReceived set this, which meant a *clean* close, such as a
-        // host restarting their server, dropped the session with no reconnect at all. That is the
-        // usual case. A user-initiated disconnect can't get here, because TeardownSession
+        // That includes a clean close, like a host restarting their server, which is the usual
+        // case. A disconnect the player asked for can't get here, because TeardownSession
         // unsubscribes this handler before it calls DisconnectAsync.
         Reconnecting = true;
 
@@ -668,17 +639,15 @@ public partial class ArchipelagoClient
         });
     }
 
-    /// <summary>
-    /// Keeps retrying a dropped connection until it works, the server refuses, or the player stops it
-    /// </summary>
-    /// <remarks>
-    /// No retry limit. Nothing is queued while offline, since every service works out what it owes
-    /// when it reconnects, so getting the connection back is all that matters. The old limit of
-    /// five tries gave up after about fifteen seconds, which isn't long enough for a server restart.
-    ///
-    /// The wait between tries grows, so a server that's down for an hour gets two tries a minute
-    /// instead of twenty.
-    /// </remarks>
+    // Keeps retrying a dropped connection until it works, the server refuses, or the player stops
+    // it.
+    //
+    // No retry limit. Nothing is queued while offline, since every service works out what it owes
+    // when it reconnects, so getting the connection back is all that matters. A limit would give up
+    // before a restarting server comes back.
+    //
+    // The wait between tries grows, so a server that's down for an hour gets two tries a minute
+    // instead of twenty
     public IEnumerator AttemptReconnection()
     {
         Log.LogDebug("Attempting to reconnect!");
@@ -742,14 +711,12 @@ public partial class ArchipelagoClient
     private static float ReconnectDelay(int attempt) =>
         Mathf.Min(3f * Mathf.Pow(2f, attempt - 1), 30f);
 
-    /// <summary>
-    /// Ends the retry loop. Since the loop is otherwise unbounded, this is the only way out of it
-    /// besides connecting or being refused. Both connecting manually and disconnecting go
-    /// through here, which is what keeps the panel usable while a retry is pending.
-    ///
-    /// `reconnecting` drops immediately rather than when the coroutine notices, so the UI responds
-    /// to the click instead of to the end of the current backoff.
-    /// </summary>
+    // Ends the retry loop. Since the loop is otherwise unbounded, this is the only way out of it
+    // besides connecting or being refused. Both connecting manually and disconnecting go
+    // through here, which is what keeps the panel usable while a retry is pending.
+    //
+    // `reconnecting` drops immediately rather than when the coroutine notices, so the UI responds
+    // to the click instead of to the end of the current backoff
     public void StopReconnecting()
     {
         if (!Reconnecting)

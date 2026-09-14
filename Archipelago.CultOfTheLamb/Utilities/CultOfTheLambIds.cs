@@ -4,8 +4,7 @@ namespace Archipelago.CultOfTheLamb;
 /// The one id still hardcoded on this side
 /// </summary>
 /// <remarks>
-/// Boss location ids used to live here too, but they come through slot data now (see
-/// BossKeyMapping and RegionMapping).
+/// Boss location ids come through slot data (see BossKeyMapping and RegionMapping).
 ///
 /// This one stays because it's used to recognise a received item before any seed data exists.
 /// Everything else is matched by name, so don't add more here. Send them in slot data instead.

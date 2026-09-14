@@ -21,10 +21,8 @@ namespace Archipelago.CultOfTheLamb.Patches;
 [HarmonyPatch(typeof(SermonController))]
 internal static class SermonUpgradePatch
 {
-    /// <summary>
-    /// Most sermon XP one Temple upgrade may need, in tenths, which is the unit the game's own
-    /// bar counts in. 0 leaves the curve alone.
-    /// </summary>
+    // Most sermon XP one Temple upgrade may need, in tenths, which is the unit the game's own
+    // bar counts in. 0 leaves the curve alone
     internal static int XpCapTenths;
 
     /// <summary>
@@ -54,10 +52,8 @@ internal static class SermonUpgradePatch
         }
     }
 
-    /// <summary>
-    /// Set by SermonService while a session is randomizing sermons. When false the vanilla
-    /// pick-an-upgrade flow runs untouched, so a disconnected or non-sermon seed plays normally.
-    /// </summary>
+    // Set by SermonService while a session is randomizing sermons. When false the vanilla
+    // pick-an-upgrade flow runs untouched, so a disconnected or non-sermon seed plays normally
     internal static bool Active { get; set; }
 
     // Fires with the 1-based index of the sermon upgrade just earned

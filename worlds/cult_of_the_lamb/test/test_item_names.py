@@ -15,8 +15,8 @@ from test.bases import WorldTestBase
 
 from ..items import CATEGORY_PREFIXES, DI_POINT, PROGRESSIVE_REGION_ACCESS, item_table
 
-# Slot-data maps whose *keys* are Archipelago item names. Everything else in slot data is keyed by
-# the game's own internal names, which deliberately never carry a prefix.
+# Slot-data maps whose keys are Archipelago item names. Everything else in slot data is keyed by
+# the game's own internal names, which never carry a prefix.
 ITEM_KEYED_SLOT_DATA = (
     "tarotCards",
     "weaponItems",

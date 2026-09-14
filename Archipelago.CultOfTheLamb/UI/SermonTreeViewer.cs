@@ -20,24 +20,18 @@ namespace Archipelago.CultOfTheLamb.UI;
 /// </remarks>
 internal static class SermonTreeViewer
 {
-    /// <summary>
-    /// Our instance, while it's up. The cancel patch compares against this by reference so it can
-    /// never touch a tree the game opened for its own reasons.
-    /// </summary>
+    // Our instance, while it's up. The cancel patch compares against this by reference so it can
+    // never touch a tree the game opened for its own reasons
     internal static UIUpgradePlayerTreeMenuController Viewer { get; private set; }
 
-    /// <summary>
-    /// False at the main menu and anywhere UIManager has released the base assets, which is why
-    /// the IMGUI fallback panel still exists.
-    /// </summary>
+    // False at the main menu and anywhere UIManager has released the base assets, which is why
+    // the IMGUI fallback panel still exists
     internal static bool IsAvailable =>
         MonoSingleton<UIManager>.Instance != null
         && MonoSingleton<UIManager>.Instance.UpgradePlayerTreeMenuTemplate != null;
 
-    /// <summary>
-    /// <paramref name="onClosed"/> runs when the viewer is dismissed, and also when it can't be
-    /// opened at all, so a caller that hid itself to make room always gets to come back.
-    /// </summary>
+    // onClosed runs when the viewer is dismissed, and also when it can't be
+    // opened at all, so a caller that hid itself to make room always gets to come back
     internal static void Open(Action onClosed)
     {
         if (Viewer != null)
@@ -106,14 +100,12 @@ internal static class SermonTreeViewer
         MonoSingleton<UIManager>.Instance.SetMenuInstance(viewer, 0f, false);
     }
 
-    /// <summary>
-    /// Makes every node unclickable.
-    ///
-    /// This is not optional. UIPlayerUpgradeUnlockOverlayController.IsAvailable returns true
-    /// unconditionally, so unlike the Divine Inspiration tree the sermon tree has no currency gate
-    /// at all. Opening it and holding confirm unlocks any available node for free, which would
-    /// hand out an upgrade the randomizer never placed.
-    /// </summary>
+    // Makes every node unclickable.
+    //
+    // This is required. UIPlayerUpgradeUnlockOverlayController.IsAvailable always returns true, so
+    // unlike the Divine Inspiration tree, the sermon tree has no currency gate. Opening it and
+    // holding confirm unlocks any available node for free, handing out an upgrade the multiworld
+    // never sent
     private static void Neuter(UIUpgradePlayerTreeMenuController viewer)
     {
         foreach (var node in viewer.GetComponentsInChildren<UpgradeTreeNode>(includeInactive: true))
@@ -130,7 +122,7 @@ internal static class SermonTreeViewer
             // Makes it read as a viewer rather than a dead button. Both the pad and the mouse
             // confirm paths go through MMButton.TryPerformConfirmAction, which this denies.
             //
-            // Deliberately not Interactable. UpgradeMenuCursor only considers interactable nodes
+            // Not Interactable. UpgradeMenuCursor only considers interactable nodes
             // and dereferences the nearest one unguarded, so a fully non-interactable tree throws
             // on the first stick flick.
             if (node.Button != null)
@@ -141,17 +133,14 @@ internal static class SermonTreeViewer
     }
 
 
-    /// <summary>
-    /// Drops the "N / M" tier rules across the tree.
-    /// </summary>
-    /// <remarks>
-    /// They describe spending upgrades to open the next row, which can't happen here. Archipelago
-    /// grants sermon upgrades outright and ignores tiers, so the thresholds are a progression the
-    /// player can't act on.
-    ///
-    /// Done on our instance rather than by patching NumRequiredNodesForTier, since that reader
-    /// also decides node state for the real sermon tree the Flock ritual opens.
-    /// </remarks>
+    // Drops the "N / M" tier rules across the tree.
+    //
+    // They describe spending upgrades to open the next row, which can't happen here. Archipelago
+    // grants sermon upgrades outright and ignores tiers, so the thresholds are a progression the
+    // player can't act on.
+    //
+    // Done on our instance rather than by patching NumRequiredNodesForTier, since that reader
+    // also decides node state for the real sermon tree the Flock ritual opens
     private static void HideTierDividers(UIUpgradePlayerTreeMenuController viewer)
     {
         foreach (var divider in viewer.GetComponentsInChildren<TierLockIcon>(includeInactive: true))

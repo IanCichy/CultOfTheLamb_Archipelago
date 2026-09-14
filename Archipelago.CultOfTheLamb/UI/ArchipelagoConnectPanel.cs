@@ -17,7 +17,7 @@ internal class ArchipelagoConnectPanel : ApPanelBase
 {
     private readonly ArchipelagoClient client;
 
-    // The panel is the only thing that reads or writes these, so the form *is* the persistence
+    // The panel is the only thing that reads or writes these, so the form is the persistence
     // layer. There's no third copy of the values to keep in step, and the defaults live once,
     // in CreateConfigurations.
     private readonly ConfigEntry<string> serverEntry;
@@ -77,7 +77,7 @@ internal class ArchipelagoConnectPanel : ApPanelBase
         // and IMGUI needs the Layout and Repaint passes to agree with each other too.
         var canConnectHere = HasLoadedSave();
 
-        // Deliberately not "is a retry pending". The retry loop is unbounded, so gating Connect
+        // Not "is a retry pending". The retry loop is unbounded, so gating Connect
         // on it would disable the button for as long as the server stayed down. Only an attempt
         // actually in flight blocks a new one, and connecting manually cancels the loop.
         var connecting = client.Connecting;

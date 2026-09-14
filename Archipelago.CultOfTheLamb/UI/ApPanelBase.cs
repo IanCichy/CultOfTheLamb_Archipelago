@@ -33,7 +33,7 @@ internal abstract class ApPanelBase
 
     protected Rect window = new(60f, 60f, 460f, 0f);
 
-    // Whether *we* froze the player, so closing can't un-freeze something else that happened to
+    // Whether we froze the player, so closing can't un-freeze something else that happened to
     // start while the panel was open, such as a cutscene or a shop purchase.
     private bool frozePlayer;
 

@@ -39,15 +39,12 @@ internal static class ManagedCollectionStore
         Write(KeyFor(collection, saveSlot), string.Join(",", names.ToArray()));
     }
 
-    /// <summary>
-    /// What this save is still owed from an earlier session. Names this game version doesn't know
-    /// are skipped with a warning, since losing one card beats failing to return the rest.
-    /// </summary>
-    /// <remarks>
-    /// legacyKey is the old key tarot used before this store was shared. Without it, a player who
-    /// updated mid-session would be owed cards under a key nothing reads. Safe to remove once no
-    /// such file can exist.
-    /// </remarks>
+    // What this save is still owed from an earlier session. Names this game version doesn't know
+    // are skipped with a warning, since losing one card beats failing to return the rest.
+    //
+    // legacyKey is the old key tarot used before this store was shared. Without it, a player who
+    // updated mid-session would be owed cards under a key nothing reads. Safe to remove once no
+    // such file can exist
     internal static List<T> Owed<T>(string collection, int saveSlot, string legacyKey = null)
         where T : struct, Enum
     {

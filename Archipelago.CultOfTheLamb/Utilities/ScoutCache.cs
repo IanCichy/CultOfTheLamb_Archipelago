@@ -45,12 +45,10 @@ internal class ScoutCache
     internal bool TryGet(long locationId, out ScoutedCheck check) =>
         scouted.TryGetValue(locationId, out check);
 
-    /// <summary>
-    /// Scouts everything this slot still has outstanding.
-    ///
-    /// Already-checked locations are skipped. Their items are gone, so naming them would cost a
-    /// bigger round trip for data nothing reads.
-    /// </summary>
+    // Scouts everything this slot still has outstanding.
+    //
+    // Already-checked locations are skipped. Their items are gone, so naming them would cost a
+    // bigger round trip for data nothing reads
     internal void ScoutAll()
     {
         long[] ids;
@@ -108,10 +106,8 @@ internal class ScoutCache
         });
     }
 
-    /// <summary>
-    /// The location's own name. Falls back to the raw id rather than throwing, since the lookup
-    /// needs the datapackage and a missing name is no reason to lose a notification.
-    /// </summary>
+    // The location's own name. Falls back to the raw id rather than throwing, since the lookup
+    // needs the datapackage and a missing name is no reason to lose a notification
     internal string LocationName(long locationId)
     {
         try

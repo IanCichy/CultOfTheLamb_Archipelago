@@ -34,7 +34,7 @@ internal class DivineInspirationService : IService
     private readonly int locationCount;
 
     // AP item name -> every upgrade it grants at once. In checks_and_techs each list holds a
-    // single upgrade; in curated_checks the same map carries the bundles too
+    // single upgrade. In curated_checks the same map carries the bundles too
     private readonly Dictionary<string, List<UpgradeSystem.Type>> itemNameToUpgrades;
 
     // curated_checks only. AP item name -> upgrades in tier order, where the Nth copy received
@@ -211,7 +211,7 @@ internal class DivineInspirationService : IService
     }
 
     // Returns false so the caller can keep looking. A tech is a set Add and replays safely, a
-    // *point* is a counter and must not, which is why this reports whether it consumed a replay
+    // point is a counter and must not, which is why this reports whether it consumed a replay
     internal bool TryApplyItem(string itemName, bool isReplay)
     {
         if (itemName == null)

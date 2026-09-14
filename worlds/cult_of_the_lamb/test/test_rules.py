@@ -14,7 +14,7 @@ from ..items import PROGRESSIVE_REGION_ACCESS
 from ..locations import location_table
 from ..regions import REGION_NAMES
 
-# Blocks that live in "Cult" and so need bands imposed on them; everything else is gated by
+# Blocks that live in "Cult" and so need bands imposed on them. Everything else is gated by
 # the region graph and gets its depth from real logic.
 BANDED_CATEGORIES = ("Sermon", "Follower", "Snail", "TarotCard")
 

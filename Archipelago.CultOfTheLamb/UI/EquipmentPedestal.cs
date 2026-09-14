@@ -29,7 +29,7 @@ internal static class EquipmentPedestal
     // The game's own "you don't have this" treatment. See Interaction_SelectWeapon
     private static readonly Color NotReceivedTint = new(0f, 0f, 0f, 0.75f);
 
-    // The loaded podium. Its Addressables handle is deliberately not retained or released: one
+    // The loaded podium. Its Addressables handle is not retained or released: one
     // prefab held by a static for the process is cheaper than reloading per base entry
     private static GameObject prefab;
 
@@ -143,16 +143,13 @@ internal static class EquipmentPedestal
         ConfigureIcon(plinth, family, received);
     }
 
-    /// <summary>
-    /// Uses the podium's own lit and unlit art for received and not received
-    /// </summary>
-    /// <remarks>
-    /// The prefab has both states as separate child groups. Must run before Strip, since these
-    /// references live on the component Strip removes.
-    ///
-    /// Lighting stays off. It's a big glow meant for a dark dungeon, and in the base it lights up a
-    /// huge patch of ground.
-    /// </remarks>
+    // Uses the podium's own lit and unlit art for received and not received
+    //
+    // The prefab has both states as separate child groups. Must run before Strip, since these
+    // references live on the component Strip removes.
+    //
+    // Lighting stays off. It's a big glow meant for a dark dungeon, and in the base it lights up a
+    // huge patch of ground
     private static void ApplyLitState(GameObject plinth, bool received)
     {
         // By child name rather than through Interaction_WeaponSelectionPodium's fields, because
@@ -179,10 +176,8 @@ internal static class EquipmentPedestal
         }
     }
 
-    /// <summary>
-    /// Removes everything that would make the clone behave like a real podium. It must not offer
-    /// a weapon, react to the player, or delete itself.
-    /// </summary>
+    // Removes everything that would make the clone behave like a real podium. It must not offer
+    // a weapon, react to the player, or delete itself
     private static void Strip(GameObject plinth)
     {
         foreach (var interaction in plinth.GetComponentsInChildren<Interaction>(includeInactive: true))
@@ -202,13 +197,11 @@ internal static class EquipmentPedestal
         }
     }
 
-    /// <summary>
-    /// Points the podium's own floating icon at this family, and sets the lock to match.
-    ///
-    /// Driving the prefab's children rather than adding a sprite of our own. The podium already
-    /// has an InventoryItemIcon (authored as Icon_Weapon_Sword) drawn above the plinth, so an
-    /// extra renderer just hides behind it, which is why every pedestal read as a sword.
-    /// </summary>
+    // Points the podium's own floating icon at this family, and sets the lock to match.
+    //
+    // This drives the prefab's own children instead of adding a sprite. The podium already has an
+    // InventoryItemIcon (authored as Icon_Weapon_Sword) drawn above the plinth, so an extra
+    // renderer would just sit hidden behind it
     private static void ConfigureIcon(GameObject plinth, EquipmentType family, bool received)
     {
         Sprite sprite = null;
@@ -255,10 +248,8 @@ internal static class EquipmentPedestal
     }
 
 #if AP_DEBUG_KEYS
-    /// <summary>
-    /// Size, sorting and child layout. None of it is derivable from the decompile, and all of it
-    /// was needed to place these. Kept for the next time the podium prefab changes shape.
-    /// </summary>
+    // Size, sorting and child layout. None of it is derivable from the decompile, and all of it
+    // was needed to place these. Kept for the next time the podium prefab changes shape
     private static void Describe(GameObject plinth, EquipmentType family)
     {
         var renderers = plinth.GetComponentsInChildren<SpriteRenderer>(includeInactive: true);

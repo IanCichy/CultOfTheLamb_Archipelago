@@ -18,12 +18,10 @@ internal class ProgressiveGrant
 {
     private readonly Dictionary<string, int> granted = new();
 
-    /// <summary>
-    /// Claims the next tier for <paramref name="itemName"/>.
-    ///
-    /// Returns false, having warned, when more copies arrive than the family has tiers, which
-    /// means the pool and the tier table disagree, not that the player did anything wrong.
-    /// </summary>
+    // Claims the next tier for itemName.
+    //
+    // Returns false, having warned, when more copies arrive than the family has tiers, which
+    // means the pool and the tier table disagree, not that the player did anything wrong
     internal bool TryTake(string itemName, int tierCount, out int tierIndex)
     {
         granted.TryGetValue(itemName, out tierIndex);

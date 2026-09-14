@@ -101,7 +101,7 @@ assert set(MINIBOSS_AND_WITNESS_KEYS) | set(BISHOP_DUNGEON_LOCATIONS) == {
     if data.category in ("Miniboss", "Bishop", "Witness")
 }, "the boss key tables and location_table's boss rows have drifted apart"
 
-# Sermon upgrade checks. These are deliberately *sequential* rather than named after specific
+# Sermon upgrade checks. These are sequential rather than named after specific
 # upgrades: filling the sermon bar is one repeatable event, and which upgrade you'd have
 # picked is exactly what Archipelago is randomizing away. So the Nth fill is the Nth check,
 # and the named upgrades are the items (see items.py SERMON_UPGRADES).
@@ -125,7 +125,7 @@ for _n in range(1, FOLLOWER_MILESTONE_COUNT + 1):
 # Tarot Card shop purchases. Every hub has a shop selling a fixed, named set of cards rather than
 # randomised stock, so each purchase is a stable, identifiable check.
 #
-# These live in the *paired crusade region* rather than "Cult" on purpose: each hub is reached
+# These live in the paired crusade region rather than "Cult" on purpose: each hub is reached
 # through its region's progression (Midas's Cave opens after the golden tree in Silk Cradle,
 # Pilgrim's Passage's shops need the Lighthouse lit), so putting them here makes them gate
 # naturally instead of all landing in sphere 1 the way the Cult-region blocks do.
@@ -239,7 +239,7 @@ for _curse in CURSES:
 # logic if the locations were named. Sequentially, the player just unlocks 69 things in whatever
 # order the game allows.
 #
-# Same reasoning as "Sermon Upgrade N", which this deliberately mirrors.
+# Same reasoning as "Sermon Upgrade N", which this mirrors.
 DIVINE_INSPIRATION_COUNT = len(DIVINE_INSPIRATION)
 
 for _n in range(1, DIVINE_INSPIRATION_COUNT + 1):
@@ -250,7 +250,7 @@ for _n in range(1, DIVINE_INSPIRATION_COUNT + 1):
 # check than "Building 12". The client maps Data.ToBuildType straight to an id.
 #
 # Sorted by the tier of the Divine Inspiration upgrade that unlocks each one, because that order
-# is what the depth bands read: tier-1 buildings land in early bands where they're genuinely
+# is what the depth bands read: tier-1 buildings land in early bands where they're
 # available, tier-5 ones land deep. Without it the bands would key off list order and mean
 # nothing.
 for _building in sorted(BUILDINGS, key=lambda b: b.tier):

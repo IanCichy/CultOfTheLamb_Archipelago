@@ -36,11 +36,9 @@ internal static class MenuButtonPatch
     private static readonly AccessTools.FieldRef<MainMenu, Button> SettingsButtonField =
         AccessTools.FieldRefAccess<MainMenu, Button>("_settingsButton");
 
-    /// <summary>
-    /// Twitch Settings is the donor because it's the closest thing the game already has to
-    /// what we're adding, a connection to an outside service, so it both looks right and sits
-    /// in the right part of the list.
-    /// </summary>
+    // Twitch Settings is the donor because it's the closest thing the game already has to
+    // what we're adding, a connection to an outside service, so it both looks right and sits
+    // in the right part of the list
     [HarmonyPatch(typeof(UIPauseMenuController), "Start")]
     [HarmonyPostfix]
     private static void PauseMenu_Start_Postfix(UIPauseMenuController __instance)
@@ -57,10 +55,8 @@ internal static class MenuButtonPatch
         TryAddButton(SettingsButtonField(__instance), "main menu", donorHasGlyph: false);
     }
 
-    /// <summary>
-    /// Never lets a UI failure take a menu down with it. A thrown exception in a Start postfix
-    /// leaves the menu half-initialised, which is a far worse outcome than a missing button.
-    /// </summary>
+    // Never lets a UI failure take a menu down with it. A thrown exception in a Start postfix
+    // leaves the menu half-initialised, which is a far worse outcome than a missing button
     private static void TryAddButton(Button donor, string where, bool donorHasGlyph)
     {
         try
@@ -115,15 +111,13 @@ internal static class MenuButtonPatch
         Log.LogInfo($"[AP] Added the Archipelago button to the {where}.");
     }
 
-    /// <summary>
-    /// Swaps the donor's glyph for the AP logo. Matched on the existing sprite's *name*, not by
-    /// object name or child index, because a menu button is several Images deep and replacing the
-    /// wrong one wipes its background.
-    ///
-    /// A weaker handle than the FieldRefAccess used elsewhere here, since a sprite name survives
-    /// neither an art pass nor a rename. So finding nothing is a warning. The caller said there
-    /// was a glyph, and its absence means this needs revisiting.
-    /// </summary>
+    // Swaps the donor's glyph for the AP logo. Matched on the existing sprite's name, not by
+    // object name or child index, because a menu button is several Images deep and replacing the
+    // wrong one wipes its background.
+    //
+    // A weaker handle than the FieldRefAccess used elsewhere here, since a sprite name survives
+    // neither an art pass nor a rename. So finding nothing is a warning. The caller said there
+    // was a glyph, and its absence means this needs revisiting
     private static void SetIcon(GameObject button, string where)
     {
         var icon = ApAssets.IconSprite();
@@ -159,13 +153,11 @@ internal static class MenuButtonPatch
         }
     }
 
-    /// <summary>
-    /// Names the button, and stops the game renaming it back.
-    ///
-    /// Every menu label carries an I2 Localize component that rewrites its text from a term on
-    /// enable and on any language change. Setting .text alone works until the first of those,
-    /// then silently reverts, so the components have to go first.
-    /// </summary>
+    // Names the button, and stops the game renaming it back.
+    //
+    // Every menu label carries an I2 Localize component that rewrites its text from a term on
+    // enable and on any language change. Setting .text alone works until the first of those,
+    // then silently reverts, so the components have to go first
     internal static void SetLabel(GameObject button, string label)
     {
         foreach (var localize in button.GetComponentsInChildren<Localize>(true))

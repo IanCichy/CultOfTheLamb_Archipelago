@@ -8,7 +8,7 @@ namespace Archipelago.CultOfTheLamb.Services;
 /// </summary>
 /// <typeparam name="T">The game enum stored in the collection, such as TarotCards.Card.</typeparam>
 /// <remarks>
-/// Three operations is all the state machine needs, which lets very different storage shapes
+/// Three operations is all the state machine needs, which lets different storage shapes
 /// plug in as small adapters: a List of enums, a List of ints, a system with its own methods.
 /// </remarks>
 internal interface IManagedBacking<T> where T : struct, Enum
@@ -51,7 +51,7 @@ internal class ManagedCollection<T> where T : struct, Enum
     // Every entry this seed owns, whether or not its check lives on the entry
     private readonly HashSet<T> managed;
 
-    // What we took off the player, so it can be handed back. Only entries that were genuinely
+    // What we took off the player, so it can be handed back. Only entries that were
     // unlocked before we touched them
     private readonly HashSet<T> revoked = new();
 
@@ -266,7 +266,7 @@ internal class ManagedCollection<T> where T : struct, Enum
     }
 
     // Pays back whatever the loaded save is owed, for the player who crashes and then
-    // uninstalls. Runs from the plugin's poll while *disconnected*, so it fires only on the
+    // uninstalls. Runs from the plugin's poll while disconnected, so it fires only on the
     // interrupted paths. Static because no session, and so no collection instance, exists then
     internal static void SettleIfOwed(
         string collectionKey,

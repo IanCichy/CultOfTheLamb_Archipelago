@@ -17,7 +17,7 @@ namespace Archipelago.CultOfTheLamb.Patches;
 /// </remarks>
 internal static class DivineInspirationPatch
 {
-    // Fired when the player fills the Devotion meter, *before* any withholding. Filling it is
+    // Fired when the player fills the Devotion meter, before any withholding. Filling it is
     // what earns the check, whether or not they keep the point
     internal static Action PointEarned;
 
@@ -103,9 +103,7 @@ internal static class DivineInspirationPatch
         }
     }
 
-    /// <summary>
-    /// Most Devotion a single ability point may cost. 0 leaves the game's own curve alone.
-    /// </summary>
+    // Most Devotion a single ability point may cost. 0 leaves the game's own curve alone
     internal static int DevotionCap;
 
     /// <summary>
@@ -115,7 +113,8 @@ internal static class DivineInspirationPatch
     /// The cost climbs from 1 to 465 and stays there, about 24,000 Devotion for all 69 points.
     /// Capping only the top keeps the early curve the same.
     ///
-    /// A postfix, so it also catches the game tripling the cost once there's nothing left to unlock.
+    /// A postfix, so it also catches the game tripling the cost once there's nothing left to
+    /// unlock.
     /// </remarks>
     [HarmonyPatch(typeof(DataManager), nameof(DataManager.GetTargetXP))]
     internal static class DevotionCost

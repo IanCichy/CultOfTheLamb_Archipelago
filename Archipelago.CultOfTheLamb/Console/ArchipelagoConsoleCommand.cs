@@ -5,9 +5,8 @@ namespace Archipelago.CultOfTheLamb.Console;
 /// them.
 /// </summary>
 /// <remarks>
-/// A trigger can be the in-game UI button, a debug keybind, or a real dev console if COTL_API
-/// exposes one. Separate from ArchipelagoClient so the trigger source can change without
-/// touching connection logic.
+/// A trigger can be the in-game button or a debug keybind. Separate from ArchipelagoClient so the
+/// trigger source can change without touching connection logic.
 /// </remarks>
 public static class ArchipelagoConsoleCommand
 {

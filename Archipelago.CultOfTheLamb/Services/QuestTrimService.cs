@@ -28,10 +28,8 @@ internal class QuestTrimService : IService
 
     private readonly int mode;
 
-    /// <summary>
-    /// The game's own RemovedQuests contents from before we touched it. Non-null means we have
-    /// edited the list and owe a restore.
-    /// </summary>
+    // The game's own RemovedQuests contents from before we touched it. Non-null means we have
+    // edited the list and owe a restore
     private List<int> originalRemoved;
 
     private int keptCount;
@@ -61,8 +59,8 @@ internal class QuestTrimService : IService
         var keep = BuildKeepSet(questsAll, storyQuests);
         keptCount = keep.Count;
 
-        // Mutate the existing list rather than replacing it. That is cheaper, and it can't be defeated
-        // by anything holding a cached reference to the old list.
+        // Mutate the existing list rather than replacing it. That is cheaper, and it can't be
+        // defeated by anything holding a cached reference to the old list.
         for (var i = 0; i < questsAll.Count; i++)
         {
             if (!keep.Contains(i) && !removed.Contains(i))
@@ -98,13 +96,11 @@ internal class QuestTrimService : IService
         originalRemoved = null;
     }
 
-    /// <summary>
-    /// Which quest indices survive.
-    ///
-    /// Predicate-based, never a hardcoded index list. QuestsAll is a literal inline table, so a
-    /// game patch inserting one entry would shift every index after it and silently start
-    /// keeping the wrong quests. Types and the game's own StoryQuests list both survive that.
-    /// </summary>
+    // Which quest indices survive.
+    //
+    // Predicate-based, never a hardcoded index list. QuestsAll is a literal inline table, so a
+    // game patch inserting one entry would shift every index after it and silently start
+    // keeping the wrong quests. Types and the game's own StoryQuests list both survive that
     private HashSet<int> BuildKeepSet(List<ObjectivesData> questsAll, List<int> storyQuests)
     {
         var keep = new HashSet<int>();

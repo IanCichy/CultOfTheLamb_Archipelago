@@ -76,10 +76,8 @@ internal static class SlotData
         return result;
     }
 
-    /// <summary>
-    /// A name -> location-id mapping, keeping the names. ParseIdValues throws the keys away;
-    /// several blocks need them to decide *which* thing a given id belongs to.
-    /// </summary>
+    // A name to location id mapping, keeping the names. ParseIdValues throws the keys away, but
+    // several blocks need them to tell which thing an id belongs to
     internal static Dictionary<string, long> ParseIdMap(
         IReadOnlyDictionary<string, object> slotData, string key)
     {

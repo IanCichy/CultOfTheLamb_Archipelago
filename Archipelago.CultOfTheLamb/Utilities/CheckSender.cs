@@ -18,7 +18,7 @@ namespace Archipelago.CultOfTheLamb;
 /// </remarks>
 internal static class CheckSender
 {
-    // Announces only the ones that were genuinely new, so it is safe to hand the full
+    // Announces only the ones that were new, so it is safe to hand the full
     // re-derived set on every connect
     internal static void Send(ArchipelagoSession session, IReadOnlyList<long> checkIds)
     {

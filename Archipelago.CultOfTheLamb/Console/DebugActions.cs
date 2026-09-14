@@ -912,8 +912,8 @@ internal static class DebugActions
         }
     }
 
-    // I2 returns null for missing terms and some lookups throw before localization is ready, so this
-    // marks those instead of leaving the table half written
+    // I2 returns null for missing terms and some lookups throw before localization is ready, so
+    // this marks those instead of leaving the table half written
     private static string Safe(System.Func<string> get)
     {
         try
@@ -931,7 +931,7 @@ internal static class DebugActions
     //
     // The second part is the useful one. locations.py puts all five shrines in "Cult" because
     // which ShrineNumber is in which hub is a prefab field the decompile can't show, and four of
-    // them are really behind hub access. Pressing F9 in each hub records the mapping needed to fix
+    // them are behind hub access. Pressing F9 in each hub records the mapping needed to fix
     // that
     private static void DumpSnailShrines()
     {

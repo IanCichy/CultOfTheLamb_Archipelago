@@ -21,7 +21,7 @@ namespace Archipelago.CultOfTheLamb.Patches;
 /// upgrades around changes what you see but not how many unlocks each tier needs.
 ///
 /// Two things have to change together: the tier lists in the config, and each node's own _upgrade
-/// field, which is what the menu actually draws. Change only the lists and the menu shows one
+/// field, which is what the menu draws. Change only the lists and the menu shows one
 /// upgrade but sells another.
 ///
 /// The central nodes stay put. Each tier has one that must be bought to open the next, so moving
@@ -38,20 +38,16 @@ internal static class DivineInspirationShuffle
     // Original upgrade -> the one that takes its place. Null when not shuffling
     private static Dictionary<UpgradeSystem.Type, UpgradeSystem.Type> mapping;
 
-    /// <summary>
-    /// Each node's upgrade as the prefab authored it. Rewrites always go from here rather than
-    /// from the node's current value, so re-opening the menu can't permute twice.
-    /// </summary>
+    // Each node's upgrade as the prefab authored it. Rewrites always go from here rather than
+    // from the node's current value, so re-opening the menu can't permute twice
     private static readonly Dictionary<UpgradeTreeNode, UpgradeSystem.Type> originalNodeUpgrades =
         new();
 
     // Tier membership as authored, for putting it back on disconnect
     private static List<List<UpgradeSystem.Type>> originalTiers;
 
-    /// <summary>
-    /// Builds the permutation and rewrites the configuration. Node components are rewritten
-    /// later, as each menu configures itself.
-    /// </summary>
+    // Builds the permutation and rewrites the configuration. Node components are rewritten
+    // later, as each menu configures itself
     internal static void Apply(int shuffleMode, int seed)
     {
         if (shuffleMode == ModeDefault)
@@ -109,10 +105,8 @@ internal static class DivineInspirationShuffle
             + $"{pinned.Count} pinned, seed {seed}).");
     }
 
-    /// <summary>
-    /// Puts the authored layout back. ScriptableObject edits last for the whole process, so
-    /// without this a player who disconnects keeps a shuffled tree until they restart.
-    /// </summary>
+    // Puts the authored layout back. ScriptableObject edits last for the whole process, so
+    // without this a player who disconnects keeps a shuffled tree until they restart
     internal static void Restore()
     {
         var tree = DivineInspirationPatch.Tree;

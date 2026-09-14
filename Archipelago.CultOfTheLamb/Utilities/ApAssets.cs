@@ -168,7 +168,7 @@ internal static class ApAssets
         if (stream == null)
         {
             // Almost always a build problem (the EmbeddedResource entry in the csproj), so name
-            // what *is* embedded to make the mismatch obvious.
+            // what is embedded to make the mismatch obvious.
             Log.LogWarning($"[AP] Embedded resource '{name}' not found. Available: "
                 + string.Join(", ", assembly.GetManifestResourceNames()));
             return null;

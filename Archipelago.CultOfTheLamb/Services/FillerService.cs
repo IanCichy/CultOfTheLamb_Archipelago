@@ -69,7 +69,7 @@ internal static class FillerService
             foreach (var (type, quantity) in bundle)
             {
                 // forceNormalInventory is true because Inventory.AddItem otherwise routes into
-                // the *dungeon* inventory whenever BiomeGenerator.Instance exists
+                // the dungeon inventory whenever BiomeGenerator.Instance exists
                 // (Inventory.cs:251), which would silently lose the items when the crusade ends.
                 Inventory.AddItem(type, quantity, forceNormalInventory: true);
                 granted.Add($"+{quantity} {type}");

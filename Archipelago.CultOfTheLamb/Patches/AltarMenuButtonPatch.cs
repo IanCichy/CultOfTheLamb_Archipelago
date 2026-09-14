@@ -20,15 +20,12 @@ internal static class AltarMenuButtonPatch
 {
     private const string ButtonName = "ArchipelagoSermonsButton";
 
-    /// <summary>
-    /// The entry's label, abbreviated to fit the button.
-    /// </summary>
-    /// <remarks>
-    /// The label inherits its width from the cloned button, and the game's own labels top out at
-    /// eight characters, so TMP wrapped "Archipelago" mid word. Widening isn't an option either:
-    /// the icons sit about 130px apart and the full word needs closer to 190, which overlaps
-    /// Crown and Rituals.
-    /// </remarks>
+    // The entry's label, shortened to fit the button.
+    //
+    // The label takes its width from the cloned button, and the game's own labels are at most eight
+    // characters, so TMP would wrap "Archipelago" mid word. Widening isn't an option either, since
+    // the icons are about 130px apart and the full word needs closer to 190, which overlaps Crown
+    // and Rituals
     private const string ButtonLabel = "AP";
 
     private const string ButtonDescription = "View the sermon upgrades Archipelago has granted.";
@@ -120,17 +117,13 @@ internal static class AltarMenuButtonPatch
         Log.LogInfo("[AP] Added the Archipelago entry to the Temple Altar menu.");
     }
 
-    /// <summary>
-    /// Set between the click and the viewer closing. Without it a second click before the menu
-    /// finishes hiding would stack another OnHidden handler, and the extra Open call is refused,
-    /// leaving a hide with nothing to reopen the altar.
-    /// </summary>
+    // Set between the click and the viewer closing. Without it a second click before the menu
+    // finishes hiding would stack another OnHidden handler, and the extra Open call is refused,
+    // leaving a hide with nothing to reopen the altar
     private static bool opening;
 
-    /// <summary>
-    /// Mirrors Interaction_TempleAltar.DoCultUpgrade. Hide the altar, open the next screen, and
-    /// bring the altar back when it closes.
-    /// </summary>
+    // Mirrors Interaction_TempleAltar.DoCultUpgrade. Hide the altar, open the next screen, and
+    // bring the altar back when it closes
     private static void OnClicked(UIAltarMenuController menu)
     {
         if (opening)
@@ -176,15 +169,12 @@ internal static class AltarMenuButtonPatch
         DefaultIndex() = PlayerUpgradesIndex;
     }
 
-    /// <summary>
-    /// Reopens the altar one frame after the viewer closes, never from inside OnHidden
-    /// </summary>
-    /// <remarks>
-    /// Two things still run after OnHidden. The tree's OnHideCompleted kills every tween, which
-    /// would stop the altar's opening animation. And UIManager only clears its current menu in its
-    /// own hide handler, which runs after ours, so reopening early does nothing and the game stays
-    /// unpaused.
-    /// </remarks>
+    // Reopens the altar one frame after the viewer closes, never from inside OnHidden
+    //
+    // Two things still run after OnHidden. The tree's OnHideCompleted kills every tween, which
+    // would stop the altar's opening animation. And UIManager only clears its current menu in its
+    // own hide handler, which runs after ours, so reopening early does nothing and the game stays
+    // unpaused
     private static void ReopenAltar(Interaction_TempleAltar altar)
     {
         // Released here rather than in OpenAltarNow so every path out of this method clears it.

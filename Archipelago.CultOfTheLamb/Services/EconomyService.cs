@@ -13,7 +13,7 @@ namespace Archipelago.CultOfTheLamb.Services;
 /// public static, so they live together.
 ///
 /// Not tied to whether the matching block is randomized. These are quality of life, not
-/// randomizer settings, so a seed with sermon randomization off can still cap sermon XP.
+/// randomization settings, so a seed with sermon randomization off can still cap sermon XP.
 /// </remarks>
 internal class EconomyService : IService
 {

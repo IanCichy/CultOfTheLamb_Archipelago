@@ -15,10 +15,8 @@ namespace Archipelago.CultOfTheLamb.Patches;
 [HarmonyPatch]
 internal static class TarotUnlockPatch
 {
-    /// <summary>
-    /// Answers what to do about a card the game is trying to unlock. Set by TarotService while
-    /// connected, and null the rest of the time, which leaves the game entirely alone.
-    /// </summary>
+    // Answers what to do about a card the game is trying to unlock. Set by TarotService while
+    // connected, and null the rest of the time, which leaves the game entirely alone
     internal static Func<TarotCards.Card, UnlockDecision> Decide;
 
     internal enum UnlockDecision

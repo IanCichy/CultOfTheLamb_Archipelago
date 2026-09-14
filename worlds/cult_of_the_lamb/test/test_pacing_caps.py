@@ -31,7 +31,7 @@ class TestDefaults(CapTestBase):
     def test_defaults(self):
         devotion, sermon, build = self.caps()
         self.assertEqual(devotion, 70)
-        self.assertEqual(sermon, 20)   # tenths, so 2.0 XP - the unit the game's bar counts in
+        self.assertEqual(sermon, 20)   # tenths, so 2.0 XP, the unit the game's bar counts in
         self.assertEqual(build, 30)    # game-minutes, the same as a Sleeping Bag
 
 

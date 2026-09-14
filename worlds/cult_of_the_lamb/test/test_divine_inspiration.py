@@ -226,8 +226,8 @@ class TestDevotionCapOff(DITestBase):
 # ---------------------------------------------------------------------------
 #
 # The regrouped block: the same 69 upgrades as 38 items, a shorter location list, five upgrades
-# free from the start, and - uniquely in this world - a Divine Inspiration item that really is
-# progression and really does gate its own block.
+# free from the start, and, uniquely in this world, a Divine Inspiration item that is
+# progression and does gate its own block.
 
 
 class TestCuratedTablesCoverEverything(unittest.TestCase):

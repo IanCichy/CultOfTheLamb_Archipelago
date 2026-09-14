@@ -19,16 +19,12 @@ namespace Archipelago.CultOfTheLamb.Patches;
 /// </remarks>
 internal static class TarotVisibility
 {
-    /// <summary>
-    /// The cards Archipelago has granted. Set by TarotService while connected, and null the rest
-    /// of the time, which leaves the game entirely alone.
-    /// </summary>
+    // The cards Archipelago has granted. Set by TarotService while connected, and null the rest
+    // of the time, which leaves the game entirely alone
     internal static Func<IEnumerable<TarotCards.Card>> GrantedCards;
 
-    /// <summary>
-    /// Adds the granted cards, returning exactly the ones it added so <see cref="Take"/> removes
-    /// those and nothing else. Null when there was nothing to lend, which is the common case.
-    /// </summary>
+    // Adds the granted cards, returning exactly the ones it added so Take removes
+    // those and nothing else. Null when there was nothing to lend, which is the common case
     private static List<TarotCards.Card> Lend()
     {
         var granted = GrantedCards?.Invoke();
