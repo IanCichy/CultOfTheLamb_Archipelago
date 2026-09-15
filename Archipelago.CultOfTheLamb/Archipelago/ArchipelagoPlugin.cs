@@ -21,7 +21,6 @@ namespace Archipelago.CultOfTheLamb;
 public class ArchipelagoPlugin : BaseUnityPlugin
 {
     public const string PluginGUID = "io.github.iancichy.archipelago-cultofthelamb";
-    public const string PluginAuthor = "Ian";
     public const string PluginName = "Archipelago.CultOfTheLamb";
     // Keep in step with manifest.json, the csproj VersionPrefix, and MOD_VERSION in
     // worlds/cult_of_the_lamb/__init__.py

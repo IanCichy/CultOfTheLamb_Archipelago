@@ -32,11 +32,7 @@ New to Archipelago? Find more [info](https://archipelago.gg)
 
         Archipelago\custom_worlds\cult_of_the_lamb.apworld
 
-
-
-
 ## Playing
-
 
 ### 1. Generate the YAML
 Download one of the `.yaml` files from the latest release on GitHub
@@ -44,17 +40,12 @@ Download one of the `.yaml` files from the latest release on GitHub
 `cult_of_the_lamb_quickstart.yaml` provides only a handful of options to customize your experience
  - This is a great place to start if you don't want to be overwhelmed by options
 
-
 `cult_of_the_lamb_example.yaml` provides all options to customize your experience
-
 
 ### 2. Generate a seed
    Open up Archipelago and click Generate
 
    This produces a `.archipelago` file. Upload it to the Archipelago server, or host it locally
-
-
-
 
 ### 3. Load the game and connect
    - Launch Cult of the Lamb through **r2modman** (click *start modded*)
@@ -70,15 +61,8 @@ Download one of the `.yaml` files from the latest release on GitHub
    password (leave blank if none). Click **Connect**.
       - The Archipelago dialogue box will tell you it's connected to a server
 
-
-
 >[!TIP]
 >There is an AP icon in the upper-left of the screen. When the icon is in full color that confirms that you're connected to an AP world. The icon will be washed out if you aren't connected.
-
-
-
-
-
 
 ## Features
 
@@ -87,7 +71,7 @@ Download one of the `.yaml` files from the latest release on GitHub
 - Weapon and curse families randomized
 - Sermon upgrades randomized
 - Tarot cards randomized
-- Divine inspiration randomized with multiple options
+- Divine Inspiration randomized with multiple options
 - Checks for every Bishop, miniboss and Witness
 - Toggleable checks: follower recruitment, snail shrine, tarot shop, construction, sweeping
 - Multiple goal options (Bishops, Witnesses, or Narinder)
@@ -100,7 +84,6 @@ Download one of the `.yaml` files from the latest release on GitHub
 - Death Link
 - Multiplayer / co-op
 
-
 >[!NOTE]
 >**There are several in-game ways to track your progress**
 >  - See your Archipelago checklist with the **Quests tab** in the pause menu
@@ -108,16 +91,16 @@ Download one of the `.yaml` files from the latest release on GitHub
 >   check block
 >     - Will only show up if `archipelago_objective_guide` is enabled
 >
->   - See your unlocked tarot cards at the **tarot card podium** at the south-end of the base
->     - This will always show up even if `randomize_tarot` is not enabled
+>   - See your unlocked tarot cards at the **relic and tarot book** at the south end of the base
+>     - This will always show up even if `randomize_tarot_cards` is not enabled
 >
->   - See what weapons and curses you have unlocked with the **podiums** at the south-end of the base
+>   - See what weapons and curses you have unlocked with the **podiums** at the south end of the base
 >     - Podiums light up to show which weapon and curse families
 >     you've been granted
 >     - These will only show up if you have `randomize_weapons` and/or `randomize_curses` enabled
 >
 >   - See the sermons you have unlocked in the **Archipelago menu in the temple**
->     - This menu will always show up even if `randomize_sermons` is not enabled
+>     - This menu will always show up even if `randomize_sermon_upgrades` is not enabled
 
 ## Verifying the install
 
@@ -162,5 +145,3 @@ Built by Ian Cichy
 - [Newtonsoft.Json](https://github.com/JamesNK/Newtonsoft.Json) - MIT
 - [BepInEx](https://github.com/BepInEx/BepInEx) - LGPL-2.1
 - [HarmonyLib](https://github.com/pardeike/Harmony) - MIT
-
-

@@ -39,10 +39,10 @@ __pycache__/
 .claude/
 
 # Dev scratch - screenshots and working art, not release material
-Screenshots/
+/Screenshots/
 
 # Design docs and dev tooling - architecture notes, check economy, tarot difficulty, sprint
 # notes, session handoffs, the name-diff script. Kept locally, never published: they're design
 # rationale and local-path tooling, of no use to a player.
-docs/
-tools/
+/docs/
+/tools/
