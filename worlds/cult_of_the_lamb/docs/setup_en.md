@@ -59,11 +59,11 @@ A few options are worth knowing about before your first seed:
    `archipelago.gg:38281`), your slot name from your YAML, and the password if the room has one.
    The main menu has the same panel if you want to type your details in early, but
    connecting needs a save loaded.
-4. Click **Connect**. The dialogue box tells you when you're connected, and the Archipelago icon in
-   the upper left of the screen turns to full color.
+4. Click **Connect**. The dialogue box tells you when you're connected, and the AP icon in the
+   upper left of the screen turns to full color.
 
 Use a save dedicated to Archipelago. Adding the mod to an existing vanilla playthrough has not been
-tested. Saves that have received Archipelago items are marked with an Archipelago icon on the save
+tested. Saves that have received Archipelago items are marked with an AP icon on the save
 select screen, so they're easy to tell apart.
 
 If the connection drops, the mod keeps trying on its own and sends your progress once it's back.

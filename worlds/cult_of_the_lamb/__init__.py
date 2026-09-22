@@ -1,3 +1,4 @@
+import logging
 from typing import Any, Dict, List, Optional, Tuple
 
 from BaseClasses import Tutorial
@@ -24,8 +25,9 @@ from .locations import (
     location_table,
 )
 from .options import (
-    CultOfTheLambOptions, DivineInspirationMode, FAST_BUILD_MINUTES, LegendaryWeapons,
-    RegionAccessOrder, StartingTarotPool,
+    CultOfTheLambOptions, DivineInspirationChecks, DivineInspirationMode, FAST_BUILD_MINUTES,
+    LegendaryWeapons, ObjectiveGuidePinning, RegionAccessOrder, StartingCurses,
+    StartingTarotPool, StartingWeapons,
 )
 from .regions import REGION_NAMES, SACRIFICE_GATED_REGION, create_regions
 from .rules import set_rules
@@ -37,6 +39,9 @@ MOD_VERSION = "0.9.0"
 
 
 class CultOfTheLambWeb(WebWorld):
+    theme = "dirt"
+    bug_report_page = "https://github.com/IanCichy/CultOfTheLamb_Archipelago/issues"
+
     tutorials = [Tutorial(
         "Multiworld Setup Guide",
         "A guide to setting up the Cult of the Lamb integration for Archipelago multiworld games.",
@@ -45,6 +50,82 @@ class CultOfTheLambWeb(WebWorld):
         "setup/en",
         ["IanCichy"]
     )]
+
+    # Starting points on the options page, so a new player doesn't have to read 28 options to get
+    # a seed. Each one has been generated and checked; keep it that way when editing, because a
+    # preset that fails generation only surfaces when someone picks it.
+    #
+    # None of these turn Woolhaven on. A preset is a blind pick from a dropdown, and the DLC is
+    # the one option that makes a seed unbeatable for the player who guesses wrong.
+    options_presets = {
+        # Vanilla region order and no traps, but every randomizer left on: the point of a first
+        # seed is trading items with the room, so trimming those would make a duller game rather
+        # than a gentler one. Broom is the one block cut, being the grindiest.
+        "First Seed": {
+            "goal": "bishops",
+            "required_count": 4,
+            "region_access_order": "vanilla_order",
+            "objective_guide_pinning": "everything",
+            "divine_inspiration_mode": "checks_and_points",
+            "divine_inspiration_devotion_cap": 70,
+            "sermon_xp_cap": 20,
+            "randomize_sermon_upgrades": True,
+            "randomize_weapons": True,
+            "randomize_curses": True,
+            "randomize_tarot_cards": True,
+            "vanilla_follower_quests": "thin_trickle",
+            "broom_checks": False,
+            "trap_percentage": 0,
+            "fast_build": True,
+        },
+        # ~130 locations rather than the default 218. Tarot is the block that cuts the most at
+        # once, and curated_checks is the only way to shorten Divine Inspiration.
+        "Short Session": {
+            "goal": "bishops",
+            "required_count": 2,
+            "region_access_order": "randomized_safe_start",
+            "divine_inspiration_mode": "curated_checks",
+            "divine_inspiration_checks": 20,
+            "divine_inspiration_devotion_cap": 50,
+            "sermon_xp_cap": 12,
+            "randomize_tarot_cards": False,
+            "tarot_shop_checks": False,
+            "broom_checks": False,
+            "fast_build": True,
+        },
+        # Every block on and the caps loosened rather than removed. Uncapped is roughly 24,000
+        # Devotion and ~150 sermons, which is a different hobby.
+        "Long Haul": {
+            "goal": "narinder",
+            "region_access_order": "randomized",
+            "divine_inspiration_mode": "checks_and_points",
+            "divine_inspiration_devotion_cap": 150,
+            "sermon_xp_cap": 40,
+            "randomize_sermon_upgrades": True,
+            "randomize_tarot_cards": True,
+            "randomize_weapons": True,
+            "randomize_curses": True,
+            "building_checks": True,
+            "broom_checks": True,
+            "snail_shrine_checks": True,
+            "follower_milestone_checks": True,
+            "tarot_shop_checks": True,
+            "fast_build": True,
+        },
+        "Chaos": {
+            "goal": "witnesses",
+            "required_count": 4,
+            "region_access_order": "randomized",
+            "divine_inspiration_mode": "checks_and_techs",
+            "divine_inspiration_shuffle": "true_random",
+            "divine_inspiration_devotion_cap": 70,
+            "sermon_xp_cap": 20,
+            "starting_tarot_cards": 3,
+            "starting_tarot_pool": "any",
+            "trap_percentage": 20,
+            "fast_build": True,
+        },
+    }
 
 
 class CultOfTheLambWorld(World):
@@ -96,6 +177,7 @@ class CultOfTheLambWorld(World):
 
     def generate_early(self) -> None:
         """Per-seed choices every later step reads: region order, starting equipment and cards."""
+        self.warn_about_ignored_options()
         self.region_order = self.build_region_order()
         # Expand once rather than per filler item. This is sampled dozens of times per seed.
         self.weighted_filler = weighted_filler_names()
@@ -105,6 +187,72 @@ class CultOfTheLambWorld(World):
         self.curses, self.starting_curses = self.pick_equipment(
             CURSES, self.options.randomize_curses, self.options.starting_curses.value)
         self.legendary_weapon_chance = self.pick_legendary_chance()
+
+    def warn_about_ignored_options(self) -> None:
+        """Log the options this YAML set that the rest of its own settings switch off.
+
+        Several options here are only read when another one is in a particular state, and the
+        rest of the world resolves that by quietly doing nothing. That is the right behaviour -
+        erroring would break YAMLs that have been working for months - but silence means a
+        player who asked for 5 starting tarot cards and got 0 has no way to find out why.
+
+        Only fires where the value differs from the option's own default, so leaving an
+        irrelevant option alone costs nobody a warning. Warnings, never errors: every one of
+        these still generates a valid seed.
+        """
+        opts = self.options
+        ignored: List[str] = []
+
+        if opts.starting_tarot_cards.value > 0:
+            if not opts.randomize_tarot_cards:
+                ignored.append(
+                    "starting_tarot_cards is set, but randomize_tarot_cards is off, so this "
+                    "seed manages no cards to start you with"
+                )
+            elif opts.starting_tarot_pool == StartingTarotPool.option_vanilla_defaults:
+                ignored.append(
+                    "starting_tarot_cards is set, but starting_tarot_pool is vanilla_defaults, "
+                    "which draws from the 15 cards you already begin with. Set "
+                    "starting_tarot_pool to 'any' to actually get extra cards"
+                )
+
+        if opts.starting_weapons.value > StartingWeapons.range_start and not opts.randomize_weapons:
+            ignored.append(
+                "starting_weapons is set, but randomize_weapons is off, so the game hands out "
+                "weapons on its own schedule and there is nothing to start you with"
+            )
+
+        if opts.starting_curses.value > StartingCurses.range_start and not opts.randomize_curses:
+            ignored.append(
+                "starting_curses is set, but randomize_curses is off, so the game hands out "
+                "curses on its own schedule and there is nothing to start you with"
+            )
+
+        # The one that catches people out most: divine_inspiration_checks sits in the example
+        # YAML looking like the main length control, and four of the five modes ignore it.
+        if (opts.divine_inspiration_checks.value != DivineInspirationChecks.default
+                and not self.divine_inspiration_is_curated):
+            ignored.append(
+                f"divine_inspiration_checks is set to "
+                f"{opts.divine_inspiration_checks.value}, but divine_inspiration_mode is "
+                f"{opts.divine_inspiration_mode.current_key}, which always uses all "
+                f"{DIVINE_INSPIRATION_COUNT}. Only curated_checks reads this option"
+            )
+
+        if opts.legendary_weapons != LegendaryWeapons.option_off and not opts.include_woolhaven:
+            ignored.append(
+                "legendary_weapons is set, but Legendary weapons are Woolhaven content and "
+                "include_woolhaven is off, so it has been forced off"
+            )
+
+        if not opts.archipelago_objective_guide and opts.objective_guide_pinning != ObjectiveGuidePinning.default:
+            ignored.append(
+                "objective_guide_pinning is set, but archipelago_objective_guide is off, so "
+                "there is no checklist to pin"
+            )
+
+        for message in ignored:
+            logging.warning("Cult of the Lamb (%s): %s.", self.player_name, message)
 
     def pick_legendary_chance(self) -> float:
         """How often a weapon offer is upgraded to its family's Legendary, 0 to 1.

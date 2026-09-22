@@ -121,8 +121,8 @@ class IncludeWoolhaven(Toggle):
     """Include content from the paid Woolhaven DLC.
 
     Enable this ONLY if you own Woolhaven. The mod can't grant content you don't own, so a seed
-    made with this on and played without the DLC is unbeatable. Adds 6 sermon upgrades, and
-    19 tarot cards and the Flail weapon family. Fleeces and doctrines come later."""
+    made with this on and played without the DLC is unbeatable. Adds 6 sermon upgrades, 19
+    tarot cards and the Flail weapon family. Fleeces and doctrines come later."""
     display_name = "Include Woolhaven DLC"
     default = False
 
@@ -166,14 +166,21 @@ class SermonXpCap(Range):
     default = 20
 
 
-# Game-minutes a structure takes when Fast Build is on. That is a Sleeping Bag's build time,
-# so everything lands in about two hits. It is a ceiling, not a floor: paths and cooking fires
-# are already faster and keep their own times.
+# Ceiling for StructuresData.BuildDurationGameMinutes, which despite the name is a build
+# progress total rather than a duration: a player hammer swing adds 5, while an assigned
+# Follower accrues it in game time. 30 is six swings, the same as a Bed or a Farm Plot.
 FAST_BUILD_MINUTES = 30
 
 
 class FastBuild(Toggle):
-    """Stop any structure taking more than 30 game-minutes, a Sleeping Bag's build time.
+    """Cap how much build progress any structure needs at 30.
+
+    A hammer swing is worth 5, so that's six swings, the same as a Bed or a Farm Plot. Most
+    buildings need 10 to 180 already, so for those this only shaves off a few seconds. What it
+    actually changes is the 300 to 600 tier: Temple III and IV, the shrine upgrades and the
+    repairables.
+
+    A ceiling, not a floor. Anything already cheaper than 30 keeps its own cost.
 
     Quality of life only. It changes no checks and no logic, it just speeds up building."""
     display_name = "Fast Build"
@@ -187,7 +194,8 @@ class BuildingChecks(Toggle):
     and so on. No decorations. Upgrade tiers are excluded except Shelter.
 
     Only the first build of each counts, tracked per seed rather than per save, so demolishing
-    and rebuilding won't do anything."""
+    and rebuilding won't pay twice. Connecting on a save that already has buildings standing
+    sends the whole backlog at once."""
     display_name = "Building Checks"
     default = True
 
@@ -204,8 +212,8 @@ class BroomChecks(Toggle):
 class TrapPercentage(Range):
     """What percentage of the filler items in your seed are traps instead.
 
-    Only one trap exists so far, more will be added later.
-    
+    Only one trap exists so far: Dissent Trap, which drains 5 cult faith.
+
     0 disables traps entirely. Traps replace filler only and they never take the place of a
     real item, so raising this can't make a seed harder to complete, only more annoying."""
     display_name = "Trap Percentage"
@@ -218,7 +226,7 @@ class TarotShopChecks(Toggle):
     """Send a check for each Tarot Card bought from a hub shop.
 
     Every hub (Pilgrim's Passage, Spore Grotto, Smuggler's Sanctuary, Midas's Cave) sells a
-    fixed set of cards."""
+    fixed set of cards, four per hub and 16 in total."""
     display_name = "Tarot Shop Checks"
     default = True
 
@@ -315,7 +323,8 @@ class RandomizeCurses(Toggle):
     The curse-side counterpart to Randomize Weapons, covering Flaming Shot, Touch of Turua,
     Divine Blast, Ichor Thrown and Death's Sweep.
 
-    The game grants Teleport through Woolhaven sermon upgrades rather than crusade drops."""
+    Teleport curses aren't here. They come from the Woolhaven sermon upgrade Teleporting
+    Curses rather than crusade drops."""
     display_name = "Randomize Curses"
     default = True
 
@@ -416,7 +425,7 @@ class DivineInspirationShuffle(Choice):
       since your opening is unchanged.
 
     true_random: every upgrade is reassigned a tier, so Crypt III can turn up in row 1 and
-      Sleeping Bags in row 5. 
+      Sleeping Bags in row 5. A very different opening.
 
     Either way the five central nodes (Temple, Cult II, Refinery, Cult III, Cult IV) stay in
     their own tier, since each one has to be bought to open the next."""

@@ -12,8 +12,8 @@ Cult of the Lamb:
 
   # bishops:   defeat N of Leshy / Heket / Kallamar / Shamura
   # witnesses: defeat N of Agares / Bathin / Astaroth / Allocer
-  # narinder:  beat the game. Always needs every region, and ignores required_count
   #            (each Witness only becomes fightable after its region's Bishop is beaten)
+  # narinder:  beat the game. Always needs every region, and ignores required_count
   goal: bishops
 
   # How many of the goal's four encounters are required to win (1-4). Lowering this does not
@@ -99,8 +99,8 @@ Cult of the Lamb:
 
   # The curse-side counterpart, covering Flaming Shot, Touch of Turua, Divine Blast, Ichor
   # Thrown and Death's Sweep. Fully independent of randomize_weapons - either, both or
-  # neither. Teleport curses aren't here; the game grants those through a Woolhaven sermon
-  # upgrade instead of crusade drops.
+  # neither. Teleport curses aren't here; they come from the Woolhaven sermon upgrade
+  # Teleporting Curses instead of crusade drops.
   randomize_curses: true
 
   # How many curse families you begin with (1-5). Same rules as starting_weapons.
@@ -113,7 +113,7 @@ Cult of the Lamb:
   # No check and no item, and the Blacksmith's Broken Hammer questline still unlocks them
   # normally. Note that picking one up does add it to your weapon pool for good - the game
   # records whatever you collect - so its plinth will display it early.
-  legendary_weapons: off
+  legendary_weapons: "off"
 
   # ---------------------------------------------------------------------------
   # Divine Inspiration
@@ -139,9 +139,9 @@ Cult of the Lamb:
   #                     Two things stay tiered rather than bundled, because both multiply
   #                     DEVOTION, which is what fills the meter every check here counts:
   #                     Progressive Cult (Shrine 50 -> 175 Devotion, 4 -> 10 followers praying)
-  #                     and Progressive Shrine Flame (pray speed, then halved fuel). The deeper
-  #                     checks
-  #                     require Progressive Cult copies, so the thing governing this block's pace
+  #                     and Progressive Shrine Flame (pray speed, then halved fuel). The
+  #                     deeper checks require Progressive Cult copies, so the thing governing
+  #                     this block's pace
   #                     can't turn up last. Resource Production and Refining are always early.
   divine_inspiration_mode: checks_and_points
 
@@ -248,9 +248,10 @@ Cult of the Lamb:
   #   cap 50 -> ~80 sermons   cap 30 -> ~51   cap 20 -> ~35   off -> ~150
   sermon_xp_cap: 20
 
-  # Build every structure as fast as the cheapest one. Vanilla runs 10 to 9000 game-minutes
-  # (the late Temple tiers), with most buildings at 300 or 600. On, nothing takes more than 30,
-  # the same as a Sleeping Bag.
+  # Caps the build progress any structure needs at 30. A hammer swing is worth 5, so that's
+  # six swings - what a Bed or Farm Plot already costs. Most buildings are 10-180, so this
+  # shaves a few seconds off them; the ones it actually changes are the 300-600 tier (Temple
+  # III/IV, the shrine upgrades, the repairables). A ceiling, not a floor.
   fast_build: true
 
   # ---------------------------------------------------------------------------

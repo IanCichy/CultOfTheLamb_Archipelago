@@ -143,6 +143,9 @@ This mod is AI-assisted. See [AIdisclosure.md](AIdisclosure.md) for details.
 
 Built by Ian Cichy
 
+Not affiliated with or endorsed by Massive Monster or Devolver Digital. Cult of the Lamb is
+their trademark.
+
 ## Third-party software
 
 - [Archipelago.MultiClient.Net](https://github.com/ArchipelagoMW/Archipelago.MultiClient.Net) -

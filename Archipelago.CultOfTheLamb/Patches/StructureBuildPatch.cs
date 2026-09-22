@@ -51,16 +51,23 @@ internal static class StructureBuildPatch
         Built?.Invoke(data.ToBuildType);
     }
 
-    // Longest any structure may take to build, in game-minutes. 0 leaves it alone
+    // Ceiling for BuildDurationGameMinutes. 0 leaves it alone
     internal static int BuildTimeCap;
 
     /// <summary>
-    /// Caps how long a structure takes.
+    /// Caps how much build progress a structure needs.
     ///
-    /// Vanilla runs from 10 game-minutes to 9000 for the late Temple tiers, with most buildings
-    /// at 30, 300 or 600. Capping at 30, the cost of a Sleeping Bag, makes everything quick.
-    /// Pure quality of life, and it matters more here than in vanilla because building is now a
-    /// check.
+    /// Despite the name, BuildDurationGameMinutes returns a progress total, not a duration.
+    /// Interaction_PlayerBuild adds 5 per hammer swing; FollowerTask_Build adds game time
+    /// scaled by the Follower's productivity, which is where the name comes from.
+    ///
+    /// Vanilla values are 10, 15, 20, 30, 60, 120, 180, then 300 for Temple III and IV and 600
+    /// for the shrine upgrades and repairables. The two Temple extensions are 6000 and 9000,
+    /// but those are follower building projects rather than something hammered out.
+    ///
+    /// Capping at 30 is six hammer swings. Most buildings only lose a few seconds to it; the
+    /// 300 and 600 tier is what it really flattens. Pure quality of life, and it matters more
+    /// here than in vanilla because building is now a check.
     /// </summary>
     [HarmonyPatch(typeof(StructuresData), nameof(StructuresData.BuildDurationGameMinutes))]
     internal static class BuildDuration
