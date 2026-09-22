@@ -28,7 +28,8 @@ internal static class AltarMenuButtonPatch
     // and Rituals
     private const string ButtonLabel = "AP";
 
-    private const string ButtonDescription = "View the sermon upgrades Archipelago has granted.";
+    private const string ButtonDescription =
+        "Archipelago: view the sermon upgrades you have been granted.";
 
     // Which entry OnShowStarted re-focuses on. 1 is Player Upgrades, our neighbour
     private const int PlayerUpgradesIndex = 1;

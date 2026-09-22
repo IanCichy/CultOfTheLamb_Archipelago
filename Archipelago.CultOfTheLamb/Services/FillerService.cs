@@ -149,8 +149,8 @@ internal static class FillerService
         // and a bare count reads like a receipt. The log above still has every pick.
         ApNotification.Show(
             levelled.Count == 1
-                ? $"Archipelago: {last.Name} reached level {last.XPLevel}"
-                : $"Archipelago: {levelled.Count} Follower levels - {last.Name} reached level {last.XPLevel}",
+                ? $"{last.Name} reached level {last.XPLevel}"
+                : $"{levelled.Count} follower levels granted. {last.Name} is now level {last.XPLevel}",
             NotificationBase.Flair.Positive);
     }
 

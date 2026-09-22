@@ -174,13 +174,16 @@ public partial class ArchipelagoItemLogicController : IService
                 ? string.Empty
                 : $" from {ApColors.Tint(senderName, ApColors.YellowHex)}";
 
-            // Green glow = incoming, red = a trap landing on you. The one case where the colour
-            // is load bearing rather than decorative. A trap is worth noticing before
-            // you work out why the game just got harder.
+            // Green glow = incoming, red = a trap landing on you. Worth noticing before you
+            // work out why the game just got harder, so the flair matches the colour.
             var glow = isTrap ? ApColors.Red : ApColors.Green;
+            var flair = isTrap ? NotificationBase.Flair.Negative : NotificationBase.Flair.Positive;
 
-            ApNotification.Show(
-                $"Received {itemName}{from}", NotificationBase.Flair.Positive, glow);
+            // Null for an id the datapackage doesn't carry, which would show as a bare
+            // "Received"
+            var shown = string.IsNullOrEmpty(itemName) ? "an item" : itemName;
+
+            ApNotification.Show($"Received {shown}{from}", flair, glow);
         }
 
         // --- idempotent, always applied (including on replay) ---

@@ -1,6 +1,10 @@
-description: Cult of the Lamb - Archipelago full example settings
+description: Cult of the Lamb, Archipelago full example settings
+
+# Change this to the name you want in the multiworld. Everyone in a game needs a different one.
 name: PlayerName
 game: Cult of the Lamb
+requires:
+  version: 0.6.6
 
 # Every option the world supports, set to its default. Delete anything you don't want to
 # change - omitted options use these same values.
@@ -56,7 +60,7 @@ Cult of the Lamb:
   # randomized:            any region can be the free starting one
   # randomized_safe_start: as randomized, but never Silk Cradle first (getting through it
   #                        costs you a Follower, brutal as an opening move)
-  # all_unlocked:          no gating at all, and NO progression items - single sphere
+  # all_unlocked:          no gating at all, so every region is open from the start
   #
   # (This replaces the old randomize_region_access toggle. true/false still work as aliases
   # for randomized/all_unlocked, but the named values are the real option.)

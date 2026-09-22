@@ -104,8 +104,8 @@ class RegionAccessOrder(Choice):
       to spare.
 
     all_unlocked: every region open from the start, with no Progressive Bishop's Domain items
-      in the pool. That's this world's only progression item, so seeds become a single
-      sphere."""
+      in the pool. Region access is the main thing shaping a seed, so without it everything is
+      reachable from the start."""
     display_name = "Region Access Order"
     option_vanilla_order = 0
     option_randomized = 1

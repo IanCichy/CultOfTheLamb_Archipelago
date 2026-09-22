@@ -60,7 +60,9 @@ class CultOfTheLambWeb(WebWorld):
     options_presets = {
         # Vanilla region order and no traps, but every randomizer left on: the point of a first
         # seed is trading items with the room, so trimming those would make a duller game rather
-        # than a gentler one. Broom is the one block cut, being the grindiest.
+        # than a gentler one. Broom is the one block cut, being the grindiest. The whole checklist
+        # is pinned on screen, which costs two of the game's three tracker slots but is the
+        # fastest way to learn what a seed wants from you.
         "First Seed": {
             "goal": "bishops",
             "required_count": 4,
@@ -78,8 +80,8 @@ class CultOfTheLambWeb(WebWorld):
             "trap_percentage": 0,
             "fast_build": True,
         },
-        # ~130 locations rather than the default 218. Tarot is the block that cuts the most at
-        # once, and curated_checks is the only way to shorten Divine Inspiration.
+        # ~130 locations rather than the default 218. Tarot and broom go, and curated_checks is
+        # the only way to shorten Divine Inspiration, which is the biggest block by far.
         "Short Session": {
             "goal": "bishops",
             "required_count": 2,
@@ -93,8 +95,9 @@ class CultOfTheLambWeb(WebWorld):
             "broom_checks": False,
             "fast_build": True,
         },
-        # Every block on and the caps loosened rather than removed. Uncapped is roughly 24,000
-        # Devotion and ~150 sermons, which is a different hobby.
+        # Every block on, traps left at the default 5%, and the caps loosened rather than
+        # removed. Uncapped is roughly 24,000 Devotion and ~150 sermons, which is a different
+        # hobby.
         "Long Haul": {
             "goal": "narinder",
             "region_access_order": "randomized",
@@ -112,6 +115,9 @@ class CultOfTheLambWeb(WebWorld):
             "tarot_shop_checks": True,
             "fast_build": True,
         },
+        # The tree unlocks itself in a shuffled order, you start with three random cards, and
+        # one filler in five is a trap. Also the longest goal of the four: four Witnesses means
+        # beating all four Bishops first.
         "Chaos": {
             "goal": "witnesses",
             "required_count": 4,
@@ -130,8 +136,9 @@ class CultOfTheLambWeb(WebWorld):
 
 class CultOfTheLambWorld(World):
     """
-    Build a cult, manage your flock, and fight your way through corrupted lands to defeat
-    the four Bishops of the Old Faith, and whatever waits beyond them.
+    Build a cult and crusade through four corrupted regions. Archipelago gates those regions and
+    scatters the weapons, curses, sermons, tarot cards and Divine Inspiration upgrades across the
+    multiworld.
     """
     game = "Cult of the Lamb"
     options_dataclass = CultOfTheLambOptions

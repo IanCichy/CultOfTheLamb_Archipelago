@@ -1139,7 +1139,7 @@ internal static class DebugActions
         Log.LogInfo("[AP] ---- end dump ----");
 
         // Post message on screen as feedback for players
-        ApNotification.Show("Archipelago: state written to the log (F9)",
+        ApNotification.Show("Archipelago: diagnostics saved to the log for your bug report",
             NotificationBase.Flair.Positive, ApColors.Blue);
     }
 

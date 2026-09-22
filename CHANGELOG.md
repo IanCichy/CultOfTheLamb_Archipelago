@@ -25,8 +25,7 @@ changed.
 ### Pacing
 
 - Optional caps on how much Devotion a Divine Inspiration point costs, how much XP a sermon upgrade
-  costs, and a Fast Build toggle that stops any structure taking more than 30 game-minutes,
-  so a seed fits in a normal play session.
+  costs, and a Fast Build toggle.
 - Most of the game's follower quests can be taken out of rotation, so errands don't crowd out
   the crusades.
 - Choose how many weapons, curses and tarot cards you start with.

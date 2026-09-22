@@ -42,7 +42,7 @@ internal static class CheckNotifier
 
         // Yellow for a batch, matching the catch-up and warning slot in the palette. A burst of
         // checks is almost always a reconnect catching up rather than something you just did.
-        ApNotification.Show($"Sent {checkIds.Count} checks to the multiworld",
+        ApNotification.Show($"Sent {checkIds.Count} checks",
             NotificationBase.Flair.Positive, ApColors.Yellow);
     }
 
@@ -54,7 +54,7 @@ internal static class CheckNotifier
 
         if (Scouts == null || !Scouts.TryGet(checkId, out var scouted))
         {
-            return $"Sent {location}";
+            return $"Checked {location}";
         }
 
         var headline = scouted.ForLocalPlayer
@@ -65,7 +65,7 @@ internal static class CheckNotifier
         return $"{headline}\n{location}";
     }
 
-    // Falls back to the raw id rather than throwing. The lookup needs the datapackage
+    // The lookup needs the datapackage, so it can fail. Says so in words rather than throwing
     private static string LocationName(ArchipelagoSession session, long checkId)
     {
         if (Scouts != null)
@@ -76,11 +76,11 @@ internal static class CheckNotifier
         try
         {
             var name = session.Locations.GetLocationNameFromId(checkId, Game);
-            return string.IsNullOrEmpty(name) ? $"check {checkId}" : name;
+            return string.IsNullOrEmpty(name) ? "an Archipelago check" : name;
         }
         catch
         {
-            return $"check {checkId}";
+            return "an Archipelago check";
         }
     }
 }

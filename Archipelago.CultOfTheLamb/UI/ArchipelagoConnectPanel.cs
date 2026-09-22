@@ -68,7 +68,7 @@ internal class ArchipelagoConnectPanel : ApPanelBase
 
         server = Field("Server", server);
         port = Field("Port", port);
-        slot = Field("Slot name", slot);
+        slot = Field("Slot (your name)", slot);
         password = Field("Password", password, secret: true);
 
         GUILayout.Space(10f);
@@ -86,7 +86,7 @@ internal class ArchipelagoConnectPanel : ApPanelBase
         GUILayout.BeginHorizontal();
 
         GUI.enabled = canConnect;
-        if (GUILayout.Button(connecting ? "Connecting..." : "Connect", GUILayout.Height(34f)))
+        if (GUILayout.Button("Connect", GUILayout.Height(34f)))
         {
             Save();
             ArchipelagoConsoleCommand.Connect(server.Trim(), ParsePort(), slot.Trim(), password);
@@ -112,8 +112,8 @@ internal class ArchipelagoConnectPanel : ApPanelBase
         {
             GUILayout.Space(6f);
             GUILayout.Label(
-                "Load a save first - Archipelago writes unlocks into save data, so there has to "
-                + "be a save to write into. Your details are kept.",
+                "Load a save first. Archipelago writes your unlocks into the save file, so "
+                + "one has to be open. What you typed here is remembered.",
                 labelStyle);
         }
 
@@ -153,11 +153,24 @@ internal class ArchipelagoConnectPanel : ApPanelBase
 
         if (client.Reconnecting)
         {
-            return $"Lost the connection - retrying (attempt {client.ReconnectAttempt}). "
-                + "Connect retries now; Disconnect stops.";
+            return $"Lost the connection, retrying (attempt {client.ReconnectAttempt}). "
+                + "Press Connect to retry now, or Disconnect to give up.";
         }
 
-        return client.LastError == null ? "Not connected." : $"Not connected. {client.LastError}";
+        if (client.LastError == null)
+        {
+            return "Not connected.";
+        }
+
+        // These arrive verbatim and can be a whole exception, which would push the form off the
+        // panel. The log keeps the full text.
+        var error = client.LastError;
+        if (error.Length > 140)
+        {
+            error = error.Substring(0, 137) + "...";
+        }
+
+        return $"Not connected. {error}";
     }
 
     // Writes what was typed back into the config entries. Saved on the attempt rather than on

@@ -87,8 +87,8 @@ internal class QuestGuideService : IService
     internal const string GoalGroupId = GroupPrefix + "GroupTitles/Goal";
     internal const string ChecklistGroupId = GroupPrefix + "GroupTitles/Checklist";
 
-    private const string GoalGroupTitle = "Archipelago - Win Condition";
-    private const string ChecklistGroupTitle = "Archipelago - Seed Checklist";
+    private const string GoalGroupTitle = "Archipelago - Goal";
+    private const string ChecklistGroupTitle = "Archipelago - Checklist";
 
     // Entry ids. Append only, because an id is the save-persisted identity of a line, so reusing
     // one for a different meaning would relabel a line in an existing save.
@@ -537,8 +537,8 @@ internal class QuestGuideService : IService
                 IdGoal, GoalGroupId, "goal",
                 () => (GoalProgress.CountForGoal(goal), 1),
                 (current, _) => current > 0
-                    ? "Defeat Narinder, The One Who Waits - done"
-                    : "Defeat Narinder, The One Who Waits - all four Bishops open the Gateway"));
+                    ? "Defeat Narinder, The One Who Waits. Done."
+                    : "Defeat Narinder, The One Who Waits."));
         }
         else
         {
@@ -546,7 +546,7 @@ internal class QuestGuideService : IService
             result.Add(new QuestGuideEntry(
                 IdGoal, GoalGroupId, "goal",
                 () => (GoalProgress.CountForGoal(goal), requiredCount),
-                (current, target) => $"Defeat {target} of the four {goalNoun} - {current} of {target} down"));
+                (current, target) => $"Defeat any {target} of the four {goalNoun} - {current} of {target}"));
         }
 
         if (SlotData.GetBool(slotData, "randomizeRegionAccess"))
@@ -580,12 +580,12 @@ internal class QuestGuideService : IService
             // queries, far too much at 1 Hz. See BuildingService.DescribeState.
             var buildingIds = SlotData.ParseIdValues(slotData, "buildingLocations");
             AddIdList(result, IdBuildings, "buildings", buildingIds,
-                (current, target) => $"Construct the buildings Archipelago is watching - {current} of {target}");
+                (current, target) => $"Construct the buildings this seed tracks - {current} of {target}");
         }
 
         AddCheckBlock(result, slotData, IdBroom, "broom",
             "broomChecks", "broomLocationBaseId", "broomLocationCount",
-            (current, target) => $"Level the broom by sweeping - {current} of {target}");
+            (current, target) => $"Upgrade the broom by sweeping - {current} of {target}");
 
         AddCheckBlock(result, slotData, IdSnailShrines, "snail shrines",
             "snailShrineChecks", "snailLocationBaseId", "snailLocationCount",
@@ -606,7 +606,7 @@ internal class QuestGuideService : IService
             // unreachable unless the player is standing in that hub.
             AddIdList(result, IdTarotShop, "tarot shop",
                 SlotData.ParseIdValues(slotData, "tarotShopLocations"),
-                (current, target) => $"Buy tarot cards from the hub shops - {current} of {target}");
+                (current, target) => $"Buy tarot cards from the shopkeepers - {current} of {target}");
         }
 
         // Weapons and curses are absent. Their check fires on whatever the player
@@ -623,27 +623,33 @@ internal class QuestGuideService : IService
     {
         foreach (var entry in built)
         {
-            string sample;
-            try
+            // Both ends, because some lines word their finished state differently and the zero
+            // state alone never reaches that branch
+            foreach (var pair in new[] { new[] { 0, 1 }, new[] { 1, 1 } })
             {
-                sample = entry.BuildText(0, 1);
-            }
-            catch (Exception e)
-            {
-                Log.LogError($"[AP] Objective guide line '{entry.DebugName}' threw while "
-                    + $"building its text: {e.Message}");
-                continue;
-            }
+                string sample;
+                try
+                {
+                    sample = entry.BuildText(pair[0], pair[1]);
+                }
+                catch (Exception e)
+                {
+                    Log.LogError($"[AP] Objective guide line '{entry.DebugName}' threw while "
+                        + $"building its text: {e.Message}");
+                    continue;
+                }
 
-            if (sample == null)
-            {
-                continue;
-            }
+                if (sample == null)
+                {
+                    continue;
+                }
 
-            if (sample.IndexOf('{') >= 0 || sample.IndexOf('}') >= 0 || sample.IndexOf('\n') >= 0)
-            {
-                Log.LogError($"[AP] Objective guide line '{entry.DebugName}' contains a brace or "
-                    + $"newline and will not render correctly: \"{sample}\"");
+                if (sample.IndexOf('{') >= 0 || sample.IndexOf('}') >= 0
+                    || sample.IndexOf('\n') >= 0)
+                {
+                    Log.LogError($"[AP] Objective guide line '{entry.DebugName}' contains a "
+                        + $"brace or newline and will not render correctly: \"{sample}\"");
+                }
             }
         }
     }
@@ -733,7 +739,7 @@ internal class QuestGuideService : IService
             RegionMapping.RegionToDungeonLocation.TryGetValue(name, out var location)
             && !RegionLockState.IsUnlocked(location));
 
-        return next == null ? line : $"{line}. Next: {next}";
+        return next == null ? line : $"{line} - next: {next}";
     }
 
     // ------------------------------------------------------------------ diagnostics
