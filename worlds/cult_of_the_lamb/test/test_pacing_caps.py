@@ -1,5 +1,5 @@
-"""The three pacing caps: Devotion per ability point, sermon XP per Temple upgrade, and build
-time per structure.
+"""The three pacing settings: Devotion per ability point, sermon XP per Temple upgrade, and
+Fast Build.
 
 They exist because the game's curves are built for completion across dozens of hours while a
 seed wants those blocks finishable in one, and all three are the same shape - a client-side
@@ -32,15 +32,16 @@ class TestDefaults(CapTestBase):
         devotion, sermon, build = self.caps()
         self.assertEqual(devotion, 70)
         self.assertEqual(sermon, 20)   # tenths, so 2.0 XP, the unit the game's bar counts in
-        self.assertEqual(build, 30)    # game-minutes, the same as a Sleeping Bag
+        self.assertEqual(build, 30)    # Fast Build on, so game-minutes matching a Sleeping Bag
 
 
 class TestAllOff(CapTestBase):
-    """0 means "leave the game's own economy alone" for every one of them."""
+    """0 means "leave the game's own economy alone", and Fast Build off sends 0 for the same
+    reason."""
     options = {
         "divine_inspiration_devotion_cap": 0,
         "sermon_xp_cap": 0,
-        "build_time_cap": 0,
+        "fast_build": False,
     }
 
     def test_zero_passes_through(self):
@@ -56,11 +57,11 @@ class TestCapsApplyWithBlocksDisabled(CapTestBase):
         "building_checks": False,
         "sermon_xp_cap": 25,
         "divine_inspiration_devotion_cap": 55,
-        "build_time_cap": 45,
+        "fast_build": True,
     }
 
     def test_caps_still_sent(self):
-        self.assertEqual(self.caps(), (55, 25, 45))
+        self.assertEqual(self.caps(), (55, 25, 30))
 
     def test_the_blocks_really_are_off(self):
         names = {location.name for location in self.multiworld.get_locations(1)}
@@ -75,8 +76,8 @@ class TestExtremes(CapTestBase):
     options = {
         "divine_inspiration_devotion_cap": 465,
         "sermon_xp_cap": 100,
-        "build_time_cap": 9000,
+        "fast_build": True,
     }
 
     def test_maximums(self):
-        self.assertEqual(self.caps(), (465, 100, 9000))
+        self.assertEqual(self.caps(), (465, 100, 30))

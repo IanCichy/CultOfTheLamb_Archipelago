@@ -12,6 +12,7 @@ Cult of the Lamb:
 
   # bishops:   defeat N of Leshy / Heket / Kallamar / Shamura
   # witnesses: defeat N of Agares / Bathin / Astaroth / Allocer
+  # narinder:  beat the game. Always needs every region, and ignores required_count
   #            (each Witness only becomes fightable after its region's Bishop is beaten)
   goal: bishops
 
@@ -53,8 +54,8 @@ Cult of the Lamb:
 
   # vanilla_order:         the game's own order, still gated one region at a time
   # randomized:            any region can be the free starting one
-  # randomized_safe_start: as randomized, but never Silk Cradle first (its door costs a
-  #                        Follower sacrifice, which is brutal as an opening move)
+  # randomized_safe_start: as randomized, but never Silk Cradle first (getting through it
+  #                        costs you a Follower, brutal as an opening move)
   # all_unlocked:          no gating at all, and NO progression items - single sphere
   #
   # (This replaces the old randomize_region_access toggle. true/false still work as aliases
@@ -80,11 +81,11 @@ Cult of the Lamb:
   # Weapons and curses
   # ---------------------------------------------------------------------------
 
-  # Randomize which weapon families you can find. Vanilla hands out the Axe, Dagger, Hammer,
-  # Gauntlets, Blunderbuss and Flail on a fixed schedule - the first floor of each run gives
-  # you the next one you don't own. With this on that schedule is Archipelago's instead:
-  # podiums, chests and choice rooms only offer families the multiworld has granted, and
-  # equipping one for the first time sends a check.
+  # Randomize which weapon families you can find. Vanilla drip-feeds the Sword, Axe, Dagger,
+  # Hammer, Gauntlets and Blunderbuss. The first floor of a run hands you one you don't own,
+  # with the later families also gated on Bishops you have beaten. With this on, Archipelago
+  # sets the schedule: podiums, chests and choice rooms only offer families the multiworld has
+  # granted, and equipping one for the first time sends a check.
   #
   # Your save is never edited - existing weapons aren't taken away, and WeaponPool/CursePool
   # are never written to - so this is safe to turn on partway through a file. It only changes
@@ -98,7 +99,8 @@ Cult of the Lamb:
 
   # The curse-side counterpart, covering Flaming Shot, Touch of Turua, Divine Blast, Ichor
   # Thrown and Death's Sweep. Fully independent of randomize_weapons - either, both or
-  # neither. The Teleport and Barrier curses aren't here; they come from sermon upgrades.
+  # neither. Teleport curses aren't here; the game grants those through a Woolhaven sermon
+  # upgrade instead of crusade drops.
   randomize_curses: true
 
   # How many curse families you begin with (1-5). Same rules as starting_weapons.
@@ -127,7 +129,7 @@ Cult of the Lamb:
   #                     back from Archipelago instead, to spend on whatever you like. 69 out,
   #                     69 back - same totals as vanilla, just on the multiworld's schedule.
   # checks_and_techs  : the point is taken and never returns; Archipelago grants the upgrades
-  #                     directly. The only mode where the multiworld knows what you hold.
+  #                     directly.
   # curated_checks    : as checks_and_techs, but the 69 upgrades are regrouped into 38 items - a
   #                     building and all its tiers arrive together, so "Missionary Network" is one
   #                     item rather than three. Five tier-1 upgrades (Temple, Farm Plot, Sleeping
@@ -137,7 +139,8 @@ Cult of the Lamb:
   #                     Two things stay tiered rather than bundled, because both multiply
   #                     DEVOTION, which is what fills the meter every check here counts:
   #                     Progressive Cult (Shrine 50 -> 175 Devotion, 4 -> 10 followers praying)
-  #                     and Progressive Shrine Flame (up to +60% pray speed). The deeper checks
+  #                     and Progressive Shrine Flame (pray speed, then halved fuel). The deeper
+  #                     checks
   #                     require Progressive Cult copies, so the thing governing this block's pace
   #                     can't turn up last. Resource Production and Refining are always early.
   divine_inspiration_mode: checks_and_points
@@ -149,16 +152,17 @@ Cult of the Lamb:
   # now, so 30 is about one session.
   #
   # The block can be shorter than its own 38 items - those just turn up elsewhere in the seed.
-  # This world has ~77 checks that carry no items of their own (buildings, followers, broom, snail
+  # This world has 80 checks that carry no items of their own (buildings, followers, broom, snail
   # shrines, bosses) and would otherwise pay out filler, so a short block trades Bundles of Lumber
   # for real unlocks. Set it low if you'd rather earn the tree by playing than by praying.
   divine_inspiration_checks: 30
 
-  # Most Devotion a single ability point may cost. 0 = leave the game's economy alone.
+  # Most Devotion a single ability point may cost.
   #
   # Vanilla's curve is 1, 13, 29 ... climbing to 465 and staying there, so all 69 points cost
-  # about 24,000 Devotion - a completionist number, not a one-seed number. Since every check
-  # is a filled meter, uncapped would leave most of this block out of reach.
+  # about 24,000 Devotion. Every check here is a filled meter, so uncapped leaves most of this
+  # block out of reach. The default is tuned for a seed of roughly six hours. Raise it for a
+  # longer game, or set 0 to leave the game's own curve alone.
   #   cap 200 -> ~12,300   cap 150 -> ~9,400   cap 100 -> ~6,500   cap 70 -> ~4,600
   divine_inspiration_devotion_cap: 70
 
@@ -189,13 +193,16 @@ Cult of the Lamb:
   # Heavy Attack masteries and relic unlocks - is its own named item.
   randomize_sermon_upgrades: true
 
-  # Randomize the Tarot Card collection. Your collection is emptied on connect and every card
-  # becomes both a check and an item. Adds no logical length - no card is ever required.
+  # Randomize the Tarot Card collection. The cards this seed manages are taken out of your
+  # collection on connect and come back as Archipelago items. Shop cards are checked at the
+  # shop slot, and the 15 the game starts you with are left alone. Adds no logical length,
+  # since no card is ever required.
   randomize_tarot_cards: true
 
-  # How many Tarot Cards to start with, replacing the 15 the game normally gives you. These
-  # have neither a check nor an item, so each one removes one of each.
-  starting_tarot_cards: 8
+  # How many extra Tarot Cards to start with, on top of the 15 the game normally gives you.
+  # These have neither a check nor an item, so each one removes one of each. Has no effect
+  # with the vanilla_defaults pool below, since those 15 are never randomized.
+  starting_tarot_cards: 0
 
   # Which cards the starting ones are drawn from.
   # vanilla_defaults: the 15 the game normally starts you with
@@ -234,17 +241,17 @@ Cult of the Lamb:
   # ---------------------------------------------------------------------------
 
   # Most sermon XP one Temple upgrade may need, in TENTHS - the unit the game's own bar counts
-  # in, so 20 means the bar never shows more than "x/20". 0 = leave the curve alone.
+  # in, so 20 means the bar never shows more than "x/20".
   #
-  # Vanilla climbs to 10.0 and holds there for the last 25 of the 38 upgrades: ~298 XP total,
-  # and a sermon only gives about followers/10, so that's ~150 sermons at a 20-strong flock.
-  #   cap 50 -> ~80 sermons   cap 30 -> ~51   cap 20 -> ~35
+  # The default is tuned for a seed of roughly six hours, which puts the sermon block at about
+  # 35 sermons. Raise it for a longer game, or set 0 to leave the game's own curve alone.
+  #   cap 50 -> ~80 sermons   cap 30 -> ~51   cap 20 -> ~35   off -> ~150
   sermon_xp_cap: 20
 
-  # Longest any structure may take to build, in game-minutes. 0 = leave the game alone.
-  # Vanilla runs 10 to 9000 (the late Temple tiers), with most buildings at 30, 300 or 600.
-  # A Sleeping Bag is 30, so this makes everything build about as fast as one.
-  build_time_cap: 30
+  # Build every structure as fast as the cheapest one. Vanilla runs 10 to 9000 game-minutes
+  # (the late Temple tiers), with most buildings at 300 or 600. On, nothing takes more than 30,
+  # the same as a Sleeping Bag.
+  fast_build: true
 
   # ---------------------------------------------------------------------------
   # Filler

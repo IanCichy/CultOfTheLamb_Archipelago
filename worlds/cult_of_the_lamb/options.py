@@ -8,9 +8,9 @@ class Goal(Choice):
     """
     Bishops: Defeat Required Count of the four Bishops (Leshy, Heket, Kallamar, Shamura).
     Witnesses: Defeat Required Count of the four Witnesses (Agares, Bathin, Astaroth,
-    Allocer) - each Witness only becomes fightable after its region's Bishop is defeated.
-    Narinder: Beat the game. The Gateway only opens once all four Bishops are dead, so this
-    is the longest goal and always needs every region - Required Count does not apply to it.
+    Allocer). Each Witness only becomes fightable after its region's Bishop is defeated.
+    Narinder: Beat the game. The Gateway only opens once all four Bishops are dead, so this is
+    the longest goal and always needs every region. Required Count does not apply to it.
     """
     display_name = "Goal"
     option_bishops = 0
@@ -33,21 +33,13 @@ class RequiredCount(Range):
 class ArchipelagoObjectiveGuide(Toggle):
     """Add an Archipelago checklist to the in-game quest log.
 
-    Cult of the Lamb tells you nothing about the seed you're in. The quest log fills up with
-    follower errands and never mentions the win condition, how many followers the multiworld
-    wants from you, or which blocks of checks are even switched on - so a new player has no
-    way to tell what to aim for, and the game's own quests actively pull against it.
+    The game never tells you what the seed wants from you. This adds an Archipelago group to
+    the pause menu's Quests tab: your goal, your region access, and one line per active check
+    type, each ticking itself off as you finish it.
 
-    This adds a persistent Archipelago group to the pause menu's Quests tab: the win
-    condition, region access, and one line per active check block, each showing live
-    progress. Lines tick themselves off as you finish them.
-
-    Pure guidance. It creates no locations and no items, and finishing a line is a display
-    state rather than a check - turning this off changes nothing about the seed itself.
-
-    One caveat worth knowing: progress is counted from what the server has recorded for your
-    slot, so if you play two save files against one slot the checklist shows the slot's total
-    rather than that save's.
+    Display only. It adds no checks and no items, so turning it off changes nothing about the
+    seed. Progress comes from what the server recorded for your slot, so two save files on one
+    slot share one count.
     """
     display_name = "Archipelago Objective Guide"
     default = True
@@ -56,13 +48,12 @@ class ArchipelagoObjectiveGuide(Toggle):
 class ObjectiveGuidePinning(Choice):
     """How much of the Archipelago checklist is pinned to the on-screen tracker.
 
-    The tracker only shows three quest groups at a time and drops the oldest past that, so
-    pinning the whole checklist costs you sight of the quest you're actually doing. The full
-    list is always in the pause menu's Quests tab no matter what this is set to.
+    The tracker only holds three quest groups at a time, so pinning everything can push the
+    quest you're actually doing off screen. The full list is always in the pause menu.
 
-    off: nothing on screen. Pause menu only.
-    goal_only: the win condition and region access - one or two lines.
-    everything: pin the checklist too. Spends two of your three tracker slots.
+    off: nothing on screen.
+    goal_only: your goal and region access, one or two lines.
+    everything: the whole checklist, which uses two of your three tracker slots.
 
     Ignored when Archipelago Objective Guide is off.
     """
@@ -76,27 +67,20 @@ class ObjectiveGuidePinning(Choice):
 class VanillaFollowerQuests(Choice):
     """How much of the game's own follower-quest table stays in rotation.
 
-    Followers periodically walk over and offer one of the game's ~87 built-in quests - cook
-    three great meals, dress someone in a fancy suit, murder a specific follower at night.
-    Most are busywork that pulls against whatever the multiworld wants from you, and a new
-    player can't tell the difference between the two.
+    Followers walk over and offer one of the game's ~87 built-in quests: cook three great
+    meals, dress someone in a fancy suit, murder a specific follower at night. Most is busywork
+    that pulls against what the multiworld wants from you. But handing quests in is also the
+    main source of follower loyalty XP, so cutting all of them slows levelling down.
 
-    They aren't pure noise, though. Turning a quest in is the game's main source of follower
-    loyalty XP, so removing all of them slows follower levelling down. That's why the default
-    trims rather than wipes.
+    unchanged: every quest stays in rotation.
 
-    unchanged: vanilla. Every quest stays in rotation.
+    thin_trickle: keep the ritual quests, the crusade collection quests and the follower story
+      chains (Sozo, the lovers, the rivalries); drop the rest. Followers still level up.
 
-    thin_trickle: keep the ritual quests, the crusade collection quests, and every follower
-      story chain (Sozo, the lovers, the rivalries); drop the rest. Followers still level up,
-      and what they ask for is either something you were going to do anyway or an actual
-      story beat.
+    story_only: story chains only. Followers still wander over, and say "oh, never mind" when
+      they have nothing to give.
 
-    story_only: keep the story chains and nothing else. Followers still wander over
-      sometimes, and get an "oh, never mind" line when there's nothing to give.
-
-    none: no follower quests at all, story chains included. The quietest option, and the
-      harshest on follower levelling.
+    none: no follower quests at all. The quietest option, and the slowest for levelling.
     """
     display_name = "Vanilla Follower Quests"
     option_unchanged = 0
@@ -109,20 +93,19 @@ class VanillaFollowerQuests(Choice):
 class RegionAccessOrder(Choice):
     """The order the four crusade regions unlock in, and whether they're gated at all.
 
-    vanilla_order: the game's own order (Darkwood, Anura, Anchordeep, Silk Cradle). Still
-      gated - each after the first needs another Progressive Bishop's Domain - so the region
-      checks stay meaningful, they just arrive in the familiar sequence.
+    vanilla_order: the game's own order (Darkwood, Anura, Anchordeep, Silk Cradle), still
+      gated behind Progressive Bishop's Domain items. Just the familiar sequence.
 
     randomized: any region can be the free starting one, and the other three unlock in a
       random per-seed order.
 
-    randomized_safe_start: as randomized, but Silk Cradle is never the free starting region.
-      Its door demands sacrificing a Follower to open, which is brutal as a seed's opening
-      move before you have a flock to spare.
+    randomized_safe_start: as randomized, but never Silk Cradle first. Getting through it
+      costs you a Follower, which is brutal as a seed's opening move, before you have a flock
+      to spare.
 
-    all_unlocked: no gating at all - every region open from the start, and no Progressive
-      Bishop's Domain items in the pool. Note this removes the only progression item the
-      world currently has, so seeds become a single sphere."""
+    all_unlocked: every region open from the start, with no Progressive Bishop's Domain items
+      in the pool. That's this world's only progression item, so seeds become a single
+      sphere."""
     display_name = "Region Access Order"
     option_vanilla_order = 0
     option_randomized = 1
@@ -135,11 +118,11 @@ class RegionAccessOrder(Choice):
 
 
 class IncludeWoolhaven(Toggle):
-    """Include content from the paid Woolhaven DLC (the game's only major gameplay DLC).
+    """Include content from the paid Woolhaven DLC.
 
-    Enable this ONLY if you own Woolhaven - the client cannot grant DLC content you don't
-    own, so a seed generated with this on and played without the DLC will be unbeatable.
-    Affects the sermon upgrades (6 extra), and later the tarot/fleece/doctrine pools."""
+    Enable this ONLY if you own Woolhaven. The mod can't grant content you don't own, so a seed
+    made with this on and played without the DLC is unbeatable. Adds 6 sermon upgrades, and
+    19 tarot cards and the Flail weapon family. Fleeces and doctrines come later."""
     display_name = "Include Woolhaven DLC"
     default = False
 
@@ -167,60 +150,44 @@ class FollowerMilestoneChecks(Toggle):
 class SermonXpCap(Range):
     """The most sermon XP one Temple upgrade is allowed to need, in tenths.
 
-    Tenths because that's what the game's own bar counts in - it renders `12/30`, so a cap of 30
-    means the bar never asks for more than that.
+    Tenths because that's what the game's bar counts in: it renders `12/30`.
 
-    Vanilla's curve is 0.3, 0.4, 1.1 ... climbing to 10.0 and then staying there, and there are
-    38 sermon upgrades - so the last 25 all sit at the ceiling and the block totals roughly 298
-    XP. One sermon gives about `followers / 10`, so at a 20-strong flock that's ~150 sermons.
-    Since a sermon is a once-a-day ritual rather than a trickle, that's far worse than the
-    Divine Inspiration grind.
+    The default is tuned for a seed of roughly six hours, which puts the sermon block at about
+    35 sermons. Raise it for a longer game: 30 is about 51 sermons and 50 about 80. Set 0 to
+    leave the game's own curve alone, which runs to about 150 at a 20-strong flock.
 
-    | Cap | Total XP | ~sermons at 20 followers |
-    |-----|----------|--------------------------|
-    | 0 (off) | 298 | ~150 |
-    | 50 | 163 | ~80 |
-    | 30 | 102 | ~51 |
-    | 20 | 70 | ~35 |
+    Those counts assume a low-level flock. A sermon pays more as Followers level up, so treat
+    them as the slow end.
 
-    Only affects the Temple upgrade sermon - the five doctrine categories share the same method
-    but a much steeper curve, and this world doesn't randomize them yet, so speeding them up
-    would change content you didn't ask to change."""
+    Only affects the Temple upgrade sermon, not the five doctrines."""
     display_name = "Sermon XP Cap"
     range_start = 0
     range_end = 100
     default = 20
 
 
-class BuildTimeCap(Range):
-    """The longest any structure may take to build, in game-minutes. 0 leaves the game alone.
+# Game-minutes a structure takes when Fast Build is on. That is a Sleeping Bag's build time,
+# so everything lands in about two hits. It is a ceiling, not a floor: paths and cooking fires
+# are already faster and keep their own times.
+FAST_BUILD_MINUTES = 30
 
-    Vanilla ranges from 10 minutes to **9000** for the late Temple tiers, with the common
-    buildings at 30, 300 or 600. A Sleeping Bag is 30, so the default makes everything build as
-    fast as one - two hits and done.
 
-    Pure quality of life. It changes no logic and no checks; it only stops the cult-management
-    half of the game being mostly waiting, which matters more here than in vanilla because
-    building is now a check."""
-    display_name = "Build Time Cap"
-    range_start = 0
-    range_end = 9000
-    default = 30
+class FastBuild(Toggle):
+    """Stop any structure taking more than 30 game-minutes, a Sleeping Bag's build time.
+
+    Quality of life only. It changes no checks and no logic, it just speeds up building."""
+    display_name = "Fast Build"
+    default = True
 
 
 class BuildingChecks(Toggle):
     """Send a check the first time you construct each of 25 curated buildings.
 
-    Temple, Sleeping Bags, Missionary, Tabernacle, Offering Statue, Confession Booth, Kitchen and
-    so on - the buildings that mark real progress in the cult, not the 200-odd decorations.
-    Upgrade tiers are excluded except Shelter, since a second Healing Bay isn't a milestone.
+    Temple, Sleeping Bags, Missionary, Tabernacle, Offering Statue, Confession Booth, Kitchen
+    and so on. No decorations. Upgrade tiers are excluded except Shelter.
 
-    Only the first construction of each counts, and it's tracked per seed rather than per save,
-    so demolishing and rebuilding won't pay twice.
-
-    These interact with Divine Inspiration - every building is gated behind a DI upgrade - but
-    only loosely: Archipelago can't know which upgrades you chose to buy, so these get depth
-    bands ordered by the tier of the upgrade that unlocks them rather than real item logic."""
+    Only the first build of each counts, tracked per seed rather than per save, so demolishing
+    and rebuilding won't do anything."""
     display_name = "Building Checks"
     default = True
 
@@ -228,9 +195,8 @@ class BuildingChecks(Toggle):
 class BroomChecks(Toggle):
     """Send a check for each of the 10 broom levels.
 
-    Sweeping raises your chore level, which makes cleaning faster. Ten levels, costing 3, 5, 10,
-    20, 30, 50, 75, 100, 150 and 200 chore XP - a slow background trickle rather than something
-    you grind, so these spread naturally across a run."""
+    Sweeping raises your chore level, which makes cleaning faster. The ten levels cost 3, 5, 10,
+    20, 30, 50, 75, 100, 150 and 200 chore XP, so they trickle in across a run."""
     display_name = "Broom Checks"
     default = True
 
@@ -238,7 +204,9 @@ class BroomChecks(Toggle):
 class TrapPercentage(Range):
     """What percentage of the filler items in your seed are traps instead.
 
-    0 disables traps entirely. Traps replace filler only - they never take the place of a
+    Only one trap exists so far, more will be added later.
+    
+    0 disables traps entirely. Traps replace filler only and they never take the place of a
     real item, so raising this can't make a seed harder to complete, only more annoying."""
     display_name = "Trap Percentage"
     range_start = 0
@@ -250,17 +218,13 @@ class TarotShopChecks(Toggle):
     """Send a check for each Tarot Card bought from a hub shop.
 
     Every hub (Pilgrim's Passage, Spore Grotto, Smuggler's Sanctuary, Midas's Cave) sells a
-    fixed set of named cards - 14 in total. Because the hubs are reached through their
-    region's progression, these spread across spheres rather than all being available at
-    once."""
+    fixed set of cards."""
     display_name = "Tarot Shop Checks"
     default = True
 
 
 class SnailShrineChecks(Toggle):
-    """Send a check for each of the 5 Snail Shrines you make a Shell offering at.
-
-    Lighting all five is what unlocks the Snail Follower form in the base game."""
+    """Send a check for each of the 5 Snail Shrines you make a Shell offering at."""
     display_name = "Snail Shrine Checks"
     default = True
 
@@ -268,14 +232,12 @@ class SnailShrineChecks(Toggle):
 class RandomizeTarotCards(Toggle):
     """Randomize the Tarot Card collection.
 
-    Your collection is emptied on connect and every card becomes both a check and an item:
-    unlocking one in-game - a crusade find, a shop, a challenge reward - sends a check, and the
-    cards themselves arrive from Archipelago. 61 cards, or 80 with Include Woolhaven DLC.
-
-    This adds no logical length: no card is ever required for the goal, so these are extra
-    checks along the way rather than extra hours.
-
-    Your cards are handed back if you disconnect."""
+    The cards this seed manages are taken out of your collection on connect and arrive back as
+    Archipelago items. Unlocking one in game, a crusade find or a challenge reward, sends a
+    check. Shop cards are checked at the shop slot instead, and the 15 the game starts you with
+    are left alone. 28 cards, or 47 with Include Woolhaven DLC.
+    Turning Tarot Shop Checks off drops those to 12 and 31, since the shop cards go back to the
+    game."""
     display_name = "Randomize Tarot Cards"
     default = True
 
@@ -283,28 +245,21 @@ class RandomizeTarotCards(Toggle):
 class StartingTarotCards(Range):
     """How many extra Tarot Cards to start with, on top of the 15 the game gives you.
 
-    These are yours from the start, so they have neither a check nor an item - each one you add
-    removes one of each.
-
-    The game's own 15 starting cards are always kept: nothing in Cult of the Lamb can unlock one
-    a second time, so randomizing them would create checks that can never be sent. Only the cards
-    beyond those 15 are randomized, which is why this has no effect with the Vanilla Defaults
-    pool below."""
+    These have neither a check nor an item, so each one you add removes one of each."""
     display_name = "Starting Tarot Cards"
     range_start = 0
     range_end = 20
-    default = 8
+    default = 0
 
 
 class StartingTarotPool(Choice):
     """Which cards the starting ones are drawn from.
 
-    vanilla_defaults: the 15 the game normally starts you with. You always keep those anyway -
-      the game can't re-unlock one, so they're never randomized - which makes this the "no extra
-      cards" setting, and Starting Tarot Cards above has no effect alongside it.
+    vanilla_defaults: the 15 the game normally starts you with. You keep those anyway, so this
+      is the "no extra cards" setting and Starting Tarot Cards has no effect alongside it.
 
-    any: any randomizable card, including Woolhaven ones if that option is on. More variance -
-      it can hand you something excellent on day one, or three cards you can't use yet."""
+    any: any randomizable card, Woolhaven ones included if that option is on. More variance.
+      It can hand you something excellent on day one, or three cards you can't use yet."""
     display_name = "Starting Tarot Pool"
     option_vanilla_defaults = 0
     option_any = 1
@@ -314,23 +269,17 @@ class StartingTarotPool(Choice):
 class RandomizeWeapons(Toggle):
     """Randomize which weapon families you can find.
 
-    Vanilla hands out the Axe, Dagger, Hammer, Gauntlets, Blunderbuss and Flail on a fixed
-    schedule - the first floor of each run gives you the next one you don't own. With this on,
-    that schedule is Archipelago's instead: podiums, chests and choice rooms only ever offer
-    families the multiworld has granted you, and equipping one for the first time sends a
-    check. 6 weapons, or 7 with Include Woolhaven DLC (the Flail).
-
-    Your existing weapons are never taken away - the game's save data isn't touched at all, so
-    this is safe to enable on a save you've already played. It only changes what gets offered."""
+    Vanilla drip-feeds the Sword, Axe, Dagger, Hammer, Gauntlets and Blunderbuss: the first
+    floor of a run hands you one you don't own yet, with Gauntlets, Hammer and Blunderbuss also
+    gated on Bishops you have beaten. With this on, podiums, chests and choice rooms only offer
+    families the multiworld has granted you, and equipping one for the first time sends a check.
+    6 weapons, or 7 with Include Woolhaven DLC (the Flail)."""
     display_name = "Randomize Weapons"
     default = True
 
 
 class StartingWeapons(Range):
-    """How many weapon families you begin the seed with.
-
-    These have neither a check nor an item, so each one you add removes one of each. Can't be
-    0: with nothing to offer, every weapon podium in the game would have nothing to put on it."""
+    """How many weapon families you begin the seed with."""
     display_name = "Starting Weapons"
     range_start = 1
     range_end = 7
@@ -340,24 +289,12 @@ class StartingWeapons(Range):
 class LegendaryWeapons(Choice):
     """Let Legendary weapons turn up on ordinary weapon podiums.
 
-    Requires the Woolhaven DLC - Legendaries are its content, normally earned through the
-    Blacksmith's Broken Hammer questline and its job boards. **This option is forced off
-    without Include Woolhaven DLC**, since the client can't hand you content you don't own.
+    Requires the Woolhaven DLC, so it is forced off without Include Woolhaven DLC.
 
-    A Legendary can only appear for a family you already hold, so this makes the weapons you
-    have better rather than handing you one you can't otherwise use.
-
-    No check and no item - the Legendary is simply offered in place of a normal weapon, and the
-    Blacksmith's Broken Hammer questline still unlocks them properly. Claiming one from a plinth
-    goes through `LegendaryWeaponsJobBoardCompleted`, which this never touches.
-
-    One side effect, verified in play: **picking a substituted Legendary up does add it to your
-    weapon pool permanently**, because the game's own pickup code records whatever you collect
-    (`Interaction_WeaponSelectionPodium.cs:866`). The client doesn't write that - it hands the
-    game a weapon and the game writes it. Consequences are small: its Woolhaven plinth displays
-    the weapon early (you still can't claim it), and collecting all seven this way would pop the
-    ALL_LEGENDARY_WEAPONS achievement without the questlines. It also persists after you stop
-    using the mod, which the project's save policy puts out of scope.
+    One side effect: picking one up adds it to your weapon pool permanently, because the game
+    records whatever you collect. Collecting all seven this way pops the all-Legendary
+    achievement without doing the questlines, and it stays in your save after you stop using
+    the mod.
 
     off: vanilla. Legendaries only from the Blacksmith.
     rare: roughly 1 weapon offer in 10.
@@ -376,19 +313,15 @@ class RandomizeCurses(Toggle):
     """Randomize which curse families you can find.
 
     The curse-side counterpart to Randomize Weapons, covering Flaming Shot, Touch of Turua,
-    Divine Blast, Ichor Thrown and Death's Sweep. Independent of it - either, both or neither.
+    Divine Blast, Ichor Thrown and Death's Sweep.
 
-    The Teleport and Barrier curses aren't included here: they're unlocked by sermon upgrades,
-    which Randomize Sermon Upgrades already covers."""
+    The game grants Teleport through Woolhaven sermon upgrades rather than crusade drops."""
     display_name = "Randomize Curses"
     default = True
 
 
 class StartingCurses(Range):
-    """How many curse families you begin the seed with.
-
-    As Starting Weapons - no check and no item for these, and 1 is the floor because the game
-    always needs something to put on a curse podium."""
+    """How many curse families you begin the seed with."""
     display_name = "Starting Curses"
     range_start = 1
     range_end = 5
@@ -396,51 +329,35 @@ class StartingCurses(Range):
 
 
 class DivineInspirationMode(Choice):
-    """How Archipelago interacts with the Divine Inspiration tree - the buildings-and-rituals
-    tree you open at the Shrine, not the Temple sermon tree.
+    """How Archipelago interacts with the Divine Inspiration tree, the buildings-and-rituals
+    tree you open at the Shrine rather than the Temple sermon tree.
 
-    69 upgrades across 5 tiers, and 69 checks. **The check fires when you fill the Devotion
-    meter** - the Nth ability point you earn is the Nth check - not when you spend it. Earning
-    the point is the thing you did; spending it is a menu click. Same shape as the sermon bar.
+    69 upgrades and 69 checks. The check fires when you fill the Devotion meter, not when you
+    spend the point. Same shape as the sermon bar.
 
     See Divine Inspiration Devotion Cap: without it, all 69 points cost ~24,000 Devotion and
     most of this block is out of reach in a normal seed.
 
     off: no interaction at all. The tree behaves exactly as vanilla.
 
-    checks_only: filling the meter sends a check and you keep the point, exactly as in vanilla.
-      69 checks, no items.
+    checks_only: filling the meter sends a check and you keep the point, as in vanilla. 69
+      checks, no items.
 
-    checks_and_points: filling the meter sends a check and the point is taken. Points arrive
-      from Archipelago instead, and you spend them on whatever you like. 69 points go out as
-      checks and 69 come back as items, so the totals match vanilla - they just arrive in
-      bursts, on the multiworld's schedule rather than one-for-one.
+    checks_and_points: filling the meter sends a check and the point is taken. Points come back
+      from Archipelago instead, and you spend them on whatever you like. Same totals as vanilla,
+      just on the multiworld's schedule.
 
-    checks_and_techs: the point is taken and never comes back; Archipelago grants the upgrades
-      directly. The only mode where the multiworld knows exactly which upgrades you hold, which
-      matters for anything later that wants to gate on a specific building. The cost is that you
-      never choose anything - the tree unlocks itself.
+    checks_and_techs: the point never comes back, and Archipelago grants the upgrades directly.
+      You never choose anything, since the tree unlocks itself.
 
-    curated_checks: as checks_and_techs, but the 69 upgrades are regrouped into 38 items - a
-      building and all of its tiers arrive together, so "Missionary Network" is one item rather
+    curated_checks: as checks_and_techs, but the 69 upgrades are grouped into 38 items, so a
+      building and all of its tiers arrive together and "Missionary Network" is one item rather
       than three. Five tier-1 upgrades (Temple, Farm Plot, Sleeping Bags, Body Pit, Farming
-      Bundle) are free from the start, because without them the cult cannot function at all. The
-      block is also shorter: see Divine Inspiration Checks.
+      Bundle) are free from the start, since the cult can't function without them. Progressive
+      Cult and Progressive Shrine Flame stay tiered, because both multiply Devotion. This mode
+      also uses Divine Inspiration Checks to shorten the block.
 
-      Two exceptions stay tiered, because both multiply **Devotion** - the resource that fills the
-      meter every check in this block counts. Progressive Cult raises the Shrine from 50 to 175
-      Devotion and 4 to 10 simultaneous prayers; Progressive Shrine Flame adds up to +60% pray
-      speed. Bundling either would let a single item triple the throughput of the whole block.
-
-    checks_and_points is the default because it keeps the part of the tree that's actually a
-    decision: which upgrade you want next.
-
-    Only curated_checks adds logical length: the deeper checks require Progressive Cult copies,
-    which is what stops the thing that governs your Devotion rate from turning up last. Every
-    other mode spreads across spheres via the depth bands, like the sermon block, because nothing
-    they hand out makes the meter fill faster.
-
-    Independent of Divine Inspiration Shuffle - any combination is a legal seed."""
+    Any combination with Divine Inspiration Shuffle is a legal seed."""
     display_name = "Divine Inspiration Mode"
     option_off = 0
     option_checks_only = 1
@@ -453,32 +370,16 @@ class DivineInspirationMode(Choice):
 class DivineInspirationDevotionCap(Range):
     """The most Devotion a single ability point is allowed to cost.
 
-    Vanilla's cost curve runs 1, 13, 29, 45 ... and climbs to 465, where it stays. Earning all
-    69 points therefore costs roughly **24,000 Devotion** - a completionist number, not
-    something you finish in one seed. Since every one of the 69 checks is a filled meter, that
-    would leave most of the block unreachable in practice.
+    Vanilla's curve runs 1, 13, 29, 45 ... up to 465 and stays there, so all 69 points cost
+    about 24,000 Devotion. Every check in this block is a filled meter, so without a cap most of
+    the block is out of reach.
 
-    Capping the cost keeps the early curve exactly as the game wrote it and only flattens the
-    expensive tail:
+    The default is tuned for a seed of roughly six hours, bringing all 69 points down to about
+    4,600 Devotion. Raise it for a longer game: 100 is about 6,500, 150 about 9,400, and 200
+    about 12,300. Set 0 to leave the game's own curve alone.
 
-    | Cap | Devotion for all 69 |
-    |-----|---------------------|
-    | 0 (off) | ~24,000 |
-    | 200 | ~12,300 |
-    | 150 | ~9,400 |
-    | 100 | ~6,500 |
-    | 70  | ~4,600 |
-    | 65  | ~4,300 |
-
-    70 is the default, set from a real play session: at a cap of 100 a full evening reached 22 of
-    the 69 points, which would have made the block a three-session grind.
-
-    Set 0 to leave the game's economy completely alone - fine if you want a very long seed, or
-    if you're not using Divine Inspiration checks at all.
-
-    Side benefit: the game triples the cost of every point once nothing is left to unlock
-    (`AllUnlockedMultiplier`). The cap is applied after that multiplier, so it flattens that
-    cliff too."""
+    Capping only flattens the expensive tail. The early curve stays exactly as the game wrote
+    it."""
     display_name = "Divine Inspiration Devotion Cap"
     range_start = 0
     range_end = 465
@@ -488,21 +389,15 @@ class DivineInspirationDevotionCap(Range):
 class DivineInspirationChecks(Range):
     """How many Divine Inspiration checks the block has, in curated_checks mode.
 
-    **Read only when Divine Inspiration Mode is curated_checks.** Every other mode always uses all
-    69, unchanged.
+    Only read when Divine Inspiration Mode is curated_checks. Every other mode uses all 69.
 
-    69 is too many: a full evening of real play reached 22 of them at a Devotion cap of 100, and
-    the cap is 70 now - roughly 30% cheaper per point - so 30 is about one session.
+    69 is a lot. At the default Devotion cap, 30 is about one session.
 
-    The block may be shorter than its own item count. Those items simply go somewhere else in the
-    seed - this world has ~77 locations that carry no items of their own (buildings, followers,
-    broom, snail shrines, bosses) and normally just absorb filler. A short block trades that
-    filler for real unlocks, so the tree pays out for playing the game rather than for grinding
-    the Devotion meter.
+    The block can be shorter than its own item count. The extra items just go elsewhere in the
+    seed, onto locations that would otherwise hold filler.
 
-    The only real limit is global: a world can't hold more items than it has locations. Turning
-    most other check blocks off *and* setting this very low can overfill the pool and fail
-    generation - the same arithmetic every AP world is subject to."""
+    Setting this very low while also turning most other check blocks off can leave more items
+    than locations, which fails generation."""
     display_name = "Divine Inspiration Checks"
     range_start = 5
     range_end = DIVINE_INSPIRATION_COUNT
@@ -512,22 +407,19 @@ class DivineInspirationChecks(Range):
 class DivineInspirationShuffle(Choice):
     """Rearranges which tier each Divine Inspiration upgrade sits in.
 
-    Purely a layout change - it moves upgrades between rows of the tree without changing what
-    Archipelago checks or grants, because the tier gate is a *count* ("have you bought 10
-    things") rather than a prerequisite chain. That's why this is safe to combine with any
-    Divine Inspiration Mode.
+    A layout change only. It moves upgrades between rows without changing what Archipelago
+    checks or grants, so it's safe with any Divine Inspiration Mode.
 
     default: the game's own layout.
 
-    random_except_first: tier 1 is frozen - the Temple, the starting bed, the rest of row 1 stay
-      put - and the other four tiers are reshuffled. The safer choice: an unchanged opening.
+    random_except_first: tier 1 stays put and the other four are reshuffled. The safer choice,
+      since your opening is unchanged.
 
     true_random: every upgrade is reassigned a tier, so Crypt III can turn up in row 1 and
-      Sleeping Bags in row 5. The wild one - fine, but a very different opening.
+      Sleeping Bags in row 5. 
 
     Either way the five central nodes (Temple, Cult II, Refinery, Cult III, Cult IV) stay in
-    their own tier. Each must be bought to open the next tier, so moving one would make that
-    tier permanently unopenable."""
+    their own tier, since each one has to be bought to open the next."""
     display_name = "Divine Inspiration Shuffle"
     option_default = 0
     option_random_except_first = 1
@@ -561,7 +453,7 @@ class CultOfTheLambOptions(PerGameCommonOptions):
     divine_inspiration_shuffle: DivineInspirationShuffle
     divine_inspiration_devotion_cap: DivineInspirationDevotionCap
     sermon_xp_cap: SermonXpCap
-    build_time_cap: BuildTimeCap
+    fast_build: FastBuild
     building_checks: BuildingChecks
     broom_checks: BroomChecks
     trap_percentage: TrapPercentage

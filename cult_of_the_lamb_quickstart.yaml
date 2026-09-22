@@ -16,7 +16,7 @@ Cult of the Lamb:
   include_woolhaven: false
 
   # vanilla_order / randomized / randomized_safe_start (recommended - never starts you at
-  # Silk Cradle, whose door costs a Follower sacrifice) / all_unlocked
+  # Silk Cradle, which costs you a Follower) / all_unlocked
   region_access_order: randomized_safe_start
 
   # The big gameplay changes: randomize which weapon/curse families and sermon upgrades

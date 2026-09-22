@@ -131,7 +131,7 @@ SERMON_UPGRADES = [
     ("Relics of the Burning", "Relics_Fire", True),
     ("Flail Mastery", "PUpgrade_HA_Chain", True),
     ("Burning Curses", "Curses_Fire", True),
-    ("Teleport Curses", "Curses_Teleport", True),
+    ("Teleporting Curses", "Curses_Teleport", True),
 ]
 
 BASE_SERMON_COUNT = sum(1 for _, _, dlc in SERMON_UPGRADES if not dlc)
@@ -234,8 +234,13 @@ CURSES = [
 ]
 
 # Sword_Ratau is left out on purpose: it's a one-off story unlock from Ratau's death that
-# Interaction_Knucklebones also reads as a flag. Teleport and Barrier curses are left out
-# because they enter the pool through sermon upgrades, which are already randomized.
+# Interaction_Knucklebones also reads as a flag. Teleport curses are left out because the game
+# grants them through a Woolhaven sermon upgrade (Curses_Teleport) rather than crusade drops.
+#
+# Barrier is discarded content, like Shield. UpgradeSystem.Type.Curses_Barrier and the whole
+# EquipmentType band still exist in the binary, but the curses were cut before release - the
+# wiki lists Sanctuary Raised, Hungering Gate and Divine Barricade under "Curses Discarded".
+# Don't add Curses_Barrier to SERMON_UPGRADES: nothing in the game can grant it.
 
 
 def poolable_equipment(equipment: List[EquipmentData], include_woolhaven: bool):
@@ -408,7 +413,9 @@ DI_PROGRESSIVE_CULT = DivineInspirationGroup(
 
 DI_CURATED_PROGRESSIVE: Tuple[DivineInspirationGroup, ...] = (
     DI_PROGRESSIVE_CULT,
-    # Pray speed +20% -> +40% -> +60%: the other multiplier on the same meter.
+    # Pray speed, then halved Shrine fuel at the third tier. Structures_Shrine returns 1.2 for
+    # Flame and 1.4 for FlameII, but tests Flame first, so the 1.4 branch is unreachable as
+    # shipped; FlameIII is not a speed tier at all, it halves MaxFuel.
     DivineInspirationGroup(
         "Progressive Shrine Flame", ("Shrine_Flame", "Shrine_FlameII", "Shrine_FlameIII")),
 )

@@ -26,7 +26,7 @@ New to Archipelago? Find more [info](https://archipelago.gg)
 2. Find **Archipelago_CultOfTheLamb** in the profile's online mod list and install it. The
    correct BepInEx pack comes with it.
 
-3. Download `cult_of_the_lamb.apworld` from the
+3. Only if you're generating the seed yourself: download `cult_of_the_lamb.apworld` from the
    [latest release](https://github.com/IanCichy/CultOfTheLamb_Archipelago/releases/latest) and
    drop it into your Archipelago install:
 
@@ -34,7 +34,7 @@ New to Archipelago? Find more [info](https://archipelago.gg)
 
 ## Playing
 
-### 1. Generate the YAML
+### 1. Get your YAML
 Download one of the `.yaml` files from the latest release on GitHub
 
 `cult_of_the_lamb_quickstart.yaml` provides only a handful of options to customize your experience
@@ -42,8 +42,11 @@ Download one of the `.yaml` files from the latest release on GitHub
 
 `cult_of_the_lamb_example.yaml` provides all options to customize your experience
 
+Open it and change `name: PlayerName` to the name you want in the multiworld. Everyone in a
+multiworld needs a different one.
+
 ### 2. Generate a seed
-   Open up Archipelago and click Generate
+   Put your YAML in `Archipelago\Players\`, then open Archipelago and click Generate
 
    This produces a `.archipelago` file. Upload it to the Archipelago server, or host it locally
 
@@ -77,7 +80,7 @@ Download one of the `.yaml` files from the latest release on GitHub
 - Multiple goal options (Bishops, Witnesses, or Narinder)
 - Woolhaven DLC support (only enable `include_woolhaven` in your YAML if you actually own it)
 - Resources bundle filler items
-- Traps
+- One trap so far, with a percentage knob
 - In-game ways to view your progress
 
 ### What's **NOT** Included
@@ -99,7 +102,7 @@ Download one of the `.yaml` files from the latest release on GitHub
 >     you've been granted
 >     - These will only show up if you have `randomize_weapons` and/or `randomize_curses` enabled
 >
->   - See the sermons you have unlocked in the **Archipelago menu in the temple**
+>   - See the sermons you have unlocked in the **AP** entry at the Temple altar
 >     - This menu will always show up even if `randomize_sermon_upgrades` is not enabled
 
 ## Verifying the install
@@ -118,12 +121,14 @@ step, which usually means the apworld in `custom_worlds\` is older than the mod.
 a line about **"Developer debug keys are compiled into this build"**, you have a dev build rather
 than a released one. Reinstall the mod through your mod manager.
 
-## Known issues
-
-- This is a first beta. If something looks wrong, it probably hasn't been seen yet rather than
-  being a known, accepted issue. See [Reporting issues](#reporting-issues).
-
 ## Reporting issues
+
+This is a first beta and nothing here has been through a real multiworld yet. If something looks
+wrong, assume it hasn't been seen rather than that it's known and accepted.
+
+**Press F9 in game first.** That writes the mod's state to the log, and a popup confirms it worked.
+A log with that in it answers most of what a bug report would otherwise take a conversation to
+sort out.
 
 Open a [GitHub issue](https://github.com/IanCichy/CultOfTheLamb_Archipelago/issues) with your
 `LogOutput.log` and, if it's seed-specific, your YAML. Reports from real multiworld sessions are

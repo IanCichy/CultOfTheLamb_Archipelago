@@ -1,5 +1,5 @@
 name: Bug report
-description: Something in the mod behaved wrongly: a crash, a missing check, an item that did nothing
+description: "Something in the mod behaved wrongly: a crash, a missing check, an item that did nothing"
 labels: ["bug"]
 body:
   - type: markdown

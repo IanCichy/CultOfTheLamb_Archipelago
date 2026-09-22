@@ -24,8 +24,8 @@ from .locations import (
     location_table,
 )
 from .options import (
-    CultOfTheLambOptions, DivineInspirationMode, LegendaryWeapons, RegionAccessOrder,
-    StartingTarotPool,
+    CultOfTheLambOptions, DivineInspirationMode, FAST_BUILD_MINUTES, LegendaryWeapons,
+    RegionAccessOrder, StartingTarotPool,
 )
 from .regions import REGION_NAMES, SACRIFICE_GATED_REGION, create_regions
 from .rules import set_rules
@@ -548,7 +548,9 @@ class CultOfTheLambWorld(World):
             # still gets the sermon cap. All three are the same shape client-side. Each is one
             # postfix clamping a single public static.
             "sermonXpCap": self.options.sermon_xp_cap.value,
-            "buildTimeCap": self.options.build_time_cap.value,
+            # A toggle player-side, a number on the wire: the client clamps build times to
+            # this, and 0 means leave the game's own times alone.
+            "buildTimeCap": FAST_BUILD_MINUTES if self.options.fast_build else 0,
 
             "buildingChecks": bool(self.options.building_checks.value),
             # StructureBrain.TYPES name -> location id. Keyed by enum name because that's what

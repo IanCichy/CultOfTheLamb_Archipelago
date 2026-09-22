@@ -43,10 +43,13 @@ deployed file's timestamp.
 `worlds/cult_of_the_lamb/` is a standard Archipelago world package. To run the tests you need a
 full Archipelago checkout, because they run on Archipelago's own `WorldTestBase`:
 
+Set `AP` to your Archipelago checkout first, then from the repo root:
+
 ```
-rm -rf   "$AP/worlds/cult_of_the_lamb"
-cp -r    worlds/cult_of_the_lamb "$AP/worlds/cult_of_the_lamb"
-cd "$AP" && py -3.12 -m unittest discover -s worlds/cult_of_the_lamb/test -t .
+$AP = "C:\path\to\Archipelago"
+Remove-Item -Recurse -Force "$AP\worlds\cult_of_the_lamb"
+Copy-Item -Recurse worlds\cult_of_the_lamb "$AP\worlds\cult_of_the_lamb"
+cd $AP; py -3.12 -m unittest discover -s worlds/cult_of_the_lamb/test -t .
 ```
 
 **The copy is not optional.** The checkout holds a *copy*, not a symlink, so running the tests
@@ -62,8 +65,7 @@ Worth knowing before proposing a feature.
 
 Cult of the Lamb is not a good randomizer, and this mod stopped trying to be one. Shuffling the
 game aggressively makes it worse. The skill tree stops being a progression you shape and becomes
-a slot machine. The aim is a good **crusade → base → crusade loop**. Randomization stays
-available, never defaulted.
+a slot machine. The aim is a good **crusade → base → crusade loop**.
 
 Anything that improves that loop beats anything that merely adds more content to shuffle.
 

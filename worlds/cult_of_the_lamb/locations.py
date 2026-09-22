@@ -167,8 +167,9 @@ TAROT_SHOP_HUBS = {
     "Silk Cradle": "Midas's Cave",
 }
 
-# Snail shrines, one per hub, each accepting a single Shell offering. The game tracks them
-# as DataManager.ShellsGifted_0.._4, and lighting all five unlocks the Snail Follower form.
+# Snail shrines, one in each of the four hubs plus one at the Lonely Shack, each accepting a
+# single Shell offering. The game tracks them as DataManager.ShellsGifted_0.._4, and lighting
+# all five unlocks the Snail Follower form.
 #
 # Kept in "Cult" rather than region-gated because which ShrineNumber sits in which hub isn't
 # known yet. The index is a serialized field on the prefab, not something the decompile
