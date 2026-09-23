@@ -21,7 +21,7 @@ internal static class ShopSlotDisplayPatch
     // Raised once per shop after its slots have been filled in
     internal static event Action<shopKeeperManager> OnShopInitialised;
 
-    // Raised after a slot rebuilds its prompt. Handlers add to it via AppendToLabel
+    // Raised after a slot rebuilds its prompt. Handlers rewrite it via ReplaceLabel
     internal static event Action<Interaction_BuyItem> OnLabelBuilt;
 
     // Interaction.label, the field behind the Label property. Resolved once, because

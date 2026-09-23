@@ -128,6 +128,7 @@ internal class DivineInspirationService : IService
     {
         DivineInspirationPatch.PointEarned = null;
         DivineInspirationPatch.WithholdPoints = false;
+        progressive.Clear();
 
         // The shuffle edits a ScriptableObject, which lives for the whole process. Without
         // this, disconnecting would leave the tree rearranged until the game restarts.

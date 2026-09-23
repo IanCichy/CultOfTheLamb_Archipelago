@@ -13,7 +13,7 @@ namespace Archipelago.CultOfTheLamb.Patches;
 /// pool alone also keeps three count-sensitive checks honest (Interaction_Chest's second podium,
 /// BiomeGenerator's weapon room, AccessibilitySettings' Force Weapon control).
 ///
-/// All four hooks are null unless a session sets them.
+/// All six hooks are null unless a session sets them.
 /// </remarks>
 internal static class EquipmentPoolPatch
 {

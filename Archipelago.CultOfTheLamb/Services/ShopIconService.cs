@@ -110,7 +110,7 @@ internal class ShopIconService : IService
             }
 
             Log.LogWarning($"[AP] Gave up marking shop '{entry.Manager.name}' after "
-                + $"{entry.Attempts} frames - press F1 in this shop to dump what its slots hold.");
+                + $"{entry.Attempts} frames. Please attach this log to a bug report.");
             pending.RemoveAt(i);
         }
     }
@@ -358,13 +358,19 @@ internal class ShopIconService : IService
             return;
         }
 
+        // Every one of these comes from another world and is arbitrary text, so a '<' in any of
+        // them would be read as a tag. The location name is the worst of the three, since it
+        // sits inside our own <i> pair.
         var recipient = scouted.ForLocalPlayer
             ? "~ for you ~"
             : $"~ for {ApColors.Tint(scouted.PlayerName, ApColors.YellowHex)} "
-                + $"({scouted.Game}) ~";
+                + $"({ApColors.Sanitize(scouted.Game)}) ~";
 
         ShopSlotDisplayPatch.SetTarotDisplayText(
-            display, scouted.ItemName, recipient, $"<i>{scouts.LocationName(checkId)}</i>");
+            display,
+            ApColors.Sanitize(scouted.ItemName),
+            recipient,
+            $"<i>{ApColors.Sanitize(scouts.LocationName(checkId))}</i>");
     }
 
     // Whether a card's shop slot has been spent, for the TrinketUnlocked override. True once

@@ -21,8 +21,8 @@ internal static class DivineInspirationPatch
     // what earns the check, whether or not they keep the point
     internal static Action PointEarned;
 
-    // True while Archipelago owns the point supply. Set by DivineInspirationService in
-    // checks_and_points and checks_and_techs
+    // True while Archipelago owns the point supply. Set by DivineInspirationService in every
+    // granting mode: checks_and_points, checks_and_techs and curated_checks
     internal static bool WithholdPoints;
 
     // Set while the service is granting a point itself, so its own write is neither withheld nor

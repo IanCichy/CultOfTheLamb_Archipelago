@@ -207,11 +207,12 @@ class TestTarotStartingPoolAny(TarotTestBase):
         self.assert_slot_data_ids_exist()
 
 
-class TestTarotStartingCountClamped(TarotTestBase):
-    """Asking for more starting cards than the pool holds is clamped, not an error.
+class TestTarotStartingCountWithVanillaPool(TarotTestBase):
+    """vanilla_defaults plus a starting count asks for cards that were never managed.
 
-    The option itself allows up to 20, but ``vanilla_defaults`` only has the game's 15, so
-    the top of the range has to fall back to "all of them".
+    The game's 15 are dropped from the pool before any are dealt, so this combination hands
+    out nothing however high the count is set. It is a no-op rather than an error, and
+    warn_about_ignored_options says so at generation time.
     """
 
     options = {
@@ -220,12 +221,11 @@ class TestTarotStartingCountClamped(TarotTestBase):
         "starting_tarot_pool": 0,  # vanilla_defaults
     }
 
-    def test_clamped_to_the_candidate_pool(self):
-        starting = self.world.starting_tarot_cards
-        defaults = [card for card in self.world.tarot_cards if card.default]
+    def test_no_starting_cards_are_dealt(self):
+        self.assertEqual(self.world.starting_tarot_cards, [])
 
-        self.assertEqual(len(starting), len(defaults))
-        self.assertEqual(len(starting), len({card.internal for card in starting}))
+    def test_no_default_card_is_managed(self):
+        self.assertFalse([card for card in self.world.tarot_cards if card.default])
 
     def test_one_location_per_managed_card(self):
         self.assert_one_location_per_managed_card()

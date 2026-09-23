@@ -162,9 +162,18 @@ internal static class FillerService
     // (CultFaithManager.cs:224) and handles the clamping and the notification itself
     private static void ApplyDissentTrap()
     {
-        if (CultFaithManager.Instance == null && DataManager.Instance == null)
+        // Not a null check. GetFaith can't throw - it null-checks CultFaithManager.Instance
+        // itself (CultFaithManager.cs:256) and everything else it reads hangs off DataManager,
+        // whose getter builds an instance on demand (DataManager.cs:3489) and so never returns
+        // null. The problem is the opposite one: before a save is loaded that instance is a
+        // throwaway the real load replaces, so the faith would go nowhere.
+        //
+        // Warning rather than info, because the trap is dropped rather than deferred. Filler is
+        // suppressed on replay and the applied count is already written by the time this runs,
+        // so a dropped trap does not come back. A pending queue would be the real fix.
+        if (!SaveAndLoad.Loaded)
         {
-            Log.LogInfo("[AP] Trap 'Dissent Trap': cult not loaded - skipping.");
+            Log.LogWarning("[AP] Trap 'Dissent Trap': no save loaded, so it was dropped.");
             return;
         }
 

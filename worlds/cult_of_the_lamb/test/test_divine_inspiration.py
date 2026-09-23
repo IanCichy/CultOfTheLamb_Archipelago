@@ -331,7 +331,8 @@ class TestCuratedChecks(DITestBase):
         )
 
     def test_no_excluded_tail(self):
-        """The block brings ~10 filler; excluding the deepest quarter of 48 would overdraw it."""
+        """The block brings no filler of its own: 38 items against a 30-location default, so
+        excluding the deepest quarter would overdraw the seed."""
         for n in range(1, DivineInspirationChecks.default + 1):
             location = self.multiworld.get_location(f"Divine Inspiration {n}", 1)
             self.assertNotEqual(location.progress_type, LocationProgressType.EXCLUDED)

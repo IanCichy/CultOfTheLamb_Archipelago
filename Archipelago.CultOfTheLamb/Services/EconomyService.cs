@@ -47,7 +47,7 @@ internal class EconomyService : IService
 
         if (buildTimeCap > 0)
         {
-            applied.Add($"build time {buildTimeCap}m");
+            applied.Add($"build progress {buildTimeCap}");
         }
 
         Log.LogInfo(applied.Count == 0

@@ -47,7 +47,9 @@ internal static class TarotVisibility
             if (found.Contains(card))
             {
                 continue;
-            } (lent ??= new List<TarotCards.Card>()).Add(card);
+            }
+
+            (lent ??= new List<TarotCards.Card>()).Add(card);
             found.Add(card);
         }
 

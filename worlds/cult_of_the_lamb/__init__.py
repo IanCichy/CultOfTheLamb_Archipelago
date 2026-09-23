@@ -10,9 +10,9 @@ from .items import (
     CURSES, DI_CURATED_BUNDLES, DI_CURATED_ITEM_NAMES, DI_CURATED_PROGRESSIVE,
     DI_EARLY_ITEM_NAMES,
     DI_CURATED_SINGLES, DI_FREE_UPGRADES, DI_INTERNAL_BY_DISPLAY,
-    DI_POINT, DI_TIER_THRESHOLDS, DIVINE_INSPIRATION, SERMON_ITEM_OFFSET,
+    DI_POINT, DI_TIER_THRESHOLDS, DIVINE_INSPIRATION,
     SERMON_ITEM_UPGRADES, WEAPONS, CultOfTheLambItem, EquipmentData,
-    PROGRESSIVE_REGION_ACCESS, TarotCardData, create_item, filler_table, item_table, offset,
+    PROGRESSIVE_REGION_ACCESS, TarotCardData, create_item, item_table,
     ap_item_name, poolable_equipment, poolable_tarot_cards, sermon_item_counts,
     sermon_item_name, trap_table,
     weighted_filler_names,
@@ -341,8 +341,9 @@ class CultOfTheLambWorld(World):
         else:
             candidates = list(cards)
 
-        # Clamped rather than an error: asking for 20 of the game's 15 defaults is a
-        # reasonable thing to type, and giving all 15 is the obvious reading of it.
+        # Clamped rather than an error, so a count set alongside the vanilla_defaults pool
+        # is ignored instead of failing generation. warn_about_ignored_options says so at
+        # the time, since the candidate list is empty in that branch.
         count = min(self.options.starting_tarot_cards.value, len(candidates))
         starting = self.random.sample(candidates, count)
 

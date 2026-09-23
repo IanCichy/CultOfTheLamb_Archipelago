@@ -44,9 +44,11 @@ internal static class ApColors
 
     // Player, item and location names all come from the multiworld and are arbitrary text. TMP
     // starts reading a tag at '<' wherever it appears, so a name containing "</color>" would
-    // close our tag early and leak its formatting into the rest of the popup. Swapping in a
-    // single angle quote is the only thing that reliably stops the parser: anything that leaves
-    // the '<' in place, a zero width space included, still opens a tag.
+    // close our tag early and leak its formatting into the rest of the popup. Anything that
+    // leaves the '<' in place still opens a tag, a zero width space in front of it included,
+    // so the character itself has to go. '[' is inert to TMP, keeps the name the same length,
+    // and is ASCII, which matters because every other string this mod shows is ASCII too and
+    // a character the game's font has no glyph for would render as a box.
     internal static string Sanitize(string text) =>
-        string.IsNullOrEmpty(text) || text.IndexOf('<') < 0 ? text : text.Replace('<', '\u2039');
+        string.IsNullOrEmpty(text) || text.IndexOf('<') < 0 ? text : text.Replace('<', '[');
 }

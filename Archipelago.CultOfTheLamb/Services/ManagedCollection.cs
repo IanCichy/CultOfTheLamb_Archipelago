@@ -150,7 +150,9 @@ internal class ManagedCollection<T> where T : struct, Enum
             if (revoked.Contains(value) || granted.Contains(value))
             {
                 continue;
-            } (reappeared ??= new List<T>()).Add(value);
+            }
+
+            (reappeared ??= new List<T>()).Add(value);
         }
 
         if (reappeared != null)
