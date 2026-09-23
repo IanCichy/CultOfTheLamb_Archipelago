@@ -122,7 +122,7 @@ class IncludeWoolhaven(Toggle):
 
     Enable this ONLY if you own Woolhaven. The mod can't grant content you don't own, so a seed
     made with this on and played without the DLC is unbeatable. Adds 6 sermon upgrades, 19
-    tarot cards and the Flail weapon family. Fleeces and doctrines come later."""
+    tarot cards and the Flail weapon family. Fleeces and doctrines are not randomized."""
     display_name = "Include Woolhaven DLC"
     default = False
 
@@ -277,8 +277,9 @@ class StartingTarotPool(Choice):
 class RandomizeWeapons(Toggle):
     """Randomize which weapon families you can find.
 
-    Vanilla drip-feeds the Sword, Axe, Dagger, Hammer, Gauntlets and Blunderbuss: the first
-    floor of a run hands you one you don't own yet, with Gauntlets, Hammer and Blunderbuss also
+    Vanilla drip-feeds the Crusader's Blade, Apostate's Cleaver, Traitor's Razor, Warmaker's
+    Hammer, Tempest's Gauntlets and Mayhem's Cannon: the first floor of a run hands you one you
+    don't own yet, with Gauntlets, Hammer and Blunderbuss also
     gated on Bishops you have beaten. With this on, podiums, chests and choice rooms only offer
     families the multiworld has granted you, and equipping one for the first time sends a check.
     6 weapons, or 7 with Include Woolhaven DLC (the Flail)."""

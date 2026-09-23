@@ -116,7 +116,7 @@ class CultOfTheLambWeb(WebWorld):
             "fast_build": True,
         },
         # The tree unlocks itself in a shuffled order, you start with three random cards, and
-        # one filler in five is a trap. Also the longest goal of the four: four Witnesses means
+        # one filler in five is a trap. Also the longest of the four presets: four Witnesses means
         # beating all four Bishops first.
         "Chaos": {
             "goal": "witnesses",
@@ -200,7 +200,7 @@ class CultOfTheLambWorld(World):
 
         Several options here are only read when another one is in a particular state, and the
         rest of the world resolves that by quietly doing nothing. That is the right behaviour -
-        erroring would break YAMLs that have been working for months - but silence means a
+        erroring would break YAMLs that generate perfectly well today - but silence means a
         player who asked for 5 starting tarot cards and got 0 has no way to find out why.
 
         Only fires where the value differs from the option's own default, so leaving an

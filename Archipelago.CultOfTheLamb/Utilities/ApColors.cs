@@ -9,9 +9,9 @@ namespace Archipelago.CultOfTheLamb;
 /// <remarks>
 /// Both forms live here so they can't drift apart.
 ///
-/// The glow tint and the inline tags are independent surfaces. The flair tint recolours the glow
-/// graphics, not the text label. A popup can therefore carry direction in its glow and item
-/// classification in its wording at the same time.
+/// The glow tint and the inline tags are independent surfaces. The glow tint recolours the glow
+/// graphics, not the text label. A popup can therefore carry direction in its glow and a player's
+/// name in its wording at the same time.
 /// </remarks>
 internal static class ApColors
 {
@@ -27,10 +27,8 @@ internal static class ApColors
     // Incoming items
     internal const string GreenHex = "#75c275";
 
-    // Main progression
+    // Unused so far. Kept because the palette is the Archipelago one and should stay whole
     internal const string PinkHex = "#ca94c2";
-
-    // Filler checks
     internal const string OrangeHex = "#d9a07d";
 
     internal static readonly Color32 Red = new(0xC9, 0x76, 0x82, 0xFF);

@@ -62,8 +62,9 @@ A few options are worth knowing about before your first seed:
 4. Click **Connect**. The dialogue box tells you when you're connected, and the AP icon in the
    upper left of the screen turns to full color.
 
-Use a save dedicated to Archipelago. Adding the mod to an existing vanilla playthrough has not been
-tested. Saves that have received Archipelago items are marked with an AP icon on the save
+Use a save dedicated to Archipelago. Adding the mod to an existing vanilla playthrough has not
+been tested, and with `randomize_tarot_cards` on, connecting removes this seed's cards from your
+collection until the multiworld hands them back. Saves that have received Archipelago items are marked with an AP icon on the save
 select screen, so they're easy to tell apart.
 
 If the connection drops, the mod keeps trying on its own and sends your progress once it's back.

@@ -253,7 +253,7 @@ def set_curated_di_rules(world: "CultOfTheLambWorld") -> None:
         return
 
     # Quarters, so the requirement tracks the block's length rather than a fixed cutoff. The
-    # length is a YAML range and can be anything from 38 to 69.
+    # length is a YAML range and can be anything from 5 to 69.
     band_size = max(1, len(locations) // 4)
 
     for index, location_name in enumerate(locations):

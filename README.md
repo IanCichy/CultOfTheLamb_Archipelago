@@ -13,8 +13,8 @@ New to Archipelago? Find more [info](https://archipelago.gg)
 
 1. **Cult of the Lamb**, base game.
    - The Woolhaven DLC is optional
-2. BepInEx 5 for Cult of the Lamb. If
-  you install via r2modman (recommended), this is pulled in for you.
+2. **BepInEx 5** for Cult of the Lamb. If you install via r2modman (recommended), this is
+   pulled in for you.
 
 3. **An Archipelago install**, version `0.6.6` or newer, to generate a seed and host. Get it from [archipelago.gg](https://archipelago.gg/).
 
@@ -37,10 +37,9 @@ New to Archipelago? Find more [info](https://archipelago.gg)
 ### 1. Get your YAML
 Download one of the `.yaml` files from the latest release on GitHub
 
-`cult_of_the_lamb_quickstart.yaml` provides only a handful of options to customize your experience
- - This is a great place to start if you don't want to be overwhelmed by options
-
-`cult_of_the_lamb_example.yaml` provides all options to customize your experience
+- `cult_of_the_lamb_quickstart.yaml` has a handful of options. Start here if you don't want to
+  be overwhelmed.
+- `cult_of_the_lamb_example.yaml` has every option, each explained in a comment above it.
 
 Open it and change `name: PlayerName` to the name you want in the multiworld. Everyone in a
 multiworld needs a different one.
@@ -48,21 +47,30 @@ multiworld needs a different one.
 ### 2. Generate a seed
    Put your YAML in `Archipelago\Players\`, then open Archipelago and click Generate
 
-   This produces a `.archipelago` file. Upload it to the Archipelago server, or host it locally
+   This produces a `.archipelago` file. Upload it at
+   [archipelago.gg/uploads](https://archipelago.gg/uploads) to have it hosted for you, which
+   gives you the server address and port to connect to. You can also host it yourself from the
+   Archipelago launcher.
 
 ### 3. Load the game and connect
-   - Launch Cult of the Lamb through **r2modman** (click *start modded*)
-   - Start a new game or load a previous Archipelago save
 
 > [!CAUTION]
-> It is recommended to use a dedicated AP save. Adding the mod to an existing vanilla game
-> has not been tested. Proceed at your own risk.
+> Use a save dedicated to Archipelago. With `randomize_tarot_cards` on, connecting removes the
+> cards this seed manages from your collection and hands them back as multiworld items. They
+> come back when you disconnect, but a card you unlock while disconnected is lost. Adding the
+> mod to an existing game has not been tested.
 >
 > Saves that have received Archipelago items show an AP icon on the save select screen.
+
+   - Launch Cult of the Lamb through **r2modman** (click *start modded*). Launching from Steam
+     runs the game without the mod, and none of the Archipelago menus will appear.
+   - Start a new game, or load a save you have already used for Archipelago
 
    - Open the pause menu and click **Archipelago**, which opens a new dialogue box. Fill in your server (e.g. `archipelago.gg:38281`), slot name (the name from your `.yaml` file) and
    password (leave blank if none). Click **Connect**.
       - The Archipelago dialogue box will tell you it's connected to a server
+      - If it doesn't connect, the box says why. A wrong slot name is the usual cause, and it
+        has to match the `name:` in your YAML exactly
 
 >[!TIP]
 >There is an AP icon in the upper-left of the screen. When the icon is in full color that confirms that you're connected to an AP world. The icon will be washed out if you aren't connected.
@@ -79,7 +87,7 @@ multiworld needs a different one.
 - Toggleable checks: follower recruitment, snail shrine, tarot shop, construction, sweeping
 - Multiple goal options (Bishops, Witnesses, or Narinder)
 - Woolhaven DLC support (only enable `include_woolhaven` in your YAML if you actually own it)
-- Resources bundle filler items
+- Resource bundle filler items
 - One trap so far, with a percentage knob
 - In-game ways to view your progress
 
@@ -90,16 +98,14 @@ multiworld needs a different one.
 >[!NOTE]
 >**There are several in-game ways to track your progress**
 >  - See your Archipelago checklist with the **Quests tab** in the pause menu
->     - Tracks win condition, region access, and live progress per active
->   check block
+>     - Tracks win condition, region access, and live progress per active check block
 >     - Will only show up if `archipelago_objective_guide` is enabled
 >
 >   - See your unlocked tarot cards at the **relic and tarot book** at the south end of the base
 >     - This will always show up even if `randomize_tarot_cards` is not enabled
 >
 >   - See what weapons and curses you have unlocked with the **podiums** at the south end of the base
->     - Podiums light up to show which weapon and curse families
->     you've been granted
+>     - Podiums light up to show which weapon and curse families you've been granted
 >     - These will only show up if you have `randomize_weapons` and/or `randomize_curses` enabled
 >
 >   - See the sermons you have unlocked in the **AP** entry at the Temple altar
@@ -148,8 +154,7 @@ their trademark.
 
 ## Third-party software
 
-- [Archipelago.MultiClient.Net](https://github.com/ArchipelagoMW/Archipelago.MultiClient.Net) -
-  MIT
+- [Archipelago.MultiClient.Net](https://github.com/ArchipelagoMW/Archipelago.MultiClient.Net) - MIT
 - [Newtonsoft.Json](https://github.com/JamesNK/Newtonsoft.Json) - MIT
 - [BepInEx](https://github.com/BepInEx/BepInEx) - LGPL-2.1
 - [HarmonyLib](https://github.com/pardeike/Harmony) - MIT

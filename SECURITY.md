@@ -9,6 +9,6 @@ rather than a bug, open an issue and mark it clearly. If it's something you'd ra
 in public first, message me in the Cult of the Lamb thread on the
 [Archipelago Discord](https://discord.gg/archipelago) and we'll sort out where to take it.
 
-Note that the Archipelago connection itself is a plain websocket to a server address you choose,
-and the password you set is passed straight through to that server. Treat a server address someone
-hands you with the same caution you'd treat any other.
+The Archipelago connection is a plain websocket to a server address you choose, and the password
+you set is passed straight through to that server. Treat a server address someone hands you with
+the same caution you'd treat any other.

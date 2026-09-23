@@ -45,17 +45,17 @@ Every block here is optional except the bosses.
 
 | Block | Checks | Notes |
 |---|---|---|
-| Divine Inspiration | 69 | Filling the Devotion meter, not spending the point. 5-69 curated |
-| Tarot cards | 31 | 12 without Woolhaven. The 16 shop cards are the row below |
+| Divine Inspiration | 69 | Filling the Devotion meter, not spending the point |
 | Sermon upgrades | 38 | 32 without Woolhaven |
+| Tarot cards | 31 | 12 without Woolhaven. The 16 shop cards are the row below |
 | Buildings | 25 | First construction of each curated building |
 | Follower milestones | 20 | Your first 20 recruited Followers, ever-recruited |
 | Tarot shop slots | 16 | Four hubs, a fixed set of cards each |
 | Minibosses | 12 | Three per region |
 | Broom levels | 10 | Chore XP, trickles in as you sweep |
-| Weapon families | 6 | 7 with Woolhaven, minus the one you start with |
-| Curse families | 4 | Same, minus the one you start with |
+| Weapon families | 6 | 5 without Woolhaven. The family you start with has no check |
 | Snail Shrines | 5 | One Shell offering each |
+| Curse families | 4 | Minus the one you start with |
 | Bishops | 4 | Always present |
 | Witnesses | 4 | Always present |
 
@@ -66,6 +66,9 @@ tree. The check fires when you *fill* the Devotion meter, so the Nth point you e
 check. What you spend it on is your business. Vanilla's cost curve climbs to 465 Devotion and
 stays there, which puts all 69 points at about 24,000 Devotion, so the `divine_inspiration_devotion_cap`
 option exists to flatten that tail into something a normal seed can actually reach.
+
+In `curated_checks` mode the block is shorter than 69, anywhere from 5 upwards, and the upgrades
+arrive bundled so a building and all its tiers come together.
 
 **Sermon upgrades** work the same way: filling the Temple bar sends a check instead of opening
 the pick-an-upgrade screen, and `sermon_xp_cap` flattens that curve.
@@ -99,8 +102,8 @@ families start appearing on podiums and in choice rooms from then on. Sermon upg
 Inspiration unlocks are applied to your save. Resource bundles land in your stores.
 
 If you were offline when it was sent, you get it on reconnect. Checks you earn offline are sent
-too, with one exception: tarot cards unlocked while disconnected are not, so earn those while
-connected.
+too, with one exception: a tarot card unlocked while disconnected sends no check and is taken
+again on reconnect, so earn cards while connected.
 
 ## Tracking your progress
 

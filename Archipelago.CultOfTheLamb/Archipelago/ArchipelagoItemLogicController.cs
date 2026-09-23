@@ -10,7 +10,7 @@ namespace Archipelago.CultOfTheLamb;
 /// <summary>
 /// Receives items from the AP server and queues them for main-thread processing.
 /// Unity/game API calls (granting a follower, unlocking a doctrine, etc.) must happen
-/// on the main thread, so ItemReceived only enqueues ArchipelagoPlugin.Update() drains
+/// on the main thread, so ItemReceived only enqueues. ArchipelagoPlugin.Update() drains
 /// the queue via ProcessQueue().
 /// </summary>
 public partial class ArchipelagoItemLogicController : IService

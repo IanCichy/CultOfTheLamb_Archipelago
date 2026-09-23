@@ -7,7 +7,8 @@ changed.
 
 ### Part of the multiworld
 
-- **Region access.** The four Bishop regions unlock through a Progressive Bishop's Domain item. Pick
+- **Region access.** One region is free at seed start, and the other three each unlock through a
+  Progressive Bishop's Domain item. Pick
   vanilla order, randomized, randomized with a safe start, or everything open.
 - **Weapons and curses.** You're only offered the families you've been sent, and equipping a family
   for the first time sends a check.
@@ -24,8 +25,8 @@ changed.
 
 ### Pacing
 
-- Optional caps on how much Devotion a Divine Inspiration point costs, how much XP a sermon upgrade
-  costs, and a Fast Build toggle.
+- Optional caps on how much Devotion a Divine Inspiration point costs and how much XP a sermon
+  upgrade costs, plus a Fast Build toggle that caps build progress at six hammer swings.
 - Most of the game's follower quests can be taken out of rotation, so errands don't crowd out
   the crusades.
 - Choose how many weapons, curses and tarot cards you start with.
@@ -51,6 +52,7 @@ changed.
 
 - Reconnects by itself if the connection drops, and keeps trying until the server is back.
 - Progress made while disconnected is sent when you reconnect, for bosses, sermons, followers,
-  buildings, sweeping, Snail Shrines and Divine Inspiration. Tarot cards earned or bought while
-  disconnected are not.
+  buildings, sweeping, Snail Shrines and Divine Inspiration. Tarot cards are the exception: one
+  unlocked while disconnected sends no check and is taken again on reconnect, so earn cards
+  while connected.
 - Warns in the log if the mod and apworld versions don't match.

@@ -7,7 +7,7 @@ requires:
   version: 0.6.6
 
 # Every option the world supports, set to its default. Delete anything you don't want to
-# change - omitted options use these same values.
+# change. Omitted options use these same values.
 
 Cult of the Lamb:
   # ---------------------------------------------------------------------------
@@ -29,7 +29,7 @@ Cult of the Lamb:
   # ---------------------------------------------------------------------------
 
   # Adds an Archipelago checklist to the pause menu's Quests tab: the win condition, region
-  # access, and one live-progress line per active check block. Pure guidance - it creates no
+  # access, and one live-progress line per active check block. Pure guidance: it creates no
   # locations and no items, so turning it off changes nothing about the seed.
   archipelago_objective_guide: true
 
@@ -43,7 +43,7 @@ Cult of the Lamb:
   objective_guide_pinning: goal_only
 
   # How much of the game's own ~87 follower quests stays in rotation. Most are busywork that
-  # pulls against what the multiworld wants - but turning one in is also the main source of
+  # pulls against what the multiworld wants, but turning one in is also the main source of
   # follower loyalty XP, so the default trims rather than wipes.
   #
   # unchanged:    vanilla, every quest offered
@@ -85,14 +85,15 @@ Cult of the Lamb:
   # Weapons and curses
   # ---------------------------------------------------------------------------
 
-  # Randomize which weapon families you can find. Vanilla drip-feeds the Sword, Axe, Dagger,
-  # Hammer, Gauntlets and Blunderbuss. The first floor of a run hands you one you don't own,
+  # Randomize which weapon families you can find. Vanilla drip-feeds the Crusader's Blade,
+  # Apostate's Cleaver, Traitor's Razor, Warmaker's Hammer, Tempest's Gauntlets and Mayhem's
+  # Cannon. The first floor of a run hands you one you don't own,
   # with the later families also gated on Bishops you have beaten. With this on, Archipelago
   # sets the schedule: podiums, chests and choice rooms only offer families the multiworld has
   # granted, and equipping one for the first time sends a check.
   #
-  # Your save is never edited - existing weapons aren't taken away, and WeaponPool/CursePool
-  # are never written to - so this is safe to turn on partway through a file. It only changes
+  # Your weapons are never taken away, and WeaponPool/CursePool are never written to. Other
+  # systems do write to the save, so use a dedicated Archipelago save anyway. This only changes
   # what gets offered.
   randomize_weapons: true
 
@@ -102,7 +103,7 @@ Cult of the Lamb:
   starting_weapons: 1
 
   # The curse-side counterpart, covering Flaming Shot, Touch of Turua, Divine Blast, Ichor
-  # Thrown and Death's Sweep. Fully independent of randomize_weapons - either, both or
+  # Thrown and Death's Sweep. Fully independent of randomize_weapons: either, both or
   # neither. Teleport curses aren't here; they come from the Woolhaven sermon upgrade
   # Teleporting Curses instead of crusade drops.
   randomize_curses: true
@@ -113,10 +114,10 @@ Cult of the Lamb:
   # Let Legendary weapons turn up on ordinary weapon podiums, in place of a normal weapon of a
   # family you already hold. off / rare (~1 offer in 10) / common (~1 in 4) / always.
   #
-  # WOOLHAVEN ONLY - forced off without include_woolhaven, since Legendaries are DLC content.
+  # WOOLHAVEN ONLY. Forced off without include_woolhaven, since Legendaries are DLC content.
   # No check and no item, and the Blacksmith's Broken Hammer questline still unlocks them
-  # normally. Note that picking one up does add it to your weapon pool for good - the game
-  # records whatever you collect - so its plinth will display it early.
+  # normally. Picking one up does add it to your weapon pool for good, because the game
+  # records whatever you collect, so its plinth will display it early.
   legendary_weapons: "off"
 
   # ---------------------------------------------------------------------------
@@ -124,38 +125,38 @@ Cult of the Lamb:
   # ---------------------------------------------------------------------------
 
   # The buildings/rituals tree at the Shrine, not the Temple sermon tree. 69 upgrades, 69
-  # checks. THE CHECK FIRES WHEN YOU FILL THE DEVOTION METER - the Nth point you earn is the
-  # Nth check - not when you spend it. Earning is the thing you did; spending is a menu click.
+  # checks. THE CHECK FIRES WHEN YOU FILL THE DEVOTION METER, so the Nth point you earn is the
+  # Nth check, not when you spend it. Earning is the thing you did; spending is a menu click.
   #
   # off               : no interaction at all.
   # checks_only       : filling the meter sends a check and you keep the point, as in vanilla.
   # checks_and_points : filling the meter sends a check and the point is taken. Points come
   #                     back from Archipelago instead, to spend on whatever you like. 69 out,
-  #                     69 back - same totals as vanilla, just on the multiworld's schedule.
+  #                     69 back. Same totals as vanilla, just on the multiworld's schedule.
   # checks_and_techs  : the point is taken and never returns; Archipelago grants the upgrades
   #                     directly.
-  # curated_checks    : as checks_and_techs, but the 69 upgrades are regrouped into 38 items - a
+  # curated_checks    : as checks_and_techs, but the 69 upgrades are regrouped into 38 items, so a
   #                     building and all its tiers arrive together, so "Missionary Network" is one
   #                     item rather than three. Five tier-1 upgrades (Temple, Farm Plot, Sleeping
   #                     Bags, Body Pit, Farming Bundle) are free from the start, since without
-  #                     them the cult can't function at all. Shorter, too - see the next option.
+  #                     them the cult can't function at all. Shorter, too: see the next option.
   #
   #                     Two things stay tiered rather than bundled, because both multiply
   #                     DEVOTION, which is what fills the meter every check here counts:
   #                     Progressive Cult (Shrine 50 -> 175 Devotion, 4 -> 10 followers praying)
   #                     and Progressive Shrine Flame (pray speed, then halved fuel). The
   #                     deeper checks require Progressive Cult copies, so the thing governing
-  #                     this block's pace
-  #                     can't turn up last. Resource Production and Refining are always early.
+  #                     this block's pace can't turn up last. Resource Production and
+  #                     Refining are always early.
   divine_inspiration_mode: checks_and_points
 
-  # How many Divine Inspiration checks the block has (5-69). READ ONLY IN curated_checks - every
+  # How many Divine Inspiration checks the block has (5-69). READ ONLY IN curated_checks. Every
   # other mode always uses all 69.
   #
   # 69 was too many: a full evening reached 22 of them at a Devotion cap of 100, and the cap is 70
   # now, so 30 is about one session.
   #
-  # The block can be shorter than its own 38 items - those just turn up elsewhere in the seed.
+  # The block can be shorter than its own 38 items. Those just turn up elsewhere in the seed.
   # This world has 80 checks that carry no items of their own (buildings, followers, broom, snail
   # shrines, bosses) and would otherwise pay out filler, so a short block trades Bundles of Lumber
   # for real unlocks. Set it low if you'd rather earn the tree by playing than by praying.
@@ -180,7 +181,7 @@ Cult of the Lamb:
   # true_random         : every tier rearranged
   #
   # The five central nodes (Temple, Cult II, Refinery, Cult III, Cult IV) always stay in their
-  # own tier - each must be bought to open the next one, so moving one would make that tier
+  # own tier, since each must be bought to open the next one, so moving one would make that tier
   # permanently unopenable.
   divine_inspiration_shuffle: default
 
@@ -193,8 +194,8 @@ Cult of the Lamb:
   # items. 32 checks, or 38 with Woolhaven.
   #
   # Might of the Devout, Hearts of the Faithful and Fervour of the Righteous are progressive
-  # (the Nth copy grants the Nth tier); everything else - the weapon affixes, curse packs,
-  # Heavy Attack masteries and relic unlocks - is its own named item.
+  # (the Nth copy grants the Nth tier). Everything else, meaning the weapon affixes, curse
+  # packs, Heavy Attack masteries and relic unlocks, is its own named item.
   randomize_sermon_upgrades: true
 
   # Randomize the Tarot Card collection. The cards this seed manages are taken out of your
@@ -214,21 +215,21 @@ Cult of the Lamb:
   starting_tarot_pool: vanilla_defaults
 
   # Send a check for each Tarot Card bought from a hub shop (16 slots across the four hubs).
-  # A shop card's check is its slot - it does not also get a "Tarot Card - X" unlock check.
+  # A shop card's check is its slot. It does not also get a "Tarot Card - X" unlock check.
   tarot_shop_checks: true
 
   # Send a check for each of your first 20 recruited Followers. Counted as ever-recruited, so
   # losing Followers can't make a passed milestone unreachable.
   follower_milestone_checks: true
 
-  # Send a check the first time you construct each of 25 curated buildings - Temple, Sleeping
+  # Send a check the first time you construct each of 25 curated buildings: Temple, Sleeping
   # Bags, Missionary, Tabernacle, Offering Statue, Confession Booth, Kitchen and so on. Not
   # the ~200 decorations, and not upgrade tiers (except Shelter).
   #
   # First construction only, tracked per seed, so demolishing and rebuilding won't pay twice.
   # Connecting on a save that already has buildings standing sends the whole backlog at once.
   #
-  # Nothing behind PleasureSystem / TailorSystem / DiscipleSystem is on the list - those come
+  # Nothing behind PleasureSystem / TailorSystem / DiscipleSystem is on the list. Those come
   # from doctrine branches, so a check on one could be permanently unreachable.
   building_checks: true
 
@@ -244,7 +245,7 @@ Cult of the Lamb:
   # Pacing
   # ---------------------------------------------------------------------------
 
-  # Most sermon XP one Temple upgrade may need, in TENTHS - the unit the game's own bar counts
+  # Most sermon XP one Temple upgrade may need, in TENTHS, the unit the game's own bar counts
   # in, so 20 means the bar never shows more than "x/20".
   #
   # The default is tuned for a seed of roughly six hours, which puts the sermon block at about
@@ -253,7 +254,7 @@ Cult of the Lamb:
   sermon_xp_cap: 20
 
   # Caps the build progress any structure needs at 30. A hammer swing is worth 5, so that's
-  # six swings - what a Bed or Farm Plot already costs. Most buildings are 10-180, so this
+  # six swings, what a Bed or Farm Plot already costs. Most buildings are 10-180, so this
   # shaves a few seconds off them; the ones it actually changes are the 300-600 tier (Temple
   # III/IV, the shrine upgrades, the repairables). A ceiling, not a floor.
   fast_build: true

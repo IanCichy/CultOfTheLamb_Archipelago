@@ -237,7 +237,6 @@ internal class QuestGuideService : IService
     private readonly HashSet<long> checkedSnapshot = new();
 
     // Progress last rendered per line, so an unchanged tick composes no strings
-    // Last text pushed into each term, so a steady-state tick does no work
     private readonly Dictionary<string, (int Current, int Target)> lastProgress = new();
 
     // Terms already registered whose text never changes
@@ -546,7 +545,9 @@ internal class QuestGuideService : IService
             result.Add(new QuestGuideEntry(
                 IdGoal, GoalGroupId, "goal",
                 () => (GoalProgress.CountForGoal(goal), requiredCount),
-                (current, target) => $"Defeat any {target} of the four {goalNoun} - {current} of {target}"));
+                (current, target) => target >= 4
+                    ? $"Defeat all four {goalNoun} - {current} of {target}"
+                    : $"Defeat any {target} of the four {goalNoun} - {current} of {target}"));
         }
 
         if (SlotData.GetBool(slotData, "randomizeRegionAccess"))

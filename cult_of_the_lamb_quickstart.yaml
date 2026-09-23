@@ -2,6 +2,8 @@ description: Cult of the Lamb, Archipelago quick start
 
 # Change this to the name you want in the multiworld. Everyone in a game needs a different one.
 name: PlayerName
+
+# Leave these alone. They name the game and the minimum Archipelago version this file needs.
 game: Cult of the Lamb
 requires:
   version: 0.6.6
