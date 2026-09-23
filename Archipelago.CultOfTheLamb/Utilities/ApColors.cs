@@ -38,12 +38,15 @@ internal static class ApColors
     internal static readonly Color32 Pink = new(0xCA, 0x94, 0xC2, 0xFF);
     internal static readonly Color32 Orange = new(0xD9, 0xA0, 0x7D, 0xFF);
 
-    // Wraps text in a TMP colour tag. Player names come from the multiworld, so a '<' in one
-    // would read as the start of a tag and eat the rest of the popup. The zero width space stops
-    // that and looks identical on screen.
+    // Wraps text in a TMP colour tag.
     internal static string Tint(string text, string hex) =>
-        $"<color={hex}>{Escape(text)}</color>";
+        $"<color={hex}>{Sanitize(text)}</color>";
 
-    private static string Escape(string text) =>
-        string.IsNullOrEmpty(text) || text.IndexOf('<') < 0 ? text : text.Replace("<", "\u200b<");
+    // Player, item and location names all come from the multiworld and are arbitrary text. TMP
+    // starts reading a tag at '<' wherever it appears, so a name containing "</color>" would
+    // close our tag early and leak its formatting into the rest of the popup. Swapping in a
+    // single angle quote is the only thing that reliably stops the parser: anything that leaves
+    // the '<' in place, a zero width space included, still opens a tag.
+    internal static string Sanitize(string text) =>
+        string.IsNullOrEmpty(text) || text.IndexOf('<') < 0 ? text : text.Replace('<', '\u2039');
 }

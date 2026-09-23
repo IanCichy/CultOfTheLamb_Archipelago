@@ -57,8 +57,8 @@ multiworld needs a different one.
 > [!CAUTION]
 > Use a save dedicated to Archipelago. With `randomize_tarot_cards` on, connecting removes the
 > cards this seed manages from your collection and hands them back as multiworld items. They
-> come back when you disconnect, but a card you unlock while disconnected is lost. Adding the
-> mod to an existing game has not been tested.
+> come back when you disconnect, but a card you unlock while disconnected sends no check and
+> is taken back. Adding the mod to an existing game has not been tested.
 >
 > Saves that have received Archipelago items show an AP icon on the save select screen.
 

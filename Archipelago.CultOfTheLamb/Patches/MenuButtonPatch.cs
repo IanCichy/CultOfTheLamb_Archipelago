@@ -18,7 +18,7 @@ namespace Archipelago.CultOfTheLamb.Patches;
 /// to add one. A clone inherits the prefab's styling, layout and hover behaviour.
 ///
 /// The pause menu is the one that matters: it's the only entry point guaranteed to be at a
-/// loaded save, which is the only place connecting can finish (see the panel's HasLoadedSave).
+/// loaded save, which is the only place connecting can finish (see ApPanelBase.HasLoadedSave).
 /// The main menu one is a convenience for entering details early.
 /// </remarks>
 [HarmonyPatch]

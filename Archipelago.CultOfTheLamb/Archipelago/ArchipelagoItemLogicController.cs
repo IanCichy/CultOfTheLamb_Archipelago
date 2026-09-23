@@ -179,9 +179,9 @@ public partial class ArchipelagoItemLogicController : IService
             var glow = isTrap ? ApColors.Red : ApColors.Green;
             var flair = isTrap ? NotificationBase.Flair.Negative : NotificationBase.Flair.Positive;
 
-            // Null for an id the datapackage doesn't carry, which would show as a bare
-            // "Received"
-            var shown = string.IsNullOrEmpty(itemName) ? "an item" : itemName;
+            // Null or empty for an id the datapackage doesn't carry, which would otherwise
+            // show as a bare "Received"
+            var shown = string.IsNullOrEmpty(itemName) ? "an item" : ApColors.Sanitize(itemName);
 
             ApNotification.Show($"Received {shown}{from}", flair, glow);
         }

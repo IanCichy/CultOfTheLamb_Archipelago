@@ -7,9 +7,9 @@ changed.
 
 ### Part of the multiworld
 
-- **Region access.** One region is free at seed start, and the other three each unlock through a
-  Progressive Bishop's Domain item. Pick
-  vanilla order, randomized, randomized with a safe start, or everything open.
+- **Region access.** One region is free at seed start, and the other three each unlock through
+  a Progressive Bishop's Domain item. Pick vanilla order, randomized, randomized with a safe
+  start, or everything open.
 - **Weapons and curses.** You're only offered the families you've been sent, and equipping a family
   for the first time sends a check.
 - **Sermon upgrades.** Filling the sermon bar sends a check, and the upgrades arrive as items.
@@ -52,7 +52,7 @@ changed.
 
 - Reconnects by itself if the connection drops, and keeps trying until the server is back.
 - Progress made while disconnected is sent when you reconnect, for bosses, sermons, followers,
-  buildings, sweeping, Snail Shrines and Divine Inspiration. Tarot cards are the exception: one
-  unlocked while disconnected sends no check and is taken again on reconnect, so earn cards
-  while connected.
+  buildings, sweeping, Snail Shrines and Divine Inspiration. Tarot cards are the exception:
+  with `randomize_tarot_cards` on, a card unlocked while disconnected sends no check and is
+  taken back on reconnect, so earn cards while connected.
 - Warns in the log if the mod and apworld versions don't match.

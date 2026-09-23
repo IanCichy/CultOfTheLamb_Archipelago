@@ -116,7 +116,7 @@ class CultOfTheLambWeb(WebWorld):
             "fast_build": True,
         },
         # The tree unlocks itself in a shuffled order, you start with three random cards, and
-        # one filler in five is a trap. Also the longest of the four presets: four Witnesses means
+        # one filler in five is a trap. Also the longest goal short of Narinder: four Witnesses means
         # beating all four Bishops first.
         "Chaos": {
             "goal": "witnesses",
@@ -497,8 +497,8 @@ class CultOfTheLambWorld(World):
             for name in DI_EARLY_ITEM_NAMES:
                 self.multiworld.local_early_items[self.player][name] = 1
 
-        # Same treatment, and for a sharper reason: the four Bishops' domains are the only thing
-        # gating this world, so where their keys land decides whether the seed is paced or a wait.
+        # Same treatment, and for a sharper reason: the three Progressive Bishop's Domain copies
+        # are the widest gate here, so where they land decides whether the seed is paced or a wait.
         # Left to the fill they are three items among the whole multiworld's locations, and a seed
         # that put all three in other players' games opened the second domain at sphere 37 of 64 -
         # hours of one biome before anything new. Pinning one copy here guarantees a second domain

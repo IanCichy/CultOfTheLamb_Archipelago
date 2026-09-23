@@ -75,7 +75,7 @@ Cult of the Lamb:
   # Only enable this if you actually own Woolhaven. The client cannot grant DLC content you
   # don't have, so a seed generated with this on and played without the DLC is unbeatable.
   #
-  # On:  38 sermon checks, Might of the Devout runs to VII, the Flail is a 7th weapon family,
+  # On:  38 sermon checks, Might of the Devout runs to VII, Battler's Bludgeon is a 7th weapon,
   #      19 extra tarot cards, and legendary_weapons below is allowed to do anything.
   # Off: 32 sermon checks, Might of the Devout stops at VI, 6 weapon families, and
   #      legendary_weapons is forced off regardless of what you set it to.
@@ -87,8 +87,8 @@ Cult of the Lamb:
 
   # Randomize which weapon families you can find. Vanilla drip-feeds the Crusader's Blade,
   # Apostate's Cleaver, Traitor's Razor, Warmaker's Hammer, Tempest's Gauntlets and Mayhem's
-  # Cannon. The first floor of a run hands you one you don't own,
-  # with the later families also gated on Bishops you have beaten. With this on, Archipelago
+  # Cannon. The first floor of a run hands you one you don't own, with the later families
+  # also gated on Bishops you have beaten. With this on, Archipelago
   # sets the schedule: podiums, chests and choice rooms only offer families the multiworld has
   # granted, and equipping one for the first time sends a check.
   #
@@ -135,7 +135,7 @@ Cult of the Lamb:
   #                     69 back. Same totals as vanilla, just on the multiworld's schedule.
   # checks_and_techs  : the point is taken and never returns; Archipelago grants the upgrades
   #                     directly.
-  # curated_checks    : as checks_and_techs, but the 69 upgrades are regrouped into 38 items, so a
+  # curated_checks    : as checks_and_techs, but the 69 upgrades are regrouped into 38 items: a
   #                     building and all its tiers arrive together, so "Missionary Network" is one
   #                     item rather than three. Five tier-1 upgrades (Temple, Farm Plot, Sleeping
   #                     Bags, Body Pit, Farming Bundle) are free from the start, since without

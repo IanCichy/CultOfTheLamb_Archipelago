@@ -18,10 +18,11 @@ namespace Archipelago.CultOfTheLamb.Services;
 /// game's names ("The Burning Dead" is Skull). ManagedCollection does the revoke, restore and
 /// sweep work. This class reads slot data, decides unlocks and wires up the patches.
 ///
-/// A card earned while disconnected is lost. On disconnect, Restore puts back both the cards we
-/// took and the ones the multiworld gave you, so there's no telling an offline card apart from a
-/// granted one. Fixing that needs a new saved record, and it can't live in Register, which runs
-/// before any items are applied.
+/// A card earned while disconnected sends no check, and the connect sweep takes it back out of
+/// the collection. It isn't lost: it goes into the revoked set with everything else we took, so
+/// Restore hands it back on disconnect. What's missing is the check, and telling an offline card
+/// apart from a granted one would need a new saved record, which can't live in Register because
+/// that runs before any items are applied.
 /// </remarks>
 internal class TarotService : IService
 {

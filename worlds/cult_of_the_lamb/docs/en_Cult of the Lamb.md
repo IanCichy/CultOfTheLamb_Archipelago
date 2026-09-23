@@ -17,8 +17,8 @@ than reading all of it.
 ## What does randomization do to this game?
 
 Vanilla Cult of the Lamb hands you things on a schedule: a weapon family per run until you own
-them all, and a sermon upgrade every time the Temple bar fills. Archipelago takes that schedule
-away and gives it to the multiworld.
+them all, a sermon upgrade every time the Temple bar fills, a tarot card from a shop or a
+challenge. Archipelago takes that schedule away and gives it to the multiworld.
 
 The four crusade regions are the backbone. Normally they open in a fixed order as you kill
 Bishops. Here one region is open from the start and the other three are each gated behind a
@@ -55,7 +55,7 @@ Every block here is optional except the bosses.
 | Broom levels | 10 | Chore XP, trickles in as you sweep |
 | Weapon families | 6 | 5 without Woolhaven. The family you start with has no check |
 | Snail Shrines | 5 | One Shell offering each |
-| Curse families | 4 | Minus the one you start with |
+| Curse families | 4 | Five families; the one you start with has no check |
 | Bishops | 4 | Always present |
 | Witnesses | 4 | Always present |
 
@@ -67,8 +67,8 @@ check. What you spend it on is your business. Vanilla's cost curve climbs to 465
 stays there, which puts all 69 points at about 24,000 Devotion, so the `divine_inspiration_devotion_cap`
 option exists to flatten that tail into something a normal seed can actually reach.
 
-In `curated_checks` mode the block is shorter than 69, anywhere from 5 upwards, and the upgrades
-arrive bundled so a building and all its tiers come together.
+In `curated_checks` mode the block can be anywhere from 5 checks to the full 69, and the
+upgrades arrive bundled so a building and all its tiers come together.
 
 **Sermon upgrades** work the same way: filling the Temple bar sends a check instead of opening
 the pick-an-upgrade screen, and `sermon_xp_cap` flattens that curve.
@@ -77,7 +77,7 @@ the pick-an-upgrade screen, and `sermon_xp_cap` flattens that curve.
 
 Anything this world hands out:
 
-- **Progressive Bishop's Domain**: opens your regions, and the main thing shaping a seed.
+- **Progressive Bishop's Domain**: opens your regions, and is the main thing shaping a seed.
 - **Weapon and curse families**: Crusader's Blade, Apostate's Cleaver, Traitor's Razor,
   Warmaker's Hammer, Tempest's Gauntlets, Mayhem's Cannon, and Battler's Bludgeon with Woolhaven;
   Flaming Shot, Touch of Turua, Divine Blast, Ichor Thrown, Death's Sweep.
@@ -102,15 +102,16 @@ families start appearing on podiums and in choice rooms from then on. Sermon upg
 Inspiration unlocks are applied to your save. Resource bundles land in your stores.
 
 If you were offline when it was sent, you get it on reconnect. Checks you earn offline are sent
-too, with one exception: a tarot card unlocked while disconnected sends no check and is taken
-again on reconnect, so earn cards while connected.
+too, with one exception: with `randomize_tarot_cards` on, a card unlocked while disconnected
+sends no check and is taken back on reconnect, so earn cards while connected.
 
 ## Tracking your progress
 
 Turn on `archipelago_objective_guide` (it is on by default) and the pause menu's Quests tab grows
 an Archipelago group: your goal, your region access, and one live line per active check block.
-There is no external tracker for this game yet. The base shows more: your tarot book, your
-weapon and curse podiums, and your sermon tree at the Temple altar.
+There is no external tracker for this game yet, so this is how you know what the seed still
+wants. The base shows more: your tarot book, your weapon and curse podiums, and your sermon tree
+at the Temple altar.
 
 ## Is there a DeathLink?
 

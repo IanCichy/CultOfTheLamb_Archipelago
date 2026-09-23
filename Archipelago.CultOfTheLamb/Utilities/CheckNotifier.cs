@@ -57,15 +57,19 @@ internal static class CheckNotifier
             return $"Checked {location}";
         }
 
-        var headline = scouted.ForLocalPlayer
-            ? $"Sent yourself {scouted.ItemName}"
-            : $"Sent {scouted.ItemName} to "
-                + ApColors.Tint(scouted.PlayerName, ApColors.YellowHex);
+        var item = string.IsNullOrEmpty(scouted.ItemName)
+            ? "an item"
+            : ApColors.Sanitize(scouted.ItemName);
 
-        return $"{headline}\n{location}";
+        var headline = scouted.ForLocalPlayer
+            ? $"Sent yourself {item}"
+            : $"Sent {item} to " + ApColors.Tint(scouted.PlayerName, ApColors.YellowHex);
+
+        return $"{headline}\n{ApColors.Sanitize(location)}";
     }
 
-    // The lookup needs the datapackage, so it can fail. Says so in words rather than throwing
+    // The lookup needs the datapackage, so it can fail. Falls back to the id, which is still
+    // worth something in a bug report, rather than throwing
     private static string LocationName(ArchipelagoSession session, long checkId)
     {
         if (Scouts != null)
@@ -76,11 +80,11 @@ internal static class CheckNotifier
         try
         {
             var name = session.Locations.GetLocationNameFromId(checkId, Game);
-            return string.IsNullOrEmpty(name) ? "an Archipelago check" : name;
+            return string.IsNullOrEmpty(name) ? $"location {checkId}" : name;
         }
         catch
         {
-            return "an Archipelago check";
+            return $"location {checkId}";
         }
     }
 }
