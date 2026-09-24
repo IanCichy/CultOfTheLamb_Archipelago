@@ -35,22 +35,22 @@ New to Archipelago? Find more [info](https://archipelago.gg)
 ## Playing
 
 ### 1. Get your YAML
-Download one of the `.yaml` files from the latest release on GitHub
+Your YAML file is what tells the generator how you want your game randomized. Two are attached to
+each release:
 
-- `cult_of_the_lamb_quickstart.yaml` has a handful of options. Start here if you don't want to
-  be overwhelmed.
-- `cult_of_the_lamb_example.yaml` has every option, each explained in a comment above it.
+- `cult_of_the_lamb_quickstart.yaml` has a handful of options. Start here if you don't want to read
+  through everything.
+- `cult_of_the_lamb_example.yaml` has every option, with each one explained in a comment above it.
 
 Open it and change `name: PlayerName` to the name you want in the multiworld. Everyone in a
 multiworld needs a different one.
 
 ### 2. Generate a seed
-   Put your YAML in `Archipelago\Players\`, then open Archipelago and click Generate
+Put your finished file in `Archipelago\Players\` before generating, or hand it to whoever is
+generating for your group. Then open Archipelago and click Generate.
 
-   This produces a `.archipelago` file. Upload it at
-   [archipelago.gg/uploads](https://archipelago.gg/uploads) to have it hosted for you, which
-   gives you the server address and port to connect to. You can also host it yourself from the
-   Archipelago launcher.
+This produces a `.archipelago` file. Host it the same way you would for any other Archipelago
+game.
 
 ### 3. Load the game and connect
 
@@ -69,6 +69,7 @@ multiworld needs a different one.
    - Open the pause menu and click **Archipelago**, which opens a new dialogue box. Fill in your server (e.g. `archipelago.gg:38281`), slot name (the name from your `.yaml` file) and
    password (leave blank if none). Click **Connect**.
       - The Archipelago dialogue box will tell you it's connected to a server
+      - The main menu has the same panel, so you can type your details in early. Connecting still needs a save loaded
       - If it doesn't connect, the box says why. A wrong slot name is the usual cause, and it
         has to match the `name:` in your YAML exactly
 
@@ -86,9 +87,9 @@ multiworld needs a different one.
 - Checks for every Bishop, miniboss and Witness
 - Toggleable checks: follower recruitment, snail shrine, tarot shop, construction, sweeping
 - Multiple goal options (Bishops, Witnesses, or Narinder)
-- Woolhaven DLC support (only enable `include_woolhaven` in your YAML if you actually own it)
+- Woolhaven DLC support (currently weapons and curses) (only enable `include_woolhaven` in your YAML if you actually own it)
 - Resource bundle filler items
-- One trap so far, with a percentage knob
+- One trap so far
 - In-game ways to view your progress
 
 ### What's **NOT** Included
@@ -129,8 +130,8 @@ than a released one. Reinstall the mod through your mod manager.
 
 ## Reporting issues
 
-This is a first beta and nothing here has been through a real multiworld yet. If something looks
-wrong, assume it hasn't been seen rather than that it's known and accepted.
+This is a first public beta. Multiple full AP sessions have been played and completed with this mod. However, if something looks
+wrong or breaks please report it!
 
 **Press F9 in game first.** That writes the mod's state to the log, and a popup confirms it worked.
 A log with that in it answers most of what a bug report would otherwise take a conversation to

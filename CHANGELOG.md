@@ -29,7 +29,8 @@ changed.
   upgrade costs, plus a Fast Build toggle that caps build progress at six hammer swings.
 - Most of the game's follower quests can be taken out of rotation, so errands don't crowd out
   the crusades.
-- Choose how many weapons, curses and tarot cards you start with.
+- Choose how many weapons and curses you start with, and how many tarot cards if you set
+  `starting_tarot_pool` to `any`.
 
 ### In game
 

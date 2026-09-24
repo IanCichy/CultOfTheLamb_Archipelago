@@ -61,9 +61,6 @@ Cult of the Lamb:
   # randomized_safe_start: as randomized, but never Silk Cradle first (getting through it
   #                        costs you a Follower, brutal as an opening move)
   # all_unlocked:          no gating at all, so every region is open from the start
-  #
-  # (This replaces the old randomize_region_access toggle. true/false still work as aliases
-  # for randomized/all_unlocked, but the named values are the real option.)
   region_access_order: randomized_safe_start
 
   # ---------------------------------------------------------------------------
@@ -245,8 +242,9 @@ Cult of the Lamb:
   # Pacing
   # ---------------------------------------------------------------------------
 
-  # Most sermon XP one Temple upgrade may need, in TENTHS, the unit the game's own bar counts
-  # in, so 20 means the bar never shows more than "x/20".
+  # The most one Temple upgrade may cost, counted in Follower levels. Everyone attending a
+  # sermon contributes their level, up to 5, so 20 means twenty level 1 Followers, or four
+  # level 5s.
   #
   # The default is tuned for a seed of roughly six hours, which puts the sermon block at about
   # 35 sermons. Raise it for a longer game, or set 0 to leave the game's own curve alone.

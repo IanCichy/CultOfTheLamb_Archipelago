@@ -33,14 +33,12 @@ class RequiredCount(Range):
 class ArchipelagoObjectiveGuide(Toggle):
     """Add an Archipelago checklist to the in-game quest log.
 
-    The game never tells you what the seed wants from you. This adds an Archipelago group to
-    the pause menu's Quests tab: your goal, your region access, and one line per active check
+    This adds an Archipelago group to the pause menu's Quests tab: your goal,
+    your region access, and one line per active check
     type, each ticking itself off as you finish it.
 
     Display only. It adds no checks and no items, so turning it off changes nothing about the
-    seed. Progress comes from what the server recorded for your slot, so two save files on one
-    slot share one count.
-    """
+    seed. Progress comes from what the server recorded for your slot."""
     display_name = "Archipelago Objective Guide"
     default = True
 
@@ -71,7 +69,8 @@ class VanillaFollowerQuests(Choice):
     meals, dress someone in a fancy suit, murder a specific follower at night. Most is busywork
     that pulls against what the multiworld wants from you. But handing quests in is also the
     main source of follower loyalty XP, so cutting all of them slows levelling down.
-
+    This system is VERY beta... so use as you wish for now. 
+    
     unchanged: every quest stays in rotation.
 
     thin_trickle: keep the ritual quests, the crusade collection quests and the follower story
@@ -105,16 +104,13 @@ class RegionAccessOrder(Choice):
 
     all_unlocked: every region open from the start, with no Progressive Bishop's Domain items
       in the pool. Region access is the main thing shaping a seed, so without it everything is
-      reachable from the start."""
+      reachable from the start. Honestly dont know why I left this in, will likely remove later."""
     display_name = "Region Access Order"
     option_vanilla_order = 0
     option_randomized = 1
     option_randomized_safe_start = 2
     option_all_unlocked = 3
     default = 2
-    # Keeps YAMLs written against the old Toggle working.
-    alias_true = 1
-    alias_false = 3
 
 
 class IncludeWoolhaven(Toggle):
@@ -128,8 +124,7 @@ class IncludeWoolhaven(Toggle):
 
 
 class RandomizeSermonUpgrades(Toggle):
-    """Randomize the Temple sermon upgrades (Hearts of the Faithful, Might of the Devout,
-    the weapon affixes and curse packs, the Heavy Attack masteries...).
+    """Randomize the Temple sermon upgrades
 
     When enabled, filling the sermon bar sends a check instead of opening the upgrade-choice
     screen, and the upgrades themselves arrive as Archipelago items. 32 upgrades, or 38 with
@@ -148,18 +143,14 @@ class FollowerMilestoneChecks(Toggle):
 
 
 class SermonXpCap(Range):
-    """The most sermon XP one Temple upgrade is allowed to need, in tenths.
+    """The most sermon XP one Temple upgrade is allowed to need.
 
-    Tenths because that's what the game's bar counts in: it renders `12/30`.
-
-    The default is tuned for a seed of roughly six hours, which puts the sermon block at about
-    35 sermons. Raise it for a longer game: 30 is about 51 sermons and 50 about 80. Set 0 to
-    leave the game's own curve alone, which runs to about 150 at a 20-strong flock.
-
-    Those counts assume a low-level flock. A sermon pays more as Followers level up, so treat
-    them as the slow end.
-
-    Only affects the Temple upgrade sermon, not the five doctrines."""
+    The default is tuned for a seed of roughly six-eight~ish hours
+    Each follower gives 1 xp per level in each sermon. 20 xp means 10 lvl 2 followers or 
+    5 level 4 followers would fill the whole bar. 
+    
+    Raise this for a longer game, lower for shorter, or set it to 0 to stay default. 
+    """
     display_name = "Sermon XP Cap"
     range_start = 0
     range_end = 100
@@ -173,14 +164,9 @@ FAST_BUILD_MINUTES = 30
 
 
 class FastBuild(Toggle):
-    """Cap how much build progress any structure needs at 30.
+    """Cap how long it takes to build anything.
 
-    A hammer swing is worth 5, so that's six swings, the same as a Bed or a Farm Plot. Most
-    buildings need 10 to 180 already, so for those this only shaves off a few seconds. What it
-    actually changes is the 300 to 600 tier: Temple III and IV, the shrine upgrades and the
-    repairables.
-
-    A ceiling, not a floor. Anything already cheaper than 30 keeps its own cost.
+    This sets all buildings to take max 6 hammer swings to complete, which is the same as a Bed or a Farm Plot.
 
     Quality of life only. It changes no checks and no logic, it just speeds up building."""
     display_name = "Fast Build"
@@ -193,8 +179,8 @@ class BuildingChecks(Toggle):
     Temple, Sleeping Bags, Missionary, Tabernacle, Offering Statue, Confession Booth, Kitchen
     and so on. No decorations. Upgrade tiers are excluded except Shelter.
 
-    Only the first build of each counts, tracked per seed rather than per save, so demolishing
-    and rebuilding won't pay twice. Connecting on a save that already has buildings standing
+    Only the first build of each counts, so demolishing
+    and rebuilding won't count twice. Connecting on a save that already has buildings standing
     sends the whole backlog at once."""
     display_name = "Building Checks"
     default = True
@@ -277,10 +263,7 @@ class StartingTarotPool(Choice):
 class RandomizeWeapons(Toggle):
     """Randomize which weapon families you can find.
 
-    Vanilla drip-feeds the Crusader's Blade, Apostate's Cleaver, Traitor's Razor, Warmaker's
-    Hammer, Tempest's Gauntlets and Mayhem's Cannon: the first floor of a run hands you one you
-    don't own yet, with the Tempest's Gauntlets, Warmaker's Hammer and Mayhem's Cannon also
-    gated on Bishops you have beaten. With this on, podiums, chests and choice rooms only offer
+    With this on, podiums, chests and choice rooms only offer
     families the multiworld has granted you, and equipping one for the first time sends a check.
     6 weapons, or 7 with Include Woolhaven DLC (Battler's Bludgeon, the Flail)."""
     display_name = "Randomize Weapons"
@@ -325,7 +308,7 @@ class RandomizeCurses(Toggle):
     Divine Blast, Ichor Thrown and Death's Sweep.
 
     Teleport curses aren't here. They come from the Woolhaven sermon upgrade Teleporting
-    Curses rather than crusade drops."""
+    Curses."""
     display_name = "Randomize Curses"
     default = True
 
@@ -357,15 +340,15 @@ class DivineInspirationMode(Choice):
       from Archipelago instead, and you spend them on whatever you like. Same totals as vanilla,
       just on the multiworld's schedule.
 
-    checks_and_techs: the point never comes back, and Archipelago grants the upgrades directly.
-      You never choose anything, since the tree unlocks itself.
+    checks_and_techs: filling the meter sends a check and the point is taken from you.
+      Archipelago grants the upgrades directly, so the tree unlocks itself in whatever order
+      they arrive. The Temple, a bed, a farm plot, the Body Pit and farming are free from the
+      start, since a cult can't run without them.
 
-    curated_checks: as checks_and_techs, but the 69 upgrades are grouped into 38 items, so a
-      building and all of its tiers arrive together and "Missionary Network" is one item rather
-      than three. Five tier-1 upgrades (Temple, Farm Plot, Sleeping Bags, Body Pit, Farming
-      Bundle) are free from the start, since the cult can't function without them. Progressive
-      Cult and Progressive Shrine Flame stay tiered, because both multiply Devotion. This mode
-      also uses Divine Inspiration Checks to shorten the block.
+    curated_checks: Same as checks_and_techs, but related upgrades arrive together instead of one
+      at a time, so the 69 become 38 items. "Resource Production" hands you the Lumberyard, the
+      Mine and both of their upgrades in one go, and "Missionary Network" is one item rather
+      than three. Fewer unlocks, each set is useful.
 
     Any combination with Divine Inspiration Shuffle is a legal seed."""
     display_name = "Divine Inspiration Mode"
@@ -381,15 +364,12 @@ class DivineInspirationDevotionCap(Range):
     """The most Devotion a single ability point is allowed to cost.
 
     Vanilla's curve runs 1, 13, 29, 45 ... up to 465 and stays there, so all 69 points cost
-    about 24,000 Devotion. Every check in this block is a filled meter, so without a cap most of
-    the block is out of reach.
+    about 24,000 Devotion. Every check in this block is a filled meter, so without a cap this will take a long time.
 
-    The default is tuned for a seed of roughly six hours, bringing all 69 points down to about
+    The default is tuned for a seed of roughly six-eight~ish hours, bringing all 69 points down to about
     4,600 Devotion. Raise it for a longer game: 100 is about 6,500, 150 about 9,400, and 200
-    about 12,300. Set 0 to leave the game's own curve alone.
+    about 12,300. Set 0 to leave the game's own curve alone."""
 
-    Capping only flattens the expensive tail. The early curve stays exactly as the game wrote
-    it."""
     display_name = "Divine Inspiration Devotion Cap"
     range_start = 0
     range_end = 465
@@ -397,14 +377,11 @@ class DivineInspirationDevotionCap(Range):
 
 
 class DivineInspirationChecks(Range):
-    """How many Divine Inspiration checks the block has, in curated_checks mode.
+    """How many Divine Inspiration checks the game has, in curated_checks mode.
+    Only used when Divine Inspiration Mode is curated_checks.
 
-    Only read when Divine Inspiration Mode is curated_checks. Every other mode uses all 69.
-
-    69 is a lot. At the default Devotion cap, 30 is about one session.
-
-    The block can be shorter than its own item count. The extra items just go elsewhere in the
-    seed, onto locations that would otherwise hold filler.
+    You can just pick how many check out want. The default game has 69 but the mod default is 30 for a nice round number.
+    Set it to 20, 40, 15, whatever you want for however long of a run you want.
 
     Setting this very low while also turning most other check blocks off can leave more items
     than locations, which fails generation."""
@@ -418,7 +395,8 @@ class DivineInspirationShuffle(Choice):
     """Rearranges which tier each Divine Inspiration upgrade sits in.
 
     A layout change only. It moves upgrades between rows without changing what Archipelago
-    checks or grants, so it's safe with any Divine Inspiration Mode.
+    checks or grants, so it's safe with any Divine Inspiration Mode. Although useless with 
+    checks_and_techs and curated_checks since AP grants ignore the trees layout. 
 
     default: the game's own layout.
 

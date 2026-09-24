@@ -143,8 +143,10 @@ class TestChecksAndTechs(DITestBase):
         self.assertNotIn(DI_POINT, pool)
 
         for upgrade in DIVINE_INSPIRATION:
-            self.assertEqual(sum(1 for n in pool if n == upgrade.item_name), 1,
-                             f"{upgrade.item_name} should appear exactly once")
+            # The five the cult can't run without are granted on connect, so they are not items
+            expected = 0 if upgrade.internal in DI_FREE_UPGRADES else 1
+            self.assertEqual(sum(1 for n in pool if n == upgrade.item_name), expected,
+                             f"{upgrade.item_name} should appear exactly {expected} time(s)")
 
     def test_techs_do_not_gate_the_checks(self):
         names = [u.item_name for u in DIVINE_INSPIRATION]
@@ -161,6 +163,8 @@ class TestShuffleIsLogicNeutral(DITestBase):
     def test_same_shape_as_unshuffled(self):
         self.assert_locations_exist()
         for upgrade in DIVINE_INSPIRATION:
+            if upgrade.internal in DI_FREE_UPGRADES:
+                continue
             self.assertIn(upgrade.item_name, self.item_names)
 
     def test_rules_unchanged(self):
@@ -462,4 +466,6 @@ class TestOtherModesIgnoreTheCheckCount(DITestBase):
         slot_data = self.world.fill_slot_data()
         self.assertEqual(slot_data["divineInspirationBundles"], {})
         self.assertEqual(slot_data["divineInspirationProgressive"], {})
-        self.assertEqual(slot_data["divineInspirationFreeUpgrades"], [])
+        # Both granting modes free the same five, so this one is not curated-only
+        self.assertEqual(sorted(slot_data["divineInspirationFreeUpgrades"]),
+                         sorted(DI_FREE_UPGRADES))

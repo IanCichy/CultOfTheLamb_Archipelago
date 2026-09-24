@@ -1,7 +1,6 @@
 import logging
 from typing import Any, Dict, List, Optional, Tuple
 
-from BaseClasses import Tutorial
 from Options import OptionError
 from worlds.AutoWorld import WebWorld, World
 
@@ -41,15 +40,6 @@ MOD_VERSION = "0.9.0"
 class CultOfTheLambWeb(WebWorld):
     theme = "dirt"
     bug_report_page = "https://github.com/IanCichy/CultOfTheLamb_Archipelago/issues"
-
-    tutorials = [Tutorial(
-        "Multiworld Setup Guide",
-        "A guide to setting up the Cult of the Lamb integration for Archipelago multiworld games.",
-        "English",
-        "setup_en.md",
-        "setup/en",
-        ["IanCichy"]
-    )]
 
     # Starting points on the options page, so a new player doesn't have to read 28 options to get
     # a seed. Each one has been generated and checked; keep it that way when editing, because a
@@ -385,6 +375,20 @@ class CultOfTheLambWorld(World):
                 == DivineInspirationMode.option_curated_checks)
 
     @property
+    def divine_inspiration_grants_upgrades(self) -> bool:
+        """Whether Archipelago hands out the upgrades themselves rather than ability points.
+
+        Both granting modes need the same five tier-1 upgrades free at the start. Without a bed,
+        a farm plot or the Temple a save cannot function, and the Temple is worse than
+        inconvenient: sermons happen there, so a seed that buried it could leave the whole sermon
+        block unreachable with nothing in rules.py to notice.
+        """
+        return self.options.divine_inspiration_mode in (
+            DivineInspirationMode.option_checks_and_techs,
+            DivineInspirationMode.option_curated_checks,
+        )
+
+    @property
     def divine_inspiration_location_count(self) -> int:
         """How many checks this block creates.
 
@@ -408,7 +412,8 @@ class CultOfTheLambWorld(World):
         if mode == DivineInspirationMode.option_checks_and_points:
             return [DI_POINT]
         if mode == DivineInspirationMode.option_checks_and_techs:
-            return [u.item_name for u in DIVINE_INSPIRATION]
+            return [u.item_name for u in DIVINE_INSPIRATION
+                    if u.internal not in DI_FREE_UPGRADES]
         if mode == DivineInspirationMode.option_curated_checks:
             return list(DI_CURATED_ITEM_NAMES)
 
@@ -689,7 +694,7 @@ class CultOfTheLambWorld(World):
             # Unlocked on connect, with neither a check nor an item. Without these a fresh save
             # can't build a bed, a farm plot or the Temple.
             "divineInspirationFreeUpgrades": (
-                list(DI_FREE_UPGRADES) if self.divine_inspiration_is_curated else []
+                list(DI_FREE_UPGRADES) if self.divine_inspiration_grants_upgrades else []
             ),
             # The item that carries one ability point in checks_and_points.
             "divineInspirationPointItem": DI_POINT,
