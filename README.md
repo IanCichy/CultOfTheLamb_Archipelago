@@ -158,7 +158,7 @@ With BepInEx installed straight into the game folder, it is `BepInEx\LogOutput.l
 
 ## AI disclosure
 
-This mod is AI-assisted. See [AIdisclosure.md](AIdisclosure.md) for details.
+This mod is AI-assisted. See [AIdisclosure.md](https://github.com/IanCichy/CultOfTheLamb_Archipelago/blob/main/AIdisclosure.md) for details.
 
 ## Credits
 
