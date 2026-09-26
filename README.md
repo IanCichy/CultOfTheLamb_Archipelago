@@ -66,6 +66,12 @@ game.
      runs the game without the mod, and none of the Archipelago menus will appear.
    - Start a new game, or load a save you have already used for Archipelago
 
+> [!IMPORTANT]
+> You can only connect once you have loaded into your save. Right after loading into your cult
+> is going to be the best time. Connecting is what unlocks your starting region and hands you
+> anything you are owed, and all of that gets written into the loaded save, so there has to be
+> one.
+
    - Open the pause menu and click **Archipelago**, which opens a new dialogue box. Fill in your server (e.g. `archipelago.gg:38281`), slot name (the name from your `.yaml` file) and
    password (leave blank if none). Click **Connect**.
       - The Archipelago dialogue box will tell you it's connected to a server
@@ -138,9 +144,17 @@ A log with that in it answers most of what a bug report would otherwise take a c
 sort out.
 
 Open a [GitHub issue](https://github.com/IanCichy/CultOfTheLamb_Archipelago/issues) with your
-`LogOutput.log` and, if it's seed-specific, your YAML. Reports from real multiworld sessions are
-the most valuable thing this beta can get - "the checklist said one thing and the server said
-another" or "this item never arrived" matter more than they might seem to.
+`LogOutput.log` and, if it's seed-specific, your YAML.
+
+The dump goes into the same log the mod writes everything else to. If you installed through
+r2modman it is at:
+
+```
+%APPDATA%\r2modmanPlus-local\COTL\profiles\<your profile>\BepInEx\LogOutput.log
+```
+
+With BepInEx installed straight into the game folder, it is `BepInEx\LogOutput.log` next to
+`Cult of the Lamb.exe`.
 
 ## AI disclosure
 
