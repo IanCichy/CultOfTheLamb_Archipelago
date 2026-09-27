@@ -42,7 +42,7 @@ internal class EconomyService : IService
 
         if (sermonXpCapTenths > 0)
         {
-            applied.Add($"sermon XP {sermonXpCapTenths / 10f:0.#}");
+            applied.Add($"sermon XP {sermonXpCapTenths}");
         }
 
         if (buildTimeCap > 0)
