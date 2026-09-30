@@ -10,7 +10,7 @@ from .items import (
     DI_EARLY_ITEM_NAMES,
     DI_CURATED_SINGLES, DI_FREE_UPGRADES, DI_INTERNAL_BY_DISPLAY,
     DI_POINT, DI_TIER_THRESHOLDS, DIVINE_INSPIRATION,
-    SERMON_ITEM_UPGRADES, WEAPONS, CultOfTheLambItem, EquipmentData,
+    SERMON_ITEM_UPGRADES, TAROT_CARDS, WEAPONS, CultOfTheLambItem, EquipmentData,
     PROGRESSIVE_REGION_ACCESS, TarotCardData, create_item, item_table,
     ap_item_name, poolable_equipment, poolable_tarot_cards, sermon_item_counts,
     sermon_item_name, trap_table,
@@ -34,7 +34,7 @@ from .rules import set_rules
 # Sent in slot data and logged by the client next to its own version, so a player's log says which
 # apworld built the seed. It is not enforced. A mismatch is something to notice while reading a
 # log, not a reason to refuse a connection. Keep in step with ArchipelagoPlugin.PluginVersion.
-MOD_VERSION = "0.9.0"
+MOD_VERSION = "0.9.1"
 
 
 class CultOfTheLambWeb(WebWorld):
@@ -135,6 +135,10 @@ class CultOfTheLambWorld(World):
     options: CultOfTheLambOptions
     topology_present = True
 
+    # Universal Tracker re-runs generation locally, and the server doesn't store the per-seed
+    # rolls. This flag and interpret_slot_data below let it rebuild them from slot data instead.
+    ut_can_gen_without_yaml = True
+
     item_name_to_id = {name: data.code for name, data in item_table.items()}
     location_name_to_id = location_name_to_id
     item_name_groups = {
@@ -172,8 +176,18 @@ class CultOfTheLambWorld(World):
     curses: List[EquipmentData]
     starting_curses: List[EquipmentData]
 
+    @staticmethod
+    def interpret_slot_data(slot_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Universal Tracker hook. The return value lands in re_gen_passthrough[game]."""
+        return slot_data
+
     def generate_early(self) -> None:
         """Per-seed choices every later step reads: region order, starting equipment and cards."""
+        passthrough = getattr(self.multiworld, "re_gen_passthrough", {})
+        if self.game in passthrough:
+            self.load_from_slot_data(passthrough[self.game])
+            return
+
         self.warn_about_ignored_options()
         self.region_order = self.build_region_order()
         # Expand once rather than per filler item. This is sampled dozens of times per seed.
@@ -184,6 +198,62 @@ class CultOfTheLambWorld(World):
         self.curses, self.starting_curses = self.pick_equipment(
             CURSES, self.options.randomize_curses, self.options.starting_curses.value)
         self.legendary_weapon_chance = self.pick_legendary_chance()
+
+    def load_from_slot_data(self, sd: Dict[str, Any]) -> None:
+        """Rebuild generate_early's per-seed choices from slot data, for Universal Tracker.
+
+        Options first, because regions_are_gated and divine_inspiration_is_curated read them.
+        No warn_about_ignored_options: under UT it would repeat the player's warnings on their
+        machine for a seed they cannot change.
+        """
+        opts = self.options
+        opts.goal.value = sd["goal"]
+        opts.required_count.value = sd["requiredCount"]
+        opts.include_woolhaven.value = int(sd["includeWoolhaven"])
+        opts.randomize_sermon_upgrades.value = int(sd["randomizeSermonUpgrades"])
+        opts.follower_milestone_checks.value = int(sd["followerMilestoneChecks"])
+        opts.snail_shrine_checks.value = int(sd["snailShrineChecks"])
+        opts.randomize_tarot_cards.value = int(sd["randomizeTarotCards"])
+        opts.tarot_shop_checks.value = int(sd["tarotShopChecks"])
+        opts.randomize_weapons.value = int(sd["randomizeWeapons"])
+        opts.randomize_curses.value = int(sd["randomizeCurses"])
+        opts.building_checks.value = int(sd["buildingChecks"])
+        opts.broom_checks.value = int(sd["broomChecks"])
+        opts.divine_inspiration_mode.value = sd["divineInspirationMode"]
+        opts.divine_inspiration_checks.value = sd["divineInspirationLocationCount"]
+
+        # Only regions_are_gated reads this now, and it just asks whether the seed is
+        # all_unlocked, so the exact flavour of randomization need not survive the round trip.
+        opts.region_access_order.value = (
+            RegionAccessOrder.option_vanilla_order if sd["randomizeRegionAccess"]
+            else RegionAccessOrder.option_all_unlocked
+        )
+
+        self.region_order = list(sd["regionOrder"])
+        self.weighted_filler = weighted_filler_names()
+        self.legendary_weapon_chance = sd["legendaryWeaponChance"]
+
+        # Slot-data order, not table order: the starting picks are a random sample whose order
+        # the wire already preserves.
+        cards = {c.internal: c for c in TAROT_CARDS}
+        self.tarot_cards = [cards[i] for i in sd["tarotCards"].values()]
+        self.starting_tarot_cards = [cards[i] for i in sd["startingTarotCards"]]
+
+        self.weapons, self.starting_weapons = self._equipment_from_slot_data(
+            WEAPONS, sd["weaponItems"], sd["startingWeapons"])
+        self.curses, self.starting_curses = self._equipment_from_slot_data(
+            CURSES, sd["curseItems"], sd["startingCurses"])
+
+    @staticmethod
+    def _equipment_from_slot_data(
+        table: List[EquipmentData], managed: Dict[str, str], starting: List[str],
+    ) -> Tuple[List[EquipmentData], List[EquipmentData]]:
+        """Families this seed manages, and the subset it starts you with, in the seed's order."""
+        by_internal = {e.internal: e for e in table}
+        return (
+            [by_internal[i] for i in managed.values()],
+            [by_internal[i] for i in starting],
+        )
 
     def warn_about_ignored_options(self) -> None:
         """Log the options this YAML set that the rest of its own settings switch off.

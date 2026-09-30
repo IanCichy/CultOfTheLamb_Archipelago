@@ -95,7 +95,11 @@ internal class DivineInspirationService : IService
         // Already-unlocked is the normal case on a replay. UnlockAbility is a set Add, so it
         // no-ops and only the count matters.
         var tier = tiers[tierIndex];
-        UpgradeSystem.UnlockAbility(tier);
+        if (UpgradeSystem.UnlockAbility(tier))
+        {
+            UpgradeReveal.Claim(tier);
+        }
+
         Log.LogInfo($"[AP] Divine Inspiration '{itemName}' unlocked {tier} "
             + $"(tier {tierIndex + 1} of {tiers.Count}).");
     }
@@ -171,6 +175,7 @@ internal class DivineInspirationService : IService
         {
             if (UpgradeSystem.UnlockAbility(upgrade))
             {
+                UpgradeReveal.Claim(upgrade);
                 granted++;
             }
         }
@@ -233,6 +238,7 @@ internal class DivineInspirationService : IService
             {
                 if (UpgradeSystem.UnlockAbility(upgrade))
                 {
+                    UpgradeReveal.Claim(upgrade);
                     unlocked.Add(upgrade);
                 }
             }

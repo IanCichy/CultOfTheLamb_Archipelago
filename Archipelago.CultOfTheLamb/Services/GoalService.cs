@@ -59,9 +59,25 @@ internal class GoalService : IService
         CheckGoal();
     }
 
+    // Sends on the event itself rather than reading DeathCatBeaten. That flag is set before our
+    // postfix runs, yet in testing it still read false here, and the cause isn't known.
     private void HandleNarinderDefeated()
     {
+        if (goal == GoalNarinder)
+        {
+            Log.LogInfo("[AP] Goal progress: Narinder defeated.");
+            SendGoalCompleted();
+            return;
+        }
+
         CheckGoal();
+    }
+
+    // Once a second from ArchipelagoPlugin. A backstop for any goal whose event was missed, and
+    // quiet, since the progress line would otherwise fill the log.
+    internal void Tick()
+    {
+        CheckGoal(log: false);
     }
 
     // For debug keys that write save state directly, which raises none of the events above
@@ -73,7 +89,7 @@ internal class GoalService : IService
     // This seed's goal, so a debug key can refuse to run on the wrong one
     internal int Goal => goal;
 
-    private void CheckGoal()
+    private void CheckGoal(bool log = true)
     {
         if (goalSent)
         {
@@ -87,10 +103,13 @@ internal class GoalService : IService
         var fixedTarget = GoalProgress.FixedTargetForGoal(goal);
         var target = fixedTarget > 0 ? fixedTarget : requiredCount;
 
-        Log.LogInfo(goal == GoalNarinder
-            ? $"[AP] Goal progress: Narinder {(defeated > 0 ? "defeated" : "not yet defeated")}."
-            : $"[AP] Goal progress: {defeated}/{target} "
-                + $"{(goal == GoalWitnesses ? "Witnesses" : "Bishops")} defeated.");
+        if (log)
+        {
+            Log.LogInfo(goal == GoalNarinder
+                ? $"[AP] Goal progress: Narinder {(defeated > 0 ? "defeated" : "not yet defeated")}."
+                : $"[AP] Goal progress: {defeated}/{target} "
+                    + $"{(goal == GoalWitnesses ? "Witnesses" : "Bishops")} defeated.");
+        }
 
         if (defeated >= target)
         {
@@ -100,6 +119,11 @@ internal class GoalService : IService
 
     private void SendGoalCompleted()
     {
+        if (goalSent)
+        {
+            return;
+        }
+
         goalSent = true;
         session.Socket.SendPacketAsync(new StatusUpdatePacket
         {

@@ -127,6 +127,8 @@ public partial class ArchipelagoItemLogicController : IService
         {
             ApplyItem(item.ItemId, item.SenderName, item.IsTrap);
         }
+
+        UpgradeReveal.FlushClaimed();
     }
 
     // Identifies this save+seed+slot in AppliedItemStore
