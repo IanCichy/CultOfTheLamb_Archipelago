@@ -1169,6 +1169,7 @@ internal static class DebugActions
 
         d.AllowSaving = true;
         d.EnabledHealing = true;
+        d.EnabledSpells = true;
         d.BuildShrineEnabled = true;
         d.CookedFirstFood = true;
         d.XPEnabled = true;

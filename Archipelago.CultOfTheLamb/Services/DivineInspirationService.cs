@@ -152,12 +152,28 @@ internal class DivineInspirationService : IService
         _ => "off",
     };
 
+    // True once the free upgrades have been handed over
+    private bool freeUpgradesGranted;
+
+    // So the "still in the tutorial" line is logged once
+    private bool loggedWaitingForTutorial;
+
+    // Retries the free upgrades until the tutorial is over
+    internal void Tick()
+    {
+        if (!freeUpgradesGranted)
+        {
+            GrantFreeUpgrades();
+        }
+    }
+
     // The upgrades this seed hands over for free, in curated_checks. Without them a fresh save
     // can't unlock a bed, a farm plot or the Temple, so there is no first move
     private void GrantFreeUpgrades()
     {
         if (freeUpgrades.Count == 0)
         {
+            freeUpgradesGranted = true;
             return;
         }
 
@@ -170,6 +186,27 @@ internal class DivineInspirationService : IService
             return;
         }
 
+        // The tutorial adds its Build Temple objective only after its Divine Inspiration step,
+        // so handing the Temple over early leaves that objective stuck.
+        if (TutorialState.InTutorial)
+        {
+            if (!loggedWaitingForTutorial)
+            {
+                loggedWaitingForTutorial = true;
+                Log.LogInfo($"[AP] Holding {freeUpgrades.Count} free Divine Inspiration "
+                    + "upgrade(s): this save is still in the tutorial. They arrive when it ends.");
+
+                ApNotification.Show(
+                    "Archipelago: Divine Inspiration related items will only arrive once the "
+                    + "tutorial is over.",
+                    NotificationBase.Flair.Negative,
+                    ApColors.Red);
+            }
+
+            return;
+        }
+
+        freeUpgradesGranted = true;
         var granted = 0;
         foreach (var upgrade in freeUpgrades)
         {

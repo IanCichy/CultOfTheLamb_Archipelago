@@ -30,6 +30,9 @@ internal static class DivineInspirationPatch
     // double-count every point in the seed
     private static bool granting;
 
+    // Logged once, not per point
+    private static bool loggedTutorialPoint;
+
     // Adds count points past the withholding
     internal static void GrantPoints(int count)
     {
@@ -88,6 +91,20 @@ internal static class DivineInspirationPatch
 
             if (!WithholdPoints)
             {
+                return true;
+            }
+
+            // The tutorial needs a point spent on the Temple before it will continue
+            // (UpgradeSystem.cs:766), so withholding it strands the save
+            if (TutorialState.InTutorial)
+            {
+                if (!loggedTutorialPoint)
+                {
+                    loggedTutorialPoint = true;
+                    Log.LogInfo("[AP] Letting a Divine Inspiration point through: the tutorial "
+                        + "needs one spent to continue. Withholding resumes once it ends.");
+                }
+
                 return true;
             }
 

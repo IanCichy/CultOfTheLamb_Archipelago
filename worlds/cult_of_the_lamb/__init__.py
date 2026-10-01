@@ -139,6 +139,10 @@ class CultOfTheLambWorld(World):
     # rolls. This flag and interpret_slot_data below let it rebuild them from slot data instead.
     ut_can_gen_without_yaml = True
 
+    # On the class, not the instance. An item link with replacement asks the link's group world
+    # for filler, and a group world never runs generate_early.
+    weighted_filler: List[str] = weighted_filler_names()
+
     item_name_to_id = {name: data.code for name, data in item_table.items()}
     location_name_to_id = location_name_to_id
     item_name_groups = {
@@ -190,8 +194,6 @@ class CultOfTheLambWorld(World):
 
         self.warn_about_ignored_options()
         self.region_order = self.build_region_order()
-        # Expand once rather than per filler item. This is sampled dozens of times per seed.
-        self.weighted_filler = weighted_filler_names()
         self.tarot_cards, self.starting_tarot_cards = self.pick_tarot_cards()
         self.weapons, self.starting_weapons = self.pick_equipment(
             WEAPONS, self.options.randomize_weapons, self.options.starting_weapons.value)
@@ -230,7 +232,6 @@ class CultOfTheLambWorld(World):
         )
 
         self.region_order = list(sd["regionOrder"])
-        self.weighted_filler = weighted_filler_names()
         self.legendary_weapon_chance = sd["legendaryWeaponChance"]
 
         # Slot-data order, not table order: the starting picks are a random sample whose order

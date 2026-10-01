@@ -45,6 +45,9 @@ public class ArchipelagoPlugin : BaseUnityPlugin
         harmony = new Harmony(PluginGUID);
         harmony.PatchAll();
 
+        // Cleanup needs to be an event subscription, not a patch
+        Services.SaveSlotCleanup.Register();
+
         // Manual, because its target is a compiler-generated iterator that PatchAll can't reach
         // by attribute, and because a resolution failure there should cost a warning rather than
         // the plugin.
@@ -110,6 +113,9 @@ public class ArchipelagoPlugin : BaseUnityPlugin
             AP?.SnailShrineService?.Tick();
             AP?.BroomService?.Tick();
             AP?.GoalService?.Tick();
+
+            // Hands over the free Divine Inspiration upgrades once the tutorial ends
+            AP?.DivineInspirationService?.Tick();
 
             // Runs a Temple upgrade that was held back because the base wasn't live. Not gated on
             // a session, because the upgrade is already in the save by then, so it has to
