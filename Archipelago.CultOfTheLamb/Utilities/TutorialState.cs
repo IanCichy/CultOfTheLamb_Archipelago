@@ -4,9 +4,10 @@ namespace Archipelago.CultOfTheLamb;
 /// Whether this save is still working through the game's opening tutorial.
 /// </summary>
 /// <remarks>
-/// Not just OnboardingFinished. Woolhaven clears that flag for its furnace quest
-/// (Onboarding.cs:973), so a Quick Start save would read as mid-tutorial until the furnace is
-/// built. QuickStartActive is saved with the game and rules that case out.
+/// Not just OnboardingFinished - Woolhaven clears that flag for its furnace quest
+/// (Onboarding.cs:973), long after the tutorial ended. ShowLoyaltyBars is the latch: both exits
+/// set it (Onboarding.cs:356, :699), Quick Start sets it at creation (DataManager.cs:402), and
+/// nothing clears it.
 /// </remarks>
 internal static class TutorialState
 {
@@ -23,7 +24,7 @@ internal static class TutorialState
                 return false;
             }
 
-            return !data.OnboardingFinished && !data.QuickStartActive;
+            return !data.OnboardingFinished && !data.ShowLoyaltyBars;
         }
     }
 }

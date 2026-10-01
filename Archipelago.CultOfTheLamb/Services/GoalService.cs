@@ -75,6 +75,8 @@ internal class GoalService : IService
 
     // Once a second from ArchipelagoPlugin. A backstop for any goal whose event was missed, and
     // quiet, since the progress line would otherwise fill the log.
+    // Not guarded on which save is loaded: SaveAndLoad.Loaded is never set back to false, so a
+    // guard latches onto a stale slot and silently disables the backstop.
     internal void Tick()
     {
         CheckGoal(log: false);

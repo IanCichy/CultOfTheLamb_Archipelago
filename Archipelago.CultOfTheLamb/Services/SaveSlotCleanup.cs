@@ -28,10 +28,17 @@ internal static class SaveSlotCleanup
     {
         try
         {
-            AppliedItemStore.ForgetSlot(saveSlot);
-
-            // Woolhaven saves use slot+10, folded here the way SaveSlot.Current does
+            // Only clean up once the whole row is empty. Activating Woolhaven snapshots the save
+            // to slot+10 (SaveAndLoad.MakeBaseGameBackUpSave), and falling back to that snapshot
+            // migrates it down and deletes the +10 slot (SaveAndLoad.cs:183-196). Our keys fold
+            // +10 into the base slot, so acting on that delete would forget the save just written.
             var slot = saveSlot >= 10 ? saveSlot - 10 : saveSlot;
+            if (SaveAndLoad.SaveExist(slot) || SaveAndLoad.SaveExist(slot + 10))
+            {
+                return;
+            }
+
+            AppliedItemStore.ForgetSlot(slot);
             ManagedCollectionStore.Settle(
                 TarotCollectionBacking.Key, slot, TarotCollectionBacking.LegacyKey);
         }

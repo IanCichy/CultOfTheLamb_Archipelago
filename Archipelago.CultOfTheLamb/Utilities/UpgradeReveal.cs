@@ -42,9 +42,12 @@ internal static class UpgradeReveal
         }
 
         var manager = GameManager.GetInstance();
-        if (manager == null)
+
+        // The same lookup the Heart tiers make unguarded (UpgradeSystem.cs:918), so it has to be
+        // this and not PlayerFarming.Instance, which survives the player object being deactivated.
+        // We dequeue before starting the coroutine, so a throw there loses the upgrade outright.
+        if (manager == null || UnityEngine.Object.FindObjectOfType<HealthPlayer>() == null)
         {
-            // Stay claimed and retry next frame rather than dropping the effects.
             return;
         }
 

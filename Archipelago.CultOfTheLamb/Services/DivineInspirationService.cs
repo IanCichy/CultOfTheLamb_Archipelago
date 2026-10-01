@@ -197,7 +197,7 @@ internal class DivineInspirationService : IService
                     + "upgrade(s): this save is still in the tutorial. They arrive when it ends.");
 
                 ApNotification.Show(
-                    "Archipelago: Divine Inspiration related items will only arrive once the "
+                    "Archipelago: your free Divine Inspiration upgrades arrive once the "
                     + "tutorial is over.",
                     NotificationBase.Flair.Negative,
                     ApColors.Red);
