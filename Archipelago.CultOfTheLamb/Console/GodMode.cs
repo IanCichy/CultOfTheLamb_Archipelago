@@ -22,7 +22,7 @@ internal static class GodMode
         active = !active;
         Apply();
 
-        Log.LogInfo($"[AP] Debug: god mode {(active ? "ON" : "OFF")} - no damage taken, "
+        Log.LogInfo($"[AP] Debug: god mode {(active ? "ON" : "OFF")}. No damage taken, "
             + $"{DamageMultiplier}x damage dealt.");
 
         ApNotification.Show(

@@ -158,6 +158,9 @@ internal class DivineInspirationService : IService
     // So the "still in the tutorial" line is logged once
     private bool loggedWaitingForTutorial;
 
+    // Tick retries every second, so the no-save line would otherwise spam
+    private bool loggedWaitingForSave;
+
     // Retries the free upgrades until the tutorial is over
     internal void Tick()
     {
@@ -177,12 +180,16 @@ internal class DivineInspirationService : IService
             return;
         }
 
-        // Same guard as RegionUnlockService. At the main menu there is no save to write into.
-        // Warned rather than thrown, because the connection itself is still perfectly good.
-        if (DataManager.Instance == null)
+        // Returning without latching freeUpgradesGranted leaves Tick to retry once a save loads.
+        if (!SaveSlot.IsLoaded)
         {
-            Log.LogWarning($"[AP] No save loaded, so the {freeUpgrades.Count} free Divine "
-                + "Inspiration upgrade(s) can't be granted yet. Connect at a loaded save.");
+            if (!loggedWaitingForSave)
+            {
+                loggedWaitingForSave = true;
+                Log.LogWarning($"[AP] No save loaded, so the {freeUpgrades.Count} free Divine "
+                    + "Inspiration upgrade(s) are waiting. They arrive when you load one.");
+            }
+
             return;
         }
 

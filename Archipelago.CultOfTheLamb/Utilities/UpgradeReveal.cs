@@ -105,7 +105,7 @@ internal static class UpgradeReveal
         if (Claimed.Count > 0)
         {
             Log.LogInfo($"[AP] Save {slot} has {Claimed.Count} upgrade reveal(s) owed from an "
-                + "earlier session - applying them now.");
+                + "earlier session. Applying them now.");
         }
     }
 

@@ -4,7 +4,7 @@ namespace Archipelago.CultOfTheLamb;
 /// Whether this save is still working through the game's opening tutorial.
 /// </summary>
 /// <remarks>
-/// Not just OnboardingFinished - Woolhaven clears that flag for its furnace quest
+/// Not just OnboardingFinished, because Woolhaven clears that flag for its furnace quest
 /// (Onboarding.cs:973), long after the tutorial ended. ShowLoyaltyBars is the latch: both exits
 /// set it (Onboarding.cs:356, :699), Quick Start sets it at creation (DataManager.cs:402), and
 /// nothing clears it.
