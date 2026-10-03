@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.9.1
+
+### Fixed
+
+- Beating Narinder now reports the goal.
+- Max health no longer climbs past the game's ceiling when a batch of items arrives on connect.
+- Universal Tracker shows the right starting region.
+- The sermon XP cap is logged as the number you set, not the game's internal value.
+- Deleting a save no longer leaves its Archipelago badge on the empty slot, or stops the save
+  menu refreshing.
+- Seeds no longer fail to generate when two Cult of the Lamb players share an item link.
+- A save started without Quick Start no longer stalls. The tutorial's Divine Inspiration point is
+  left alone until it finishes, and the free upgrades wait until then.
+- Gusion and Eligos no longer send each other's checks in Anura. Existing seeds keep the old
+  names, so regenerate to pick this up.
+
 ## 0.9.0: First public beta
 
 The first public release, so this covers everything the mod does. Later releases will list what

@@ -121,9 +121,15 @@ internal class SermonService : IService
             return true;
         }
 
-        // instant is true so the game's own unlock-reveal plays and an AP grant feels like a
-        // normal unlock. Effects apply live, verified in-game.
-        var granted = UpgradeSystem.UnlockAbility(upgrade, instant: true);
+        // Not instant. That starts the game's reveal routine, which replays every pending reveal,
+        // so a batch of items on connect applied each heart upgrade several times. UpgradeReveal
+        // plays each one once instead.
+        var granted = UpgradeSystem.UnlockAbility(upgrade);
+        if (granted)
+        {
+            UpgradeReveal.Claim(upgrade);
+        }
+
         Log.LogInfo($"[AP] Sermon item '{itemName}' -> {upgrade} "
             + $"(tier {tierIndex + 1}/{upgrades.Count}), UnlockAbility returned {granted}");
 

@@ -69,8 +69,8 @@ MINIBOSS_AND_WITNESS_KEYS: Dict[str, str] = {
     "Darkwood - Barbatos": "Boss Burrow Worm",
     "Darkwood - Witness Agares": "Boss Beholder 1",
 
-    "Anura - Gusion": "Boss Flying Burp Frog",
-    "Anura - Eligos": "Boss Egg Hopper",
+    "Anura - Gusion": "Boss Egg Hopper",
+    "Anura - Eligos": "Boss Flying Burp Frog",
     "Anura - Zepar": "Boss Mortar Hopper",
     "Anura - Witness Bathin": "Boss Beholder 2",
 

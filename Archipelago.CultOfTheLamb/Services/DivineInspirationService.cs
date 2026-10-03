@@ -95,7 +95,11 @@ internal class DivineInspirationService : IService
         // Already-unlocked is the normal case on a replay. UnlockAbility is a set Add, so it
         // no-ops and only the count matters.
         var tier = tiers[tierIndex];
-        UpgradeSystem.UnlockAbility(tier);
+        if (UpgradeSystem.UnlockAbility(tier))
+        {
+            UpgradeReveal.Claim(tier);
+        }
+
         Log.LogInfo($"[AP] Divine Inspiration '{itemName}' unlocked {tier} "
             + $"(tier {tierIndex + 1} of {tiers.Count}).");
     }
@@ -148,29 +152,74 @@ internal class DivineInspirationService : IService
         _ => "off",
     };
 
+    // True once the free upgrades have been handed over
+    private bool freeUpgradesGranted;
+
+    // So the "still in the tutorial" line is logged once
+    private bool loggedWaitingForTutorial;
+
+    // Tick retries every second, so the no-save line would otherwise spam
+    private bool loggedWaitingForSave;
+
+    // Retries the free upgrades until the tutorial is over
+    internal void Tick()
+    {
+        if (!freeUpgradesGranted)
+        {
+            GrantFreeUpgrades();
+        }
+    }
+
     // The upgrades this seed hands over for free, in curated_checks. Without them a fresh save
     // can't unlock a bed, a farm plot or the Temple, so there is no first move
     private void GrantFreeUpgrades()
     {
         if (freeUpgrades.Count == 0)
         {
+            freeUpgradesGranted = true;
             return;
         }
 
-        // Same guard as RegionUnlockService. At the main menu there is no save to write into.
-        // Warned rather than thrown, because the connection itself is still perfectly good.
-        if (DataManager.Instance == null)
+        // Returning without latching freeUpgradesGranted leaves Tick to retry once a save loads.
+        if (!SaveSlot.IsLoaded)
         {
-            Log.LogWarning($"[AP] No save loaded, so the {freeUpgrades.Count} free Divine "
-                + "Inspiration upgrade(s) can't be granted yet. Connect at a loaded save.");
+            if (!loggedWaitingForSave)
+            {
+                loggedWaitingForSave = true;
+                Log.LogWarning($"[AP] No save loaded, so the {freeUpgrades.Count} free Divine "
+                    + "Inspiration upgrade(s) are waiting. They arrive when you load one.");
+            }
+
             return;
         }
 
+        // The tutorial adds its Build Temple objective only after its Divine Inspiration step,
+        // so handing the Temple over early leaves that objective stuck.
+        if (TutorialState.InTutorial)
+        {
+            if (!loggedWaitingForTutorial)
+            {
+                loggedWaitingForTutorial = true;
+                Log.LogInfo($"[AP] Holding {freeUpgrades.Count} free Divine Inspiration "
+                    + "upgrade(s): this save is still in the tutorial. They arrive when it ends.");
+
+                ApNotification.Show(
+                    "Archipelago: your free Divine Inspiration upgrades arrive once the "
+                    + "tutorial is over.",
+                    NotificationBase.Flair.Negative,
+                    ApColors.Red);
+            }
+
+            return;
+        }
+
+        freeUpgradesGranted = true;
         var granted = 0;
         foreach (var upgrade in freeUpgrades)
         {
             if (UpgradeSystem.UnlockAbility(upgrade))
             {
+                UpgradeReveal.Claim(upgrade);
                 granted++;
             }
         }
@@ -233,6 +282,7 @@ internal class DivineInspirationService : IService
             {
                 if (UpgradeSystem.UnlockAbility(upgrade))
                 {
+                    UpgradeReveal.Claim(upgrade);
                     unlocked.Add(upgrade);
                 }
             }

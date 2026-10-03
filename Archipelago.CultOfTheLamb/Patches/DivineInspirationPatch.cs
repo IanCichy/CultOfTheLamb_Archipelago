@@ -30,6 +30,18 @@ internal static class DivineInspirationPatch
     // double-count every point in the seed
     private static bool granting;
 
+    // Logged once, not per point
+    private static bool loggedTutorialPoint;
+
+    // The tutorial can't end without a ritual in the Temple (Onboarding.cs:340-356) and unlocking
+    // the Temple costs a point, so one has to get through. Gated on the Temple rather than the
+    // CollectDivineInspiration objective because that objective completes when any upgrade unlocks
+    // (UpgradeSystem.cs:766), so an unrelated item could close the gate and strand the save.
+    private static bool TutorialNeedsAPoint =>
+        TutorialState.InTutorial
+        && UpgradeSystem.AbilityPoints < 1
+        && !UpgradeSystem.GetUnlocked(UpgradeSystem.Type.Building_Temple);
+
     // Adds count points past the withholding
     internal static void GrantPoints(int count)
     {
@@ -88,6 +100,18 @@ internal static class DivineInspirationPatch
 
             if (!WithholdPoints)
             {
+                return true;
+            }
+
+            if (TutorialNeedsAPoint)
+            {
+                if (!loggedTutorialPoint)
+                {
+                    loggedTutorialPoint = true;
+                    Log.LogInfo("[AP] Letting one Divine Inspiration point through: the tutorial "
+                        + "needs an upgrade unlocked to continue. Withholding resumes after that.");
+                }
+
                 return true;
             }
 

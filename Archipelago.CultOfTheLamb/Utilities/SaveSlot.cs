@@ -13,4 +13,9 @@ internal static class SaveSlot
     // raw value would read that as the player loading a different save
     internal static int Current =>
         SaveAndLoad.SAVE_SLOT >= 10 ? SaveAndLoad.SAVE_SLOT - 10 : SaveAndLoad.SAVE_SLOT;
+
+    // Whether there is a real save to write into. DataManager.Instance is no help, since its
+    // getter builds a blank one on demand and so is never null. SaveAndLoad.Loaded is no help on
+    // its own either, because nothing ever sets it back to false.
+    internal static bool IsLoaded => SaveAndLoad.Loaded && PlayerFarming.Instance != null;
 }

@@ -1006,8 +1006,14 @@ internal static class DebugActions
 
         dataManager.DoorRoomChainProgress = 5;
 
+        // The Narinder doors also want Followers. The patch only exists in a debug-keys build.
+#if AP_DEBUG_KEYS
+        Patches.FollowerGateBypassPatch.Enabled = true;
+#endif
+
         Log.LogInfo($"[AP] Debug: {added} Bishop(s) recorded as beaten "
-            + $"({dataManager.BossesCompleted.Count} total), Gateway chains all broken. "
+            + $"({dataManager.BossesCompleted.Count} total), Gateway chains all broken, "
+            + "Follower door requirements bypassed for this session. "
             + "Return to the Door Room and the final door will be open.");
 
         // The real kills raise events the services listen to, and a direct write doesn't, so
@@ -1086,6 +1092,117 @@ internal static class DebugActions
             + string.Join(", ", dataManager.CursePool));
     }
 
+    // Part of F9. Logs where max HP came from, since tarot effect values live in prefab data the
+    // decompile doesn't carry. RunTrinkets is the set HasTrinket reads, so it's what actually applies.
+    private static void DumpPlayerHealthAndRunTrinkets()
+    {
+        try
+        {
+            var player = PlayerFarming.Instance;
+            if (player == null)
+            {
+                Log.LogInfo("[AP] Health: no player right now (menu or loading).");
+                return;
+            }
+
+            var health = player.health;
+            if (health != null)
+            {
+                // Special hearts hang off Health, not DataManager
+                Log.LogInfo($"[AP] Health: HP {health.HP}/{health.totalHP}"
+                    + $" | black {health.BlackHearts}"
+                    + $" | spirit {health.TotalSpiritHearts}"
+                    + $" | blue {health.BlueHearts}"
+                    + $" | fire {health.FireHearts}"
+                    + $" | ice {health.IceHearts}");
+            }
+
+            // The inputs to PLAYER_TOTAL_HEALTH (HealthPlayer.cs:150), so a wrong total points
+            // at a specific term
+            var data = DataManager.Instance;
+            if (data != null)
+            {
+                Log.LogInfo($"[AP] Max HP inputs: health modified {data.PLAYER_HEALTH_MODIFIED}"
+                    + $" | hearts level {data.PLAYER_HEARTS_LEVEL}"
+                    + $" | removed {data.PLAYER_REMOVED_HEARTS}"
+                    + $" | fleece {data.PlayerFleece}");
+            }
+
+            var run = player.RunTrinkets;
+            Log.LogInfo($"[AP] Run trinkets ({run?.Count ?? 0}) - these are the ones actually "
+                + "applying effects this run:");
+            if (run != null)
+            {
+                foreach (var trinket in run)
+                {
+                    Log.LogInfo($"[AP]   {trinket.CardType} (upgrade {trinket.UpgradeIndex})");
+                }
+            }
+
+            var found = data?.PlayerFoundTrinkets;
+            Log.LogInfo($"[AP] Collection holds {found?.Count ?? 0} card(s), which only widens "
+                + "the offer pool.");
+        }
+        catch (System.Exception e)
+        {
+            Log.LogWarning($"[AP] Could not read health or run trinkets: {e.Message}");
+        }
+    }
+
+    // Ctrl+F4. Most of the flags SetTutorialVariables (DataManager.cs:391) sets from
+    // QuickStartActive, set one by one because that method also resets health, game time,
+    // HasBuiltShrine1 and the save id.
+    internal static void FinishTutorial()
+    {
+        var d = DataManager.Instance;
+        if (d == null)
+        {
+            Log.LogWarning("[AP] No save loaded - load a save before using this key.");
+            return;
+        }
+
+        d.QuickStartActive = true;
+
+        // First, and not optional: both tutorial exit paths are guarded on !ShowLoyaltyBars, so
+        // forcing that without this strands the save with the door re-locking on every load.
+        d.OnboardingFinished = true;
+
+        d.AllowSaving = true;
+        d.EnabledHealing = true;
+        d.EnabledSpells = true;
+        d.BuildShrineEnabled = true;
+        d.CookedFirstFood = true;
+        d.XPEnabled = true;
+        d.InTutorial = true;
+        d.Tutorial_Second_Enter_Base = true;
+        d.AllowBuilding = true;
+        d.ShowLoyaltyBars = true;
+        d.ShowCultFaith = true;
+        d.ShowCultHunger = true;
+        d.ShowCultIllness = true;
+        d.UnlockBaseTeleporter = true;
+        d.BonesEnabled = true;
+        d.PauseGameTime = false;
+        d.ShownDodgeTutorial = true;
+        d.ShownInventoryTutorial = true;
+        d.HasEncounteredTarot = true;
+        d.OnboardedHomeless = true;
+        d.ForceDoctrineStones = true;
+        d.HadInitialDeathCatConversation = true;
+        d.PlayerHasBeenGivenHearts = true;
+        d.BaseGoopDoorLocked = false;
+        d.CanBuildShrine = true;
+        d.FirstDoctrineStone = true;
+
+        // BaseGoopDoor.Start has already run if we're in the base, so the field alone won't
+        // lower a wall that is already up.
+        BaseGoopDoor.UnblockGoopDoor();
+
+        Log.LogInfo("[AP] Debug: tutorial flags set to their Quick Start values. Building, faith "
+            + "and the base door should all be live. Health, game time and the save id were left "
+            + "alone. Re-enter the base if the door is still up.");
+    }
+
     // F9 dumps client and game boss state to the log
     internal static void DumpState(ArchipelagoClient ap)
     {
@@ -1096,6 +1213,8 @@ internal static class DebugActions
             + $" | slot: '{ap?.LastSlotName}'"
             + $" | server: {ap?.LastServerUrl}");
         Log.LogInfo($"[AP] Region locking active: {RegionLockState.Active}");
+
+        DumpPlayerHealthAndRunTrinkets();
 
         foreach (var pair in RegionMapping.RegionToDungeonLocation)
         {

@@ -44,6 +44,41 @@ internal static class SaveSlotApBadgePatch
         Apply(__instance);
     }
 
+    // A deleted save's row turns empty, and the game hides only its own badges there. Each
+    // subclass has its own override, so all three need hooking.
+    [HarmonyPatch(typeof(SaveSlotButton_Load), "SetupEmptySlot")]
+    [HarmonyPostfix]
+    private static void LoadEmpty_Postfix(SaveSlotButtonBase __instance)
+    {
+        Hide(__instance);
+    }
+
+    [HarmonyPatch(typeof(SaveSlotButton_BaseGame), "SetupEmptySlot")]
+    [HarmonyPostfix]
+    private static void BaseGameEmpty_Postfix(SaveSlotButtonBase __instance)
+    {
+        Hide(__instance);
+    }
+
+    [HarmonyPatch(typeof(SaveSlotButton_Delete), "SetupEmptySlot")]
+    [HarmonyPostfix]
+    private static void DeleteEmpty_Postfix(SaveSlotButtonBase __instance)
+    {
+        Hide(__instance);
+    }
+
+    private static void Hide(SaveSlotButtonBase slot)
+    {
+        try
+        {
+            Show(slot, false);
+        }
+        catch (Exception e)
+        {
+            Log.LogWarning($"[AP] Could not clear the badge on an empty save slot: {e.Message}");
+        }
+    }
+
     // A throw here would leave the save menu half built
     private static void Apply(SaveSlotButtonBase slot)
     {

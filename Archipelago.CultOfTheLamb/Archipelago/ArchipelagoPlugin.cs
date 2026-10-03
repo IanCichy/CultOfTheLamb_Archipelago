@@ -24,7 +24,7 @@ public class ArchipelagoPlugin : BaseUnityPlugin
     public const string PluginName = "Archipelago.CultOfTheLamb";
     // Keep in step with manifest.json, the csproj VersionPrefix, and MOD_VERSION in
     // worlds/cult_of_the_lamb/__init__.py
-    public const string PluginVersion = "0.9.0";
+    public const string PluginVersion = "0.9.1";
 
     internal static ArchipelagoPlugin Instance { get; private set; }
 
@@ -44,6 +44,9 @@ public class ArchipelagoPlugin : BaseUnityPlugin
 
         harmony = new Harmony(PluginGUID);
         harmony.PatchAll();
+
+        // Cleanup needs to be an event subscription, not a patch
+        Services.SaveSlotCleanup.Register();
 
         // Manual, because its target is a compiler-generated iterator that PatchAll can't reach
         // by attribute, and because a resolution failure there should cost a warning rather than
@@ -82,6 +85,11 @@ public class ArchipelagoPlugin : BaseUnityPlugin
     public void Update()
     {
         DebugCommands.Update();
+
+#if AP_DEBUG_KEYS
+        GodMode.Tick();
+#endif
+
         AP?.ItemLogic?.ProcessQueue();
 
         // Work handed over from the websocket thread, such as teardown reaching into save data.
@@ -109,6 +117,10 @@ public class ArchipelagoPlugin : BaseUnityPlugin
             AP?.FollowerMilestoneService?.Tick();
             AP?.SnailShrineService?.Tick();
             AP?.BroomService?.Tick();
+            AP?.GoalService?.Tick();
+
+            // Hands over the free Divine Inspiration upgrades once the tutorial ends
+            AP?.DivineInspirationService?.Tick();
 
             // Runs a Temple upgrade that was held back because the base wasn't live. Not gated on
             // a session, because the upgrade is already in the save by then, so it has to

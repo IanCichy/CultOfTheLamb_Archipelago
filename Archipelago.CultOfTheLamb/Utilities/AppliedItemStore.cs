@@ -29,7 +29,11 @@ internal static class AppliedItemStore
     {
         var entries = ReadAll();
         entries[key] = count;
+        WriteAll(entries);
+    }
 
+    private static void WriteAll(Dictionary<string, int> entries)
+    {
         try
         {
             var lines = new List<string>();
@@ -54,12 +58,44 @@ internal static class AppliedItemStore
         return $"save{SaveSlot.Current}:{seed ?? "noseed"}:{apSlot}";
     }
 
+    // Drops every row for a slot, so a deleted save doesn't leave a badge and an applied count
+    // for whatever is created there next.
+    internal static void ForgetSlot(int rawSaveSlot)
+    {
+        var prefix = $"save{Fold(rawSaveSlot)}:";
+        var entries = ReadAll();
+        var dropped = new List<string>();
+
+        foreach (var key in entries.Keys)
+        {
+            if (key.StartsWith(prefix, StringComparison.Ordinal))
+            {
+                dropped.Add(key);
+            }
+        }
+
+        if (dropped.Count == 0)
+        {
+            return;
+        }
+
+        foreach (var key in dropped)
+        {
+            entries.Remove(key);
+        }
+
+        WriteAll(entries);
+        Log.LogInfo($"[AP] Save slot {rawSaveSlot} deleted - dropped {dropped.Count} applied-item "
+            + "record(s) so a new save there starts clean.");
+    }
+
+    private static int Fold(int rawSaveSlot) => rawSaveSlot >= 10 ? rawSaveSlot - 10 : rawSaveSlot;
+
     // Whether this save has ever received an AP item, without loading it. Takes a raw slot and
     // folds Woolhaven's slot+10 down like SaveSlot.Current
     internal static bool HasHistoryFor(int rawSaveSlot)
     {
-        var folded = rawSaveSlot >= 10 ? rawSaveSlot - 10 : rawSaveSlot;
-        var prefix = $"save{folded}:";
+        var prefix = $"save{Fold(rawSaveSlot)}:";
 
         foreach (var key in CachedKeys())
         {

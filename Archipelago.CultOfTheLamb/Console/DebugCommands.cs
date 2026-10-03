@@ -14,7 +14,7 @@ namespace Archipelago.CultOfTheLamb.Console;
 /// the AP_DEBUG_KEYS compile constant, set only in the gitignored Directory.Build.props.user.
 /// The DebugActions bodies still compile in, so the gated keys are unreachable, not absent.
 ///
-/// Six of the gated keys write real state and three reach the server. Ctrl+F2 can report a
+/// Seven of the gated keys write real state and three reach the server. Ctrl+F2 can report a
 /// false victory on a Bishops seed, F3 pays out a sermon check, and F8 unlocks a tarot card that
 /// TarotService then sends, which in a shared multiworld corrupts other people's games.
 /// </remarks>
@@ -59,9 +59,17 @@ internal static class DebugCommands
             KeyCode.LeftControl);
 
         completeBishopsKey = Bind(config, "CompleteBishopsKey", KeyCode.F2,
-            "Records all four Bishops as beaten and breaks every chain on the Gateway door, so "
-            + "the Narinder goal can be tested without a full playthrough. Refuses on any other "
+            "Records all four Bishops as beaten, breaks every chain on the Gateway door and lifts "
+            + "the Follower requirement on the crusade and ritual doors until restart, so the "
+            + "Narinder goal can be tested without a full playthrough. Refuses on any other "
             + "goal, where it would just be a way to win instantly.",
+            KeyCode.LeftControl);
+
+        // Ctrl+F1, since every plain F-key is taken
+        BindFeatureKey(config, "GodModeKey", KeyCode.F1,
+            "Toggles developer god mode: the player takes no damage and deals 5x damage. "
+            + "Runtime only, never written to the save.",
+            GodMode.Toggle,
             KeyCode.LeftControl);
 
         BindFeatureKey(config, "ListSermonUpgradesKey", KeyCode.F2,
@@ -80,6 +88,14 @@ internal static class DebugCommands
         BindFeatureKey(config, "SermonTreeViewerKey", KeyCode.F3,
             "Opens the game's own sermon upgrade tree as a read-only viewer.",
             () => UI.SermonTreeViewer.Open(null),
+            KeyCode.LeftControl);
+
+        // Ctrl+F4 so it doesn't also fire the plain-F4 name dump.
+        BindFeatureKey(config, "FinishTutorialKey", KeyCode.F4,
+            "Sets the tutorial flags a Quick Start save begins with, so a save started without "
+            + "Quick Start stops blocking building, faith and the base door. Skips the parts of "
+            + "SetTutorialVariables that would reset health, game time or the save id.",
+            DebugActions.FinishTutorial,
             KeyCode.LeftControl);
 
         BindFeatureKey(config, "DumpNamesKey", KeyCode.F4,
