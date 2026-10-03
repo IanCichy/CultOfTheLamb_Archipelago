@@ -85,6 +85,11 @@ public class ArchipelagoPlugin : BaseUnityPlugin
     public void Update()
     {
         DebugCommands.Update();
+
+#if AP_DEBUG_KEYS
+        GodMode.Tick();
+#endif
+
         AP?.ItemLogic?.ProcessQueue();
 
         // Work handed over from the websocket thread, such as teardown reaching into save data.

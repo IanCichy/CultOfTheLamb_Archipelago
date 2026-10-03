@@ -65,6 +65,13 @@ internal static class DebugCommands
             + "goal, where it would just be a way to win instantly.",
             KeyCode.LeftControl);
 
+        // Ctrl+F1, since every plain F-key is taken
+        BindFeatureKey(config, "GodModeKey", KeyCode.F1,
+            "Toggles developer god mode: the player takes no damage and deals 5x damage. "
+            + "Runtime only, never written to the save.",
+            GodMode.Toggle,
+            KeyCode.LeftControl);
+
         BindFeatureKey(config, "ListSermonUpgradesKey", KeyCode.F2,
             "Lists the sermon upgrades you own to the log. Does NOT open the game's upgrade "
             + "tree - that menu can't be dismissed without picking an upgrade, which would "
