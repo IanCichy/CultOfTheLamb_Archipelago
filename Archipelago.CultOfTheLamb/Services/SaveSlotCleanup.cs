@@ -41,6 +41,7 @@ internal static class SaveSlotCleanup
             AppliedItemStore.ForgetSlot(slot);
             ManagedCollectionStore.Settle(
                 TarotCollectionBacking.Key, slot, TarotCollectionBacking.LegacyKey);
+            UpgradeReveal.ForgetSlot(slot);
         }
         catch (Exception e)
         {

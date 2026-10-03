@@ -33,15 +33,14 @@ internal static class DivineInspirationPatch
     // Logged once, not per point
     private static bool loggedTutorialPoint;
 
-    // The tutorial will not advance until one Divine Inspiration upgrade is unlocked
-    // (Objectives_Custom.cs:143), so one point has to get through. Every read is save data, so a
-    // new save in the same slot answers for itself - two earlier attempts at this cap used a
-    // static or slot-keyed latch instead, and either could strand a save.
+    // The tutorial can't end without a ritual in the Temple (Onboarding.cs:340-356) and unlocking
+    // the Temple costs a point, so one has to get through. Gated on the Temple rather than the
+    // CollectDivineInspiration objective because that objective completes when any upgrade unlocks
+    // (UpgradeSystem.cs:766), so an unrelated item could close the gate and strand the save.
     private static bool TutorialNeedsAPoint =>
         TutorialState.InTutorial
         && UpgradeSystem.AbilityPoints < 1
-        && !ObjectiveManager.HasCompletedCustomObjectiveOfType(
-            Objectives.CustomQuestTypes.CollectDivineInspiration);
+        && !UpgradeSystem.GetUnlocked(UpgradeSystem.Type.Building_Temple);
 
     // Adds count points past the withholding
     internal static void GrantPoints(int count)
