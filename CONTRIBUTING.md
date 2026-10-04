@@ -17,7 +17,7 @@ and the log because those two are what make a report actionable.
 The **mod DLL and the apworld are a versioned pair.** The client prints both on connect:
 
 ```
-[AP] Versions: client 0.9.0, apworld 0.9.0
+[AP] Versions: client <version>, apworld <version>
 ```
 
 If those differ, item names and location ids can disagree between the two halves. You won't get

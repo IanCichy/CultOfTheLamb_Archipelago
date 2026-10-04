@@ -123,10 +123,10 @@ game.
 Check `BepInEx/LogOutput.log` after connecting. A working install shows:
 
 ```
-Archipelago.CultOfTheLamb v0.9.0 loaded.
+Archipelago.CultOfTheLamb v<version> loaded.
 ...
 [AP] Connected!
-[AP] Versions: client 0.9.0, apworld 0.9.0
+[AP] Versions: client <version>, apworld <version>
 ```
 
 The two versions should match. A `MISMATCH` warning means your mod and your apworld are out of
