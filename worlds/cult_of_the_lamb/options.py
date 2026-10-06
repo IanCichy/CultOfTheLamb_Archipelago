@@ -429,17 +429,12 @@ class DeathLink(Choice):
     classic: a received death kills you wherever you are. See Death Link Cooldown and Death Link
       Faith Loss for the two settings that soften it.
 
-    chaos: a received death does not kill you. Instead the gods take an interest: a plague of
-      locusts withers part of your crops, a flood scatters fish around the base, your followers
-      take ill, or occasionally something lands in your favour. You still send real deaths.
-
     **Permadeath saves are never killed.** The game deletes a permadeath save on death, and no
     one else's mistake should cost you a save file, so a received death is refused and logged.
     You still send yours."""
     display_name = "Death Link"
     option_off = 0
     option_classic = 1
-    option_chaos = 2
     default = 0
 
 
@@ -450,7 +445,7 @@ class DeathLinkCooldown(Range):
     you spend the next minute on the death screen. 0 turns the cooldown off and accepts every
     death as it arrives.
 
-    Ignored when Death Link is off, and in chaos mode, where the effects are survivable."""
+    Ignored when Death Link is off."""
     display_name = "Death Link Cooldown"
     range_start = 0
     range_end = 300
@@ -466,7 +461,7 @@ class DeathLinkFaithLoss(Range):
 
     0 means a received death costs you the run and nothing else.
 
-    Ignored when Death Link is off, and in chaos mode."""
+    Ignored when Death Link is off."""
     display_name = "Death Link Faith Loss"
     range_start = 0
     range_end = 30

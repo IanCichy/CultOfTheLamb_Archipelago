@@ -19,7 +19,6 @@ internal class DeathLinkService : IService
     // Matches worlds/cult_of_the_lamb/options.py DeathLink.
     internal const int ModeOff = 0;
     internal const int ModeClassic = 1;
-    internal const int ModeChaos = 2;
 
     // The game's own penalty for dying in a dungeon, which the configured loss scales against
     private const float VanillaDeathFaithLoss = 10f;
@@ -32,8 +31,8 @@ internal class DeathLinkService : IService
 
     private Archipelago.MultiClient.Net.BounceFeatures.DeathLink.DeathLinkService link;
 
-    // Our own kill must not echo back out. Health.Kill only queues the damage, so the death
-    // screen arrives well after Kill() returns: a window, not a flag released on the way out.
+    // Health.Kill only queues the damage, so the death screen arrives long after Kill() returns.
+    // Hence a window rather than a flag released on the way out.
     private float suppressSendUntil = float.NegativeInfinity;
     private const float SuppressSendWindow = 5f;
 
@@ -83,12 +82,7 @@ internal class DeathLinkService : IService
         deathPending = false;
     }
 
-    private string ModeName => mode switch
-    {
-        ModeClassic => "classic",
-        ModeChaos => "chaos",
-        _ => "off",
-    };
+    private string ModeName => mode == ModeClassic ? "classic" : "off";
 
     private void HandleLocalDeath()
     {
@@ -134,24 +128,14 @@ internal class DeathLinkService : IService
         Log.LogInfo($"[AP] DeathLink received from {who}"
             + (string.IsNullOrEmpty(cause) ? "." : $": {cause}"));
 
-        if (mode == ModeChaos)
-        {
-            ChaosPlagues.Visit(who);
-            return;
-        }
-
         deathPending = true;
         TryApplyPendingDeath(who);
     }
 
 #if AP_DEBUG_KEYS
     /// <summary>
-    /// Feeds a death in as if the multiworld had sent one.
+    /// Feeds a death in as if the multiworld had sent one, through the real Accept path.
     /// </summary>
-    /// <remarks>
-    /// Goes through Accept, so the permadeath refusal, the cooldown and the requeue all behave
-    /// exactly as they would for a real one. Press twice to watch the cooldown drop the second.
-    /// </remarks>
     internal void SimulateReceivedDeath()
     {
         Accept("a debug key", "testing Death Link");

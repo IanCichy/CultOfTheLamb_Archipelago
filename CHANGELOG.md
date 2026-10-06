@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.9.2
+
+### Added
+
+- Death Link, off by default. `death_link_cooldown` sets how long to ignore further deaths after
+  one lands, and `death_link_faith_loss` what one costs your cult in Faith.
+- Permadeath saves are never killed by a received death. They still send their own.
+
 ## 0.9.1
 
 ### Fixed
