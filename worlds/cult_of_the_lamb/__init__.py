@@ -639,6 +639,13 @@ class CultOfTheLambWorld(World):
             "goal": self.options.goal.value,
             "requiredCount": self.options.required_count.value,
 
+            # DeathLink. The client adds the AP tag after login when this is not off, so an
+            # older client that ignores these keys simply never joins the DeathLink pool.
+            # Cooldown and faith loss apply to classic only; chaos effects are survivable.
+            "deathLink": self.options.death_link.value,
+            "deathLinkCooldown": self.options.death_link_cooldown.value,
+            "deathLinkFaithLoss": self.options.death_link_faith_loss.value,
+
             # Guidance only. No location, no item, no rule. The client renders these as an
             # objective group in the game's own quest log, reading each line's progress back
             # out of the keys already in this dict. Independent of the trim
