@@ -96,10 +96,10 @@ game.
 - Woolhaven DLC support (currently weapons and curses) (only enable `include_woolhaven` in your YAML if you actually own it)
 - Resource bundle filler items
 - One trap so far
+- Death Link, with a cooldown and an optional cult Faith penalty
 - In-game ways to view your progress
 
 ### What's **NOT** Included
-- Death Link
 - Multiplayer / co-op
 
 >[!NOTE]

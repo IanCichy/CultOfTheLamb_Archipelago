@@ -57,6 +57,9 @@ public partial class ArchipelagoClient : IDisposable
     // Misc game services for small things
     internal BroomService BroomService { get; private set; }
     internal SnailShrineService SnailShrineService { get; private set; }
+
+    // Qualified: Archipelago.MultiClient.Net has a DeathLinkService too
+    internal Services.DeathLinkService DeathLinkService { get; private set; }
     internal ShopIconService ShopIconService { get; private set; }
 
     // Quest Services:

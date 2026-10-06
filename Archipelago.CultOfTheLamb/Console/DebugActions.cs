@@ -972,6 +972,26 @@ internal static class DebugActions
     //
     // Doesn't send the Bishop checks, since those fire when a heart is taken. The goal re-check
     // below is the point
+    /// <summary>
+    /// Applies a Death Link as if another player had died.
+    /// </summary>
+    internal static void SimulateDeathLink(ArchipelagoClient ap)
+    {
+        if (ap?.DeathLinkService == null)
+        {
+            Log.LogWarning("[AP] Death Link is off on this seed, so there is nothing to simulate.");
+            ApNotification.Show("Archipelago: Death Link is off on this seed");
+            return;
+        }
+
+        Log.LogInfo("[AP] Debug: applying a simulated Death Link.");
+
+        // The simulate hook only exists in a debug-keys build, same as the Follower gate bypass
+#if AP_DEBUG_KEYS
+        ap.DeathLinkService.SimulateReceivedDeath();
+#endif
+    }
+
     internal static void CompleteBishopsAndOpenGateway(ArchipelagoClient ap)
     {
         // Only on a confirmed Narinder goal, even in a debug build. On a Bishops or Witnesses seed

@@ -24,7 +24,7 @@ public class ArchipelagoPlugin : BaseUnityPlugin
     public const string PluginName = "Archipelago.CultOfTheLamb";
     // Keep in step with manifest.json, the csproj VersionPrefix, and MOD_VERSION in
     // worlds/cult_of_the_lamb/__init__.py
-    public const string PluginVersion = "0.9.1";
+    public const string PluginVersion = "0.9.2";
 
     internal static ArchipelagoPlugin Instance { get; private set; }
 
@@ -74,6 +74,7 @@ public class ArchipelagoPlugin : BaseUnityPlugin
         DebugCommands.OnConnectKeyPressed += () => connectPanel.Toggle();
         DebugCommands.OnQuestGuideKeyPressed += () => DebugActions.DumpQuestGuide(AP);
         DebugCommands.OnCompleteBishopsKeyPressed += () => DebugActions.CompleteBishopsAndOpenGateway(AP);
+        DebugCommands.OnDeathLinkKeyPressed += () => DebugActions.SimulateDeathLink(AP);
 #endif
         AP.OnClientDisconnect += AP_OnClientDisconnect;
         ArchipelagoConsoleCommand.OnArchipelagoCommandCalled += ArchipelagoConsoleCommand_OnArchipelagoCommandCalled;
@@ -118,6 +119,7 @@ public class ArchipelagoPlugin : BaseUnityPlugin
             AP?.SnailShrineService?.Tick();
             AP?.BroomService?.Tick();
             AP?.GoalService?.Tick();
+            AP?.DeathLinkService?.Tick();
 
             // Hands over the free Divine Inspiration upgrades once the tutorial ends
             AP?.DivineInspirationService?.Tick();

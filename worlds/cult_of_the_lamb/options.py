@@ -415,6 +415,59 @@ class DivineInspirationShuffle(Choice):
     default = 0
 
 
+class DeathLink(Choice):
+    """Share deaths with the rest of the multiworld.
+
+    Dying sends a death to everyone else who has this on, and their deaths come to you. Filling
+    the Devotion meter, selling out a shop and the rest are untouched: this only reacts to dying.
+
+    A co-op knockdown with a partner still standing is not a death and is not sent. Neither is a
+    resurrection from The Deal, a Pyre or a Monolith, since you did not stay dead.
+
+    off: no deaths are sent or received.
+
+    classic: a received death kills you wherever you are. See Death Link Cooldown and Death Link
+      Faith Loss for the two settings that soften it.
+
+    **Permadeath saves are never killed.** The game deletes a permadeath save on death, and no
+    one else's mistake should cost you a save file, so a received death is refused and logged.
+    You still send yours."""
+    display_name = "Death Link"
+    option_off = 0
+    option_classic = 1
+    default = 0
+
+
+class DeathLinkCooldown(Range):
+    """Seconds to ignore further deaths after one lands, in classic mode.
+
+    Without this, a party wipe in a busy multiworld delivers several deaths within a second and
+    you spend the next minute on the death screen. 0 turns the cooldown off and accepts every
+    death as it arrives.
+
+    Ignored when Death Link is off."""
+    display_name = "Death Link Cooldown"
+    range_start = 0
+    range_end = 300
+    default = 60
+
+
+class DeathLinkFaithLoss(Range):
+    """How much cult Faith a received death costs you, in classic mode.
+
+    The game's own penalty for dying in a dungeon is 10, so the default is exactly what a real
+    death costs. Faith runs 0 to 85 and starts at 55; below about 21 the cult starts producing
+    dissenters, so a high value here bites.
+
+    0 means a received death costs you the run and nothing else.
+
+    Ignored when Death Link is off."""
+    display_name = "Death Link Faith Loss"
+    range_start = 0
+    range_end = 30
+    default = 10
+
+
 @dataclass
 class CultOfTheLambOptions(PerGameCommonOptions):
     goal: Goal
@@ -445,3 +498,6 @@ class CultOfTheLambOptions(PerGameCommonOptions):
     building_checks: BuildingChecks
     broom_checks: BroomChecks
     trap_percentage: TrapPercentage
+    death_link: DeathLink
+    death_link_cooldown: DeathLinkCooldown
+    death_link_faith_loss: DeathLinkFaithLoss

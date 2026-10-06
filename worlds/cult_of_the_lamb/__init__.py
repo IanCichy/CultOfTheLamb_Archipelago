@@ -34,7 +34,7 @@ from .rules import set_rules
 # Sent in slot data and logged by the client next to its own version, so a player's log says which
 # apworld built the seed. It is not enforced. A mismatch is something to notice while reading a
 # log, not a reason to refuse a connection. Keep in step with ArchipelagoPlugin.PluginVersion.
-MOD_VERSION = "0.9.1"
+MOD_VERSION = "0.9.2"
 
 
 class CultOfTheLambWeb(WebWorld):
@@ -638,6 +638,13 @@ class CultOfTheLambWorld(World):
 
             "goal": self.options.goal.value,
             "requiredCount": self.options.required_count.value,
+
+            # DeathLink. The client adds the AP tag after login when this is not off, so an
+            # older client that ignores these keys simply never joins the DeathLink pool.
+            # Cooldown and faith loss only mean anything while Death Link is on.
+            "deathLink": self.options.death_link.value,
+            "deathLinkCooldown": self.options.death_link_cooldown.value,
+            "deathLinkFaithLoss": self.options.death_link_faith_loss.value,
 
             # Guidance only. No location, no item, no rule. The client renders these as an
             # objective group in the game's own quest log, reading each line's progress back

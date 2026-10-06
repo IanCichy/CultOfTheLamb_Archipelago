@@ -28,6 +28,7 @@ internal static class DebugCommands
     private static ConfigEntry<KeyboardShortcut> connectKey;
     private static ConfigEntry<KeyboardShortcut> questGuideKey;
     private static ConfigEntry<KeyboardShortcut> completeBishopsKey;
+    private static ConfigEntry<KeyboardShortcut> deathLinkKey;
 #endif
 
     internal static void Init(ConfigFile config)
@@ -133,6 +134,11 @@ internal static class DebugCommands
             "Unlocks one fleece (tests fleece item grants).",
             DebugActions.UnlockSampleFleece);
 
+        deathLinkKey = Bind(config, "DeathLinkKey", KeyCode.F11,
+            "Applies a Death Link as if another player had died, through the same path a real "
+            + "one takes. Does nothing unless this seed has Death Link on.",
+            KeyCode.LeftControl);
+
         BindFeatureKey(config, "ShowNotificationKey", KeyCode.F11,
             "Shows sample Archipelago notifications (tests the notification pipeline).",
             DebugActions.ShowSampleNotification);
@@ -172,6 +178,7 @@ internal static class DebugCommands
         Fire(connectKey, () => OnConnectKeyPressed?.Invoke());
         Fire(questGuideKey, () => OnQuestGuideKeyPressed?.Invoke());
         Fire(completeBishopsKey, () => OnCompleteBishopsKeyPressed?.Invoke());
+        Fire(deathLinkKey, () => OnDeathLinkKeyPressed?.Invoke());
 #endif
 
         foreach (var (key, handler) in bindings)
@@ -213,5 +220,7 @@ internal static class DebugCommands
 
     // Ctrl+F2. Needs the ArchipelagoClient to re-check the goal after writing
     internal static event Action OnCompleteBishopsKeyPressed;
+
+    internal static event Action OnDeathLinkKeyPressed;
 #endif
 }

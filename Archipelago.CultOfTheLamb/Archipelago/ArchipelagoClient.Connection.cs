@@ -325,6 +325,18 @@ public partial class ArchipelagoClient
             SnailShrineService.Register();
         }
 
+        var deathLinkMode = (int)SlotData.GetLong(successResult.SlotData, "deathLink");
+        if (deathLinkMode != Services.DeathLinkService.ModeOff)
+        {
+            DeathLinkService = new Services.DeathLinkService(
+                session,
+                deathLinkMode,
+                (int)SlotData.GetLong(successResult.SlotData, "deathLinkCooldown"),
+                (int)SlotData.GetLong(successResult.SlotData, "deathLinkFaithLoss"),
+                session.Players.GetPlayerAlias(session.ConnectionInfo.Slot) ?? "Someone");
+            DeathLinkService.Register();
+        }
+
         // Before ItemLogic, because registering empties the collection and ItemLogic's backlog
         // drain immediately replays whatever the player has already been sent back into it.
         if (SlotData.GetBool(successResult.SlotData, "randomizeTarotCards"))
@@ -526,6 +538,7 @@ public partial class ArchipelagoClient
         RegionUnlockService?.Unregister();
         RegionUnlockService = null;
         GoalService?.Unregister();
+        DeathLinkService?.Unregister();
         GoalService = null;
         SermonService?.Unregister();
         SermonService = null;
