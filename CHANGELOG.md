@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.9.3
+
+### Fixed
+
+- A received death that the game refuses, in god mode or mid-dodge, no longer costs your cult
+  Faith or claims you died.
+- A received death that arrives while a menu is open now waits for you to close it, instead of
+  being dropped.
+
 ## 0.9.2
 
 ### Added
