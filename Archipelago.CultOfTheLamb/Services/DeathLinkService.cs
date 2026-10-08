@@ -2,6 +2,7 @@ using System;
 using Archipelago.MultiClient.Net;
 using Archipelago.MultiClient.Net.BounceFeatures.DeathLink;
 using Archipelago.CultOfTheLamb.Patches;
+using Lamb.UI;
 using UnityEngine;
 
 namespace Archipelago.CultOfTheLamb.Services;
@@ -41,6 +42,8 @@ internal class DeathLinkService : IService
 
     // A death that arrived while the player could not be killed, waiting for a moment they can
     private bool deathPending;
+    private string pendingWho;
+    private bool loggedDeferral;
 
     internal DeathLinkService(
         ArchipelagoSession session, int mode, int cooldownSeconds, int faithLoss, string slotName)
@@ -80,6 +83,8 @@ internal class DeathLinkService : IService
         }
 
         deathPending = false;
+        pendingWho = null;
+        loggedDeferral = false;
     }
 
     private string ModeName => mode == ModeClassic ? "classic" : "off";
@@ -129,7 +134,8 @@ internal class DeathLinkService : IService
             + (string.IsNullOrEmpty(cause) ? "." : $": {cause}"));
 
         deathPending = true;
-        TryApplyPendingDeath(who);
+        pendingWho = who;
+        TryApplyPendingDeath();
     }
 
 #if AP_DEBUG_KEYS
@@ -149,11 +155,11 @@ internal class DeathLinkService : IService
     {
         if (deathPending)
         {
-            TryApplyPendingDeath(null);
+            TryApplyPendingDeath();
         }
     }
 
-    private void TryApplyPendingDeath(string who)
+    private void TryApplyPendingDeath()
     {
         var player = PlayerFarming.Instance;
         if (player == null || player.health == null || !player.health.enabled)
@@ -168,7 +174,22 @@ internal class DeathLinkService : IService
             return;
         }
 
+        if (!CanDieNow(player))
+        {
+            if (!loggedDeferral)
+            {
+                loggedDeferral = true;
+                Log.LogInfo("[AP] DeathLink held: the player cannot be killed right now. It lands "
+                    + "once they are back in control.");
+            }
+
+            return;
+        }
+
+        var who = pendingWho;
         deathPending = false;
+        pendingWho = null;
+        loggedDeferral = false;
         suppressSendUntil = Time.time + SuppressSendWindow;
         try
         {
@@ -191,6 +212,29 @@ internal class DeathLinkService : IService
         {
             // suppressSendUntil deliberately left running: the death screen has not fired yet
         }
+    }
+
+    // The states DealDamage returns false on, plus an open menu. Killing in one of these did
+    // nothing yet still cost the Faith and still said the player had died.
+    private static bool CanDieNow(PlayerFarming player)
+    {
+        var ui = MonoSingleton<UIManager>.Instance;
+        if (ui != null && ui.CurrentMenu != null)
+        {
+            return false;
+        }
+
+        if (player.GoToAndStopping)
+        {
+            return false;
+        }
+
+        var state = player.state;
+        return state == null
+            || (state.CURRENT_STATE != StateMachine.State.InActive
+                && state.CURRENT_STATE != StateMachine.State.CustomAnimation
+                && state.CURRENT_STATE != StateMachine.State.Dead
+                && state.CURRENT_STATE != StateMachine.State.GameOver);
     }
 
     // The game's own route, so the thought, notification and clamping behave as for a real death.

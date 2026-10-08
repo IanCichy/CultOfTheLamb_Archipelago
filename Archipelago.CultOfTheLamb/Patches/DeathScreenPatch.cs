@@ -1,6 +1,7 @@
 using System;
 using HarmonyLib;
 using Lamb.UI.DeathScreen;
+using Map;
 
 namespace Archipelago.CultOfTheLamb.Patches;
 
@@ -22,8 +23,10 @@ internal static class DeathScreenPatch
     internal static Action OnPlayerKilled;
 
     [HarmonyPrefix]
-    private static void Prefix(UIDeathScreenOverlayController.Results result)
+    private static void Prefix(UIDeathScreenOverlayController.Results result, ref int levels)
     {
+        SkipLevelNodesOutsideACrusade(ref levels);
+
         if (result != UIDeathScreenOverlayController.Results.Killed)
         {
             return;
@@ -37,6 +40,16 @@ internal static class DeathScreenPatch
         {
             // Never take the death screen down with us
             Log.LogWarning($"[AP] Death notification failed: {e.Message}");
+        }
+    }
+
+    // The node loop reads MapManager.Instance unguarded, so any death outside a crusade threw
+    // once the last one had reached a second room. levels is read nowhere else.
+    private static void SkipLevelNodesOutsideACrusade(ref int levels)
+    {
+        if (levels > 0 && MapManager.Instance == null)
+        {
+            levels = 0;
         }
     }
 }
