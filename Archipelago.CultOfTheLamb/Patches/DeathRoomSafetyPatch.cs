@@ -8,13 +8,15 @@ namespace Archipelago.CultOfTheLamb.Patches;
 /// Sends the player home when they die somewhere the room the death screen wants does not exist.
 /// </summary>
 /// <remarks>
-/// Both rooms fade to black and then dereference a manager that only a generated crusade puts in
-/// the scene, so the NRE lands inside the transition callback and the fade never completes.
+/// After a death the game can send you to one of two special rooms. Both are built as part of a
+/// crusade, so dying anywhere else leaves the game fading to black towards a room that was never
+/// loaded. It crashes partway through the fade, which is a black screen you cannot escape.
 /// </remarks>
 internal static class DeathRoomSafetyPatch
 {
-    // Checks the scene, not the location: FollowerLocation does not identify one, and both rooms
-    // sit inactive until Play switches them on, so the inactive overload is required.
+    // Ask whether the room is actually loaded rather than guessing from where the player is,
+    // which does not reliably tell you whether you are on a crusade. Both rooms sit switched off
+    // until the game plays them, so the search has to include switched-off objects.
     private static bool RoomIsInScene<T>() where T : Object =>
         Object.FindObjectOfType<T>(true) != null;
 
@@ -41,7 +43,8 @@ internal static class DeathRoomSafetyPatch
         }
     }
 
-    // Reached before the Death Cat room, and gated on save flags and dungeon progress only.
+    // The game checks this room before the Death Cat one, and decides purely on story progress,
+    // never on where you are. So any death at all can be sent here.
     [HarmonyPatch(typeof(MysticShopKeeperManager), nameof(MysticShopKeeperManager.Play))]
     internal static class MysticShop
     {
@@ -58,8 +61,9 @@ internal static class DeathRoomSafetyPatch
             return false;
         }
 
-        // The death screen reads Instance on the line after Play, so skipping Play alone only
-        // moves the throw. Built inactive, so neither OnEnable nor OnDisable ever runs on it.
+        // Skipping the room is not enough on its own: the game reaches for it again immediately
+        // afterwards and crashes when it is missing. So leave an empty stand-in for it to find.
+        // It is created switched off, so none of the real room's own startup code runs.
         private static void StubInstance()
         {
             if (MysticShopKeeperManager.Instance != null)

@@ -43,9 +43,10 @@ internal static class DeathScreenPatch
         }
     }
 
-    // The node loop reads MapManager.Instance unguarded, but only once past the first room.
-    // Matching that exactly leaves every other death on the vanilla path, which matters because
-    // the loop is also what starts the lost-item penalty.
+    // The death screen draws a row of icons for the rooms you went through on your crusade. With
+    // no crusade loaded it tries anyway and crashes, but only once you got past the first room.
+    // Matching that exactly keeps every other death on the normal path, which matters because the
+    // same code also runs the lost-item penalty.
     private static void SkipLevelNodesOutsideACrusade(ref int levels)
     {
         if (levels <= 0 || MapManager.Instance != null)

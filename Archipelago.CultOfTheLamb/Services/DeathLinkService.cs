@@ -217,8 +217,9 @@ internal class DeathLinkService : IService
         }
     }
 
-    // What Kill() does, but DealDamage reports whether it was accepted. Several guards in there
-    // drop the damage silently, and charging Faith for one of those is a lie.
+    // The game quietly ignores damage in several situations, and the usual kill call does not say
+    // whether it worked. This is the same call with the answer, so we never take someone's Faith
+    // for a death that did not actually happen.
     private static bool Kill(Health health) =>
         health.DealDamage(
             health.CurrentHP, health.gameObject, health.transform.position,
@@ -231,9 +232,9 @@ internal class DeathLinkService : IService
         loggedDeferral = false;
     }
 
-    // Transient states worth waiting out rather than spending the death on. Not the whole list
-    // DealDamage rejects: the return value covers the rest, including the dodge tutorial, which
-    // spawns a prompt every time it is asked.
+    // Moments the player will be out of shortly, so the death is worth holding rather than
+    // wasting. This is not every case the game refuses; the answer from the kill catches the rest,
+    // including the dodge tutorial, which pops a prompt on screen every time it is asked.
     private static bool CanDieNow(PlayerFarming player)
     {
         var ui = MonoSingleton<UIManager>.Instance;
