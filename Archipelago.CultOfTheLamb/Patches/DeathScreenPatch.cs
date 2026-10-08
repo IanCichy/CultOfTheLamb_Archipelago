@@ -1,6 +1,7 @@
 using System;
 using HarmonyLib;
 using Lamb.UI.DeathScreen;
+using Map;
 
 namespace Archipelago.CultOfTheLamb.Patches;
 
@@ -22,8 +23,10 @@ internal static class DeathScreenPatch
     internal static Action OnPlayerKilled;
 
     [HarmonyPrefix]
-    private static void Prefix(UIDeathScreenOverlayController.Results result)
+    private static void Prefix(UIDeathScreenOverlayController.Results result, ref int levels)
     {
+        SkipLevelNodesOutsideACrusade(ref levels);
+
         if (result != UIDeathScreenOverlayController.Results.Killed)
         {
             return;
@@ -37,6 +40,24 @@ internal static class DeathScreenPatch
         {
             // Never take the death screen down with us
             Log.LogWarning($"[AP] Death notification failed: {e.Message}");
+        }
+    }
+
+    // The death screen draws a row of icons for the rooms you went through on your crusade. With
+    // no crusade loaded it tries anyway and crashes, but only once you got past the first room.
+    // Matching that exactly keeps every other death on the normal path, which matters because the
+    // same code also runs the lost-item penalty.
+    private static void SkipLevelNodesOutsideACrusade(ref int levels)
+    {
+        if (levels <= 0 || MapManager.Instance != null)
+        {
+            return;
+        }
+
+        var visited = DataManager.Instance?.dungeonVisitedRooms?.Count ?? 0;
+        if (visited >= 2)
+        {
+            levels = 0;
         }
     }
 }
