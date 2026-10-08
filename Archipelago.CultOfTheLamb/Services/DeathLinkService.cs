@@ -82,9 +82,7 @@ internal class DeathLinkService : IService
             link.OnDeathLinkReceived -= HandleReceived;
         }
 
-        deathPending = false;
-        pendingWho = null;
-        loggedDeferral = false;
+        ClearPending();
     }
 
     private string ModeName => mode == ModeClassic ? "classic" : "off";
@@ -170,7 +168,7 @@ internal class DeathLinkService : IService
         // Already dying: OnDie sets both, and a second kill stacks death screens
         if (player.health.invincible || player.health.untouchable)
         {
-            deathPending = false;
+            ClearPending();
             return;
         }
 
@@ -187,9 +185,7 @@ internal class DeathLinkService : IService
         }
 
         var who = pendingWho;
-        deathPending = false;
-        pendingWho = null;
-        loggedDeferral = false;
+        ClearPending();
         suppressSendUntil = Time.time + SuppressSendWindow;
         try
         {
@@ -212,6 +208,13 @@ internal class DeathLinkService : IService
         {
             // suppressSendUntil deliberately left running: the death screen has not fired yet
         }
+    }
+
+    private void ClearPending()
+    {
+        deathPending = false;
+        pendingWho = null;
+        loggedDeferral = false;
     }
 
     // The states DealDamage returns false on, plus an open menu. Killing in one of these did
