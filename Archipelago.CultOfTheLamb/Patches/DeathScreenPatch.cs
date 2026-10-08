@@ -43,11 +43,18 @@ internal static class DeathScreenPatch
         }
     }
 
-    // The node loop reads MapManager.Instance unguarded, so any death outside a crusade threw
-    // once the last one had reached a second room. levels is read nowhere else.
+    // The node loop reads MapManager.Instance unguarded, but only once past the first room.
+    // Matching that exactly leaves every other death on the vanilla path, which matters because
+    // the loop is also what starts the lost-item penalty.
     private static void SkipLevelNodesOutsideACrusade(ref int levels)
     {
-        if (levels > 0 && MapManager.Instance == null)
+        if (levels <= 0 || MapManager.Instance != null)
+        {
+            return;
+        }
+
+        var visited = DataManager.Instance?.dungeonVisitedRooms?.Count ?? 0;
+        if (visited >= 2)
         {
             levels = 0;
         }

@@ -189,7 +189,14 @@ internal class DeathLinkService : IService
         suppressSendUntil = Time.time + SuppressSendWindow;
         try
         {
-            player.health.Kill();
+            if (!Kill(player.health))
+            {
+                suppressSendUntil = float.NegativeInfinity;
+                Log.LogInfo("[AP] DeathLink dropped: the game refused the kill, so no Faith was "
+                    + "taken.");
+                return;
+            }
+
             ApplyFaithLoss();
 
             if (who != null)
@@ -210,6 +217,13 @@ internal class DeathLinkService : IService
         }
     }
 
+    // What Kill() does, but DealDamage reports whether it was accepted. Several guards in there
+    // drop the damage silently, and charging Faith for one of those is a lie.
+    private static bool Kill(Health health) =>
+        health.DealDamage(
+            health.CurrentHP, health.gameObject, health.transform.position,
+            false, Health.AttackTypes.Melee, false, (Health.AttackFlags)0);
+
     private void ClearPending()
     {
         deathPending = false;
@@ -217,8 +231,9 @@ internal class DeathLinkService : IService
         loggedDeferral = false;
     }
 
-    // The states DealDamage returns false on, plus an open menu. Killing in one of these did
-    // nothing yet still cost the Faith and still said the player had died.
+    // Transient states worth waiting out rather than spending the death on. Not the whole list
+    // DealDamage rejects: the return value covers the rest, including the dodge tutorial, which
+    // spawns a prompt every time it is asked.
     private static bool CanDieNow(PlayerFarming player)
     {
         var ui = MonoSingleton<UIManager>.Instance;
@@ -236,6 +251,7 @@ internal class DeathLinkService : IService
         return state == null
             || (state.CURRENT_STATE != StateMachine.State.InActive
                 && state.CURRENT_STATE != StateMachine.State.CustomAnimation
+                && state.CURRENT_STATE != StateMachine.State.Dodging
                 && state.CURRENT_STATE != StateMachine.State.Dead
                 && state.CURRENT_STATE != StateMachine.State.GameOver);
     }
