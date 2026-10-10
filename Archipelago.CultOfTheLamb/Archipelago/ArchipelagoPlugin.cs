@@ -24,7 +24,7 @@ public class ArchipelagoPlugin : BaseUnityPlugin
     public const string PluginName = "Archipelago.CultOfTheLamb";
     // Keep in step with manifest.json, the csproj VersionPrefix, and MOD_VERSION in
     // worlds/cult_of_the_lamb/__init__.py
-    public const string PluginVersion = "0.9.3";
+    public const string PluginVersion = "0.9.4";
 
     internal static ArchipelagoPlugin Instance { get; private set; }
 

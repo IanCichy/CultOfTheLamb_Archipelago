@@ -8,7 +8,7 @@
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     <LangVersion>latest</LangVersion>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <VersionPrefix>0.9.3</VersionPrefix>
+    <VersionPrefix>0.9.4</VersionPrefix>
     <OutputPath>bin\$(Configuration)</OutputPath>
   </PropertyGroup>
 

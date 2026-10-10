@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.9.4
+
+### Fixed
+
+- Receiving a Ritual Bundle early in the tutorial no longer locks you in your base with
+  "Perform any Ritual" before you have a ritual to perform. Saves already stuck this way open
+  up the next time they load.
+
 ## 0.9.3
 
 ### Fixed
