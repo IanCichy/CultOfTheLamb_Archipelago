@@ -107,6 +107,7 @@ internal class DivineInspirationService : IService
     public void Register()
     {
         DivineInspirationPatch.PointEarned = OnPointEarned;
+        DivineInspirationPatch.CheckCount = locationCount;
         DivineInspirationPatch.ResetWithholdLog();
 
         // Every granting mode takes the point away. In checks_and_points it comes back as an
@@ -131,6 +132,7 @@ internal class DivineInspirationService : IService
     public void Unregister()
     {
         DivineInspirationPatch.PointEarned = null;
+        DivineInspirationPatch.CheckCount = 0;
         DivineInspirationPatch.WithholdPoints = false;
         progressive.Clear();
 
@@ -168,7 +170,43 @@ internal class DivineInspirationService : IService
         {
             GrantFreeUpgrades();
         }
+
+        DropPointsWithNothingToBuy();
     }
+
+    // A point left over once every upgrade is owned can never be spent, and while one is held
+    // the Shrine pays out gold, so the remaining fill checks would be stuck behind it.
+    //
+    // Only when the trees are completely owned. HasUnlockAvailable also says no while Woolhaven
+    // tiers are still snowed in, and those points are needed later. The Woolhaven tree counts
+    // once it is open, the same condition the game uses (GameManager.cs:1787).
+    private void DropPointsWithNothingToBuy()
+    {
+        if (!SaveSlot.IsLoaded
+            || !DivineInspirationPatch.ChecksRemain
+            || UpgradeSystem.AbilityPoints <= 0
+            || DataManager.Instance.DeathCatBeaten)
+        {
+            return;
+        }
+
+        var game = GameManager.GetInstance();
+        var woolhavenOpen = UpgradeSystem.GetUnlocked(UpgradeSystem.Type.WinterSystem);
+        if (game == null
+            || !OwnsAll(game.UpgradeTreeConfiguration)
+            || (woolhavenOpen && !OwnsAll(game.DLCUpgradeTreeConfiguration)))
+        {
+            return;
+        }
+
+        var dropped = UpgradeSystem.AbilityPoints;
+        UpgradeSystem.AbilityPoints = 0;
+        Log.LogInfo($"[AP] Dropped {dropped} Divine Inspiration point(s) with nothing left to "
+            + "buy, so Devotion keeps filling the meter for the remaining checks.");
+    }
+
+    private static bool OwnsAll(Lamb.UI.Assets.UpgradeTreeConfiguration tree) =>
+        tree == null || tree.AllUpgrades.All(UpgradeSystem.GetUnlocked);
 
     // The upgrades this seed hands over for free, in curated_checks. Without them a fresh save
     // can't unlock a bed, a farm plot or the Temple, so there is no first move

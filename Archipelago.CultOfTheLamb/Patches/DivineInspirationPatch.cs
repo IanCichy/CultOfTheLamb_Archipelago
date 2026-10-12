@@ -153,6 +153,46 @@ internal static class DivineInspirationPatch
         }
     }
 
+    // How many meter-fill checks this seed has. 0 while no session is running the tree
+    internal static int CheckCount;
+
+    // True while the player still has meter-fill checks to send
+    internal static bool ChecksRemain
+    {
+        get
+        {
+            var data = DataManager.Instance;
+            return CheckCount > 0 && data != null && data.Level < CheckCount;
+        }
+    }
+
+    /// <summary>
+    /// Keeps Devotion filling the meter after the tree runs out of things to unlock.
+    /// </summary>
+    /// <remarks>
+    /// Every Devotion source asks GameManager.HasUnlockAvailable and pays out gold instead once
+    /// it says no. Vanilla reaches that only after the last fill. Here the multiworld can finish
+    /// the tree first, which would leave the remaining fill checks unreachable.
+    ///
+    /// Not while a point is held. The Shrine then opens the tree instead of handing over its
+    /// Devotion (BuildingShrine.cs:444-456), and with nothing to buy the player could never
+    /// collect from it.
+    /// </remarks>
+    [HarmonyPatch(typeof(GameManager), nameof(GameManager.HasUnlockAvailable))]
+    internal static class KeepMeterFilling
+    {
+        [HarmonyPostfix]
+        private static void Postfix(ref bool __result)
+        {
+            if (__result || !ChecksRemain || UpgradeSystem.AbilityPoints > 0)
+            {
+                return;
+            }
+
+            __result = true;
+        }
+    }
+
     // The Divine Inspiration tree, or null before GameManager exists
     internal static UpgradeTreeConfiguration Tree =>
         GameManager.GetInstance()?.UpgradeTreeConfiguration;
