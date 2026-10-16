@@ -27,14 +27,14 @@ than typed by hand.
 Code comments are heavily AI-generated, to subpar quality. I have been and will continue rewriting and deleting them over time, to be more useful to me and to any future collaborators.
 
 
-## Not AI-assisted
+## What it is not used for
 
 - **No AI art.** The mod icon and all visuals are my own work or the game's own assets.
 - **Design decisions are mine.** The option set, the check economy, the goal conditions, and what
   does and does not belong in the mod.
 - **Release notes, changelogs and Discord posts** are written by me.
 
-## Human review
+## Human Review Process
 
 All code is reviewed by me before anything lands in main. Nothing ships without me reading it, testing it in an actual gameplay session, and fixing it where needed. I direct the work, I understand how this mod works
 and why each part of it is there, and I can answer questions about any of it. AI is used to speed up development

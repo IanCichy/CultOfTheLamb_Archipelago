@@ -5,8 +5,9 @@
 ### Fixed
 
 - A bunch of fixes around the default (non-quickstart) flow. Specifically when you do not start with the Darkwood
-  region and what that means for getting tutorial related items that only spawn in that region. 
+  region and what that means for getting tutorial-related items that only spawn in that region.
 - Devotion keeps filling the meter once the Divine Inspiration tree is complete if you still have checks to send.
+- Updates to Bishop Domain Doors to read AP unlock conditions.
 
 ## 0.9.4
 
