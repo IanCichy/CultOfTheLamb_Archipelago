@@ -1223,6 +1223,53 @@ internal static class DebugActions
             + "alone. Re-enter the base if the door is still up.");
     }
 
+    // These flags decide whether the opening can finish, and a non-Quick-Start save starts most
+    // of them false.
+    private static void DumpTutorialState()
+    {
+        var d = DataManager.Instance;
+        if (d == null)
+        {
+            Log.LogInfo("[AP] Tutorial state: no DataManager.");
+            return;
+        }
+
+        Log.LogInfo($"[AP] Tutorial: inTutorial={TutorialState.InTutorial}"
+            + $" | onboardingFinished={d.OnboardingFinished}"
+            + $" | showLoyaltyBars={d.ShowLoyaltyBars}"
+            + $" | hasPerformedRitual={d.HasPerformedRitual}"
+            + $" | teleporter={d.UnlockBaseTeleporter}"
+            + $" | enabledSpells={d.EnabledSpells}"
+            + $" | ratauOwesCurses={d.RatauToGiveCurseNextRun}"
+            + $" | goopDoorLocked={d.BaseGoopDoorLocked} '{d.BaseGoopDoorLoc}'");
+
+        Log.LogInfo($"[AP] Doctrine: firstStone={d.FirstDoctrineStone}"
+            + $" | initialStone={d.InitialDoctrineStone}"
+            + $" | forceStones={d.ForceDoctrineStones}"
+            + $" | haroRoom={d.ShowHaroDoctrineStoneRoom}"
+            + $" | completed={d.CompletedDoctrineStones}"
+            + $" | carried={d.DoctrineCurrentCount}"
+            + $" | dungeonRun={d.dungeonRun}"
+            + $" | sermonsAvailable={Safe(() => DoctrineUpgradeSystem.TrySermonsStillAvailable().ToString())}"
+            + $" | stoneAvailable={Safe(() => DoctrineUpgradeSystem.TryGetStillDoctrineStone().ToString())}");
+
+        if (d.Objectives == null)
+        {
+            return;
+        }
+
+        var groups = new List<string>();
+        foreach (var objective in d.Objectives)
+        {
+            if (objective != null && !groups.Contains(objective.GroupId))
+            {
+                groups.Add(objective.GroupId);
+            }
+        }
+
+        Log.LogInfo($"[AP] Active objective groups ({groups.Count}): {string.Join(", ", groups)}");
+    }
+
     // F9 dumps client and game boss state to the log
     internal static void DumpState(ArchipelagoClient ap)
     {
@@ -1233,6 +1280,8 @@ internal static class DebugActions
             + $" | slot: '{ap?.LastSlotName}'"
             + $" | server: {ap?.LastServerUrl}");
         Log.LogInfo($"[AP] Region locking active: {RegionLockState.Active}");
+
+        DumpTutorialState();
 
         DumpPlayerHealthAndRunTrinkets();
 

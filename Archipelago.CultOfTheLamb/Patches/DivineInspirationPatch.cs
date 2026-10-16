@@ -5,44 +5,40 @@ using UnityEngine;
 
 namespace Archipelago.CultOfTheLamb.Patches;
 
-/// <summary>
-/// Controls how Divine Inspiration points are earned. Reports when the Devotion meter fills, can
-/// hold back the point it would have given, and can cap what a point costs.
-/// </summary>
-/// <remarks>
-/// Patches the UpgradeSystem.AbilityPoints setter instead of the one place PlayerFarming adds a
-/// point, since the setter catches every path and is where the "new point" popup comes from.
-///
-/// Does nothing unless a session turns it on.
-/// </remarks>
+/// Controls how Divine Inspiration points are earned. Patches the AbilityPoints setter rather
+/// than where PlayerFarming adds a point, since the setter catches every path.
 internal static class DivineInspirationPatch
 {
-    // Fired when the player fills the Devotion meter, before any withholding. Filling it is
-    // what earns the check, whether or not they keep the point
+    // Filling the meter is what earns the check, whether or not the point is kept.
     internal static Action PointEarned;
 
-    // True while Archipelago owns the point supply. Set by DivineInspirationService in every
-    // granting mode: checks_and_points, checks_and_techs and curated_checks
+    // True while Archipelago owns the point supply, in every granting mode.
     internal static bool WithholdPoints;
 
-    // Set while the service is granting a point itself, so its own write is neither withheld nor
-    // mistaken for a meter fill. A point from the multiworld paying out a check would
-    // double-count every point in the seed
+    // Without this, a point from the multiworld would pay out a check and double-count.
     private static bool granting;
 
-    // Logged once, not per point
     private static bool loggedTutorialPoint;
 
-    // The tutorial can't end without a ritual in the Temple (Onboarding.cs:340-356) and unlocking
-    // the Temple costs a point, so one has to get through. Gated on the Temple rather than the
-    // CollectDivineInspiration objective because that objective completes when any upgrade unlocks
-    // (UpgradeSystem.cs:766), so an unrelated item could close the gate and strand the save.
+    internal static int CheckCount;
+
+    // Withholding is otherwise silent, so there would be no way to tell it from a bug.
+    private static bool loggedFirstWithhold;
+
+    internal static void ResetWithholdLog()
+    {
+        loggedFirstWithhold = false;
+    }
+
+    internal static int DevotionCap;
+
+    // The tutorial needs a Temple ritual to end and the Temple costs a point, so one must get
+    // through. Gated on the Temple, not CollectDivineInspiration, which any upgrade completes.
     private static bool TutorialNeedsAPoint =>
         TutorialState.InTutorial
         && UpgradeSystem.AbilityPoints < 1
         && !UpgradeSystem.GetUnlocked(UpgradeSystem.Type.Building_Temple);
 
-    // Adds count points past the withholding
     internal static void GrantPoints(int count)
     {
         if (count <= 0)
@@ -61,22 +57,8 @@ internal static class DivineInspirationPatch
         }
     }
 
-    // Logged once per session, the first time a point is held back. Otherwise withholding is
-    // silent, and there'd be no way to tell from the log whether it's working
-    private static bool loggedFirstWithhold;
-
-    // Lets the next session report its own first withhold
-    internal static void ResetWithholdLog()
-    {
-        loggedFirstWithhold = false;
-    }
-
-    /// <summary>
-    /// Reports the meter fill, then swallows the point if this seed is withholding.
-    ///
-    /// Spending still has to work, since the player converts granted points into upgrades, so a
-    /// decrease always passes through, as does a write the service made itself.
-    /// </summary>
+    /// Reports the meter fill, then swallows the point if this seed withholds. Decreases always
+    /// pass through, or the player could not spend granted points.
     [HarmonyPatch(typeof(UpgradeSystem), nameof(UpgradeSystem.AbilityPoints),
         MethodType.Setter)]
     internal static class AbilityPointSetter
@@ -84,7 +66,6 @@ internal static class DivineInspirationPatch
         [HarmonyPrefix]
         private static bool Prefix(int value)
         {
-            // Our own grant is not a meter fill, and is never withheld.
             if (granting)
             {
                 return true;
@@ -127,19 +108,8 @@ internal static class DivineInspirationPatch
         }
     }
 
-    // Most Devotion a single ability point may cost. 0 leaves the game's own curve alone
-    internal static int DevotionCap;
-
-    /// <summary>
-    /// Caps what the next point costs
-    /// </summary>
-    /// <remarks>
-    /// The cost climbs from 1 to 465 and stays there, about 24,000 Devotion for all 69 points.
-    /// Capping only the top keeps the early curve the same.
-    ///
-    /// A postfix, so it also catches the game tripling the cost once there's nothing left to
-    /// unlock.
-    /// </remarks>
+    /// Caps what the next point costs. Vanilla climbs to 465, roughly 24,000 Devotion for the
+    /// whole tree, so capping only the top leaves the early curve alone.
     [HarmonyPatch(typeof(DataManager), nameof(DataManager.GetTargetXP))]
     internal static class DevotionCost
     {
@@ -153,7 +123,35 @@ internal static class DivineInspirationPatch
         }
     }
 
-    // The Divine Inspiration tree, or null before GameManager exists
+
+    // True while the player still has DI related checks to send
+    internal static bool ChecksRemain
+    {
+        get
+        {
+            var data = DataManager.Instance;
+            return CheckCount > 0 && data != null && data.Level < CheckCount;
+        }
+    }
+
+    /// Keeps the meter fillable while Archipelago still has checks to earn, since the multiworld
+    /// can finish the tree before you have sent them all. Not while a point is held, or the
+    /// Shrine opens the tree instead of paying out (BuildingShrine.cs:444-456).
+    [HarmonyPatch(typeof(GameManager), nameof(GameManager.HasUnlockAvailable))]
+    internal static class KeepMeterFilling
+    {
+        [HarmonyPostfix]
+        private static void Postfix(ref bool __result)
+        {
+            if (__result || !ChecksRemain || UpgradeSystem.AbilityPoints > 0)
+            {
+                return;
+            }
+
+            __result = true;
+        }
+    }
+
     internal static UpgradeTreeConfiguration Tree =>
         GameManager.GetInstance()?.UpgradeTreeConfiguration;
 }
