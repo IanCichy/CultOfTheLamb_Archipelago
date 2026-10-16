@@ -1,34 +1,23 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <!-- net472: Cult of the Lamb runs on Mono (not IL2CPP), matching COTL_API's target
-         framework. This is not netstandard2.1 like the RoR2 mod - RoR2 modding (R2API/
-         MMHOOK) standardized on netstandard2.1, CotL modding (COTL_API) standardized on
-         net472. Match the ecosystem you're plugging into. -->
+    <!-- The game runs on Mono, and COTL_API targets net472. Do not retarget. -->
     <TargetFramework>net472</TargetFramework>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     <LangVersion>latest</LangVersion>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <VersionPrefix>0.9.4</VersionPrefix>
+    <VersionPrefix>0.9.5</VersionPrefix>
     <OutputPath>bin\$(Configuration)</OutputPath>
   </PropertyGroup>
 
   <Target Name="CopyMod" AfterTargets="PostBuildEvent">
     <MakeDir Directories="bin/zip/" />
-    <!-- net472 (unlike RoR2's netstandard2.1) doesn't emit a .deps.json - that's an SDK-style
-         netcore/netstandard dependency manifest, not a .NET Framework concept. -->
-    <!-- No .pdb here - bin/Build/ is the zip's source, and debug symbols don't belong in a
-         release. The ModFolder copy below still ships it, for local breakpoint debugging. -->
     <Copy SourceFiles="$(TargetPath)" DestinationFolder="bin/Build/" />
     <Copy SourceFiles="$(OutputPath)/Archipelago.MultiClient.Net.dll;$(OutputPath)/Newtonsoft.Json.dll;" DestinationFolder="bin/Build/" />
-    <!-- manifest.json + icon.png + README.md at the zip root are Thunderstore/r2modman
-         package requirements, not decoration - r2modman's "Import local mod" reads them. -->
+    <!-- Thunderstore and r2modman read these from the zip root. -->
     <Copy SourceFiles="../README.md;../manifest.json;../CHANGELOG.md;../icon.png;../LICENSE" DestinationFolder="bin/Build/" />
     <Copy Condition="'$(ModFolder)' != ''" SourceFiles="$(TargetPath);$(TargetDir)/$(TargetName).pdb" DestinationFolder="$(ModFolder)" />
     <Copy Condition="'$(ModFolder)' != ''" SourceFiles="$(OutputPath)/Archipelago.MultiClient.Net.dll;$(OutputPath)/Newtonsoft.Json.dll;" DestinationFolder="$(ModFolder)" />
-    <!-- A developer build has the debug keys compiled in (AP_DEBUG_KEYS, set in the gitignored
-         Directory.Build.props.user). Several of them write save state and send real checks, so
-         handing that zip to anyone would undo the gating entirely - and until this suffix existed
-         the file was named identically to a real release. Name it so the two can't be confused. -->
+    <!-- Renames a debug-keys build so it cannot be mistaken for a release. -->
     <PropertyGroup>
       <PackageSuffix Condition="$(DefineConstants.Contains('AP_DEBUG_KEYS'))">-DEVBUILD-DO-NOT-SHARE</PackageSuffix>
     </PropertyGroup>
@@ -36,8 +25,6 @@
   </Target>
 
   <ItemGroup>
-    <!-- Embedded rather than copied next to the DLL: a missing loose file would only show up
-         in-game as a slot with no icon, whereas a bad resource name fails loudly at load. -->
     <EmbeddedResource Include="Assets\APTarotCard.png" />
     <EmbeddedResource Include="Assets\ap_icon.png" />
   </ItemGroup>
