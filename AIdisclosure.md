@@ -34,7 +34,7 @@ Code comments are heavily AI-generated, to subpar quality. I have been and will 
   does and does not belong in the mod.
 - **Release notes, changelogs and Discord posts** are written by me.
 
-## Human Review Process
+## Human review process
 
 All code is reviewed by me before anything lands in main. Nothing ships without me reading it, testing it in an actual gameplay session, and fixing it where needed. I direct the work, I understand how this mod works
 and why each part of it is there, and I can answer questions about any of it. AI is used to speed up development
