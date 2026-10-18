@@ -52,7 +52,7 @@ internal static class OnboardingCompatibilityPatches
             + "casting is now on.");
     }
 
-    /// Turns the base teleporter back on when the tutorial ended without it. 
+    /// Turns the base teleporter back on when the tutorial ended without it.
     private static void ReenableTeleporterIfStranded(DataManager data)
     {
         if (data.UnlockBaseTeleporter || !data.ShowLoyaltyBars || !data.HasPerformedRitual)
@@ -60,18 +60,28 @@ internal static class OnboardingCompatibilityPatches
             return;
         }
 
-        // Woolhaven turns it off on purpose until the furnace is lit (Onboarding.cs:973-975).
-        if (data.WinterModeActive && !data.BuiltFurnace)
+        // Woolhaven seals the base until the furnace is lit (Onboarding.cs:973-975), which
+        // assumes you can buy one. With AP that tech may never arrive,
+        // so only lock while the furnace is actually buildable.
+        if (data.WinterModeActive && !data.BuiltFurnace
+            && UpgradeSystem.GetUnlocked(UpgradeSystem.Type.Building_Furnace))
         {
             return;
         }
 
         data.UnlockBaseTeleporter = true;
+
+        // Woolhaven door unlock for furnace cases
+        if ((data.WinterModeActive && !data.BuiltFurnace) && data.BaseGoopDoorLocked)
+        {
+            BaseGoopDoor.UnblockGoopDoor();
+        }
+
         Log.LogInfo("[AP] Turned the base teleporter back on: the tutorial is over and it was "
             + "still off.");
     }
 
-    /// Completes a Build Temple step that is asking for a Temple you already have. 
+    /// Completes a Build Temple step that is asking for a Temple you already have.
     private static void CreditTempleStepIfBuilt(DataManager data)
     {
         if (data.OnboardingFinished || !TempleIsBuilt())
