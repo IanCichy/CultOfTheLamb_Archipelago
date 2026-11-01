@@ -6,12 +6,18 @@ namespace Archipelago.CultOfTheLamb.Patches;
 /// <summary>
 /// Turns "the game just unlocked a tarot card" into an Archipelago check, and stops the game
 /// handing the card over.
+///
+/// Every reachable route to a permanent unlock ends at TarotCards.UnlockTrinket (the reveal
+/// menu, so crusade finds, shop purchases and challenge rewards) or DataManager.UnlockTrinket
+/// (world-placed cards). Intercepting the outcome covers all 85 unlock conditions without
+/// knowing any of them.
+///
+/// Two other places write PlayerFoundTrinkets and would slip past both patches.
+/// TarotCards.UnlockRandomTrinket has no callers anywhere in the assembly, so it cannot fire
+/// today, but a caller appearing there after a game update would leak a card silently rather
+/// than failing loudly. GameManager.Awake (:175-194) replaces the whole list when it finds it
+/// empty, which TarotService.Tick is what handles.
 /// </summary>
-/// <remarks>
-/// Every route to a permanent card unlock ends at TarotCards.UnlockTrinket (the reveal menu:
-/// crusade finds, shop purchases, challenge rewards) or DataManager.UnlockTrinket (world-placed
-/// cards). Intercepting the outcome covers all 85 unlock conditions without knowing any of them.
-/// </remarks>
 [HarmonyPatch]
 internal static class TarotUnlockPatch
 {
@@ -50,7 +56,22 @@ internal static class TarotUnlockPatch
             return true;
         }
 
-        switch (Decide(card))
+        UnlockDecision decision;
+        try
+        {
+            decision = Decide(card);
+        }
+        catch (Exception e)
+        {
+            // True lets the game unlock the card the way it always did, so the player is up a
+            // card and down a check. Returning false instead would withhold a card nobody is
+            // going to send, and this runs on every route to an unlock.
+            Log.LogWarning($"[AP] Couldn't decide what to do about tarot card {card}, so the "
+                + $"game keeps it and no check is sent: {e}");
+            return true;
+        }
+
+        switch (decision)
         {
             case UnlockDecision.SendCheck:
                 Log.LogInfo($"[AP] Earned tarot card {card} - sending its check. The card itself "

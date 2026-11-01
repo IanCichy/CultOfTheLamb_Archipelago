@@ -41,13 +41,13 @@ public class ArchipelagoPlugin : BaseUnityPlugin
         Log.Init(Logger);
 
         harmony = new Harmony(PluginGUID);
-        harmony.PatchAll();
+        ApplyPatches();
 
         // Cleanup needs to be an event subscription, not a patch
         Services.SaveSlotCleanup.Register();
 
-        // Manual: its target is a compiler-generated iterator PatchAll cannot reach by
-        // attribute, and a miss should cost a warning rather than the plugin.
+        // By hand against a compiler-generated iterator's MoveNext, which would otherwise need
+        // its own nested patch class. It carries its own try/catch, so a miss costs a warning.
         BaseUpgradeGuardPatch.ApplyRoutineFinalizer(harmony);
 
         // Same reason: its target lives inside a coroutine and a miss should not cost the plugin.
@@ -80,6 +80,31 @@ public class ArchipelagoPlugin : BaseUnityPlugin
         ArchipelagoConsoleCommand.OnArchipelagoDisconnectCommandCalled += () => AP.Disconnect();
 
         Log.LogInfo($"{PluginName} v{PluginVersion} loaded.");
+    }
+
+    // Per type rather than PatchAll, which has no exception handling at all: the first
+    // unresolvable target escapes Awake and BepInEx drops the plugin. Wrapping the call is not
+    // enough, because the throw abandons its loop and every class after the bad one is silently
+    // skipped. We compile against a pinned GameLibs package, not the installed game, so a target
+    // can exist at build time and be gone at run time.
+    //
+    // The unit of isolation is the class, not the patch method, so patches that should be able to
+    // fail independently belong in separate classes.
+    private void ApplyPatches()
+    {
+        foreach (var type in AccessTools.GetTypesFromAssembly(
+                     System.Reflection.Assembly.GetExecutingAssembly()))
+        {
+            try
+            {
+                harmony.CreateClassProcessor(type).Patch();
+            }
+            catch (System.Exception e)
+            {
+                Log.LogWarning($"[AP] Patch class {type.FullName} did not apply, so whatever it "
+                    + $"adds is off for this session: {e.Message}");
+            }
+        }
     }
 
     public void Update()
@@ -194,7 +219,7 @@ public class ArchipelagoPlugin : BaseUnityPlugin
         PasswordEntry = Config.Bind("Archipelago", "Password", "", "Change the default password");
 
         // Weapons and curses are the only randomized system the game cannot show natively, so
-        // the mod puts crusade podiums in the base. Ctrl+F6 prints your current coordinates.
+        // the mod puts crusade podiums in the base.
         PedestalsEnabled = Config.Bind("Displays", "EquipmentPedestals", true,
             "Show weapon and curse podiums in the base.");
         // Each display anchors itself. Measuring them off the end of the weapon row made the

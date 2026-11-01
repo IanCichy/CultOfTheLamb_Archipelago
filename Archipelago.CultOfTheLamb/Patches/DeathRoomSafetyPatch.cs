@@ -6,12 +6,11 @@ namespace Archipelago.CultOfTheLamb.Patches;
 
 /// <summary>
 /// Sends the player home when they die somewhere the room the death screen wants does not exist.
+///
+/// After a death the game can route you into one of two special rooms. Both are built as part of
+/// a crusade, so dying anywhere else leaves the game fading to black towards a room that was
+/// never loaded. It throws partway through the fade, which leaves a black screen with no way out.
 /// </summary>
-/// <remarks>
-/// After a death the game can send you to one of two special rooms. Both are built as part of a
-/// crusade, so dying anywhere else leaves the game fading to black towards a room that was never
-/// loaded. It crashes partway through the fade, which is a black screen you cannot escape.
-/// </remarks>
 internal static class DeathRoomSafetyPatch
 {
     // Ask whether the room is actually loaded rather than guessing from where the player is,
@@ -30,40 +29,63 @@ internal static class DeathRoomSafetyPatch
     [HarmonyPatch(typeof(DeathCatRoomManager), nameof(DeathCatRoomManager.Play))]
     internal static class DeathCatRoom
     {
+        // Falling through reinstates the vanilla black screen for one death, which beats
+        // throwing inside the death flow and breaking every death.
         [HarmonyPrefix]
         private static bool Prefix()
         {
-            if (RoomIsInScene<DeathCatRoomManager>())
+            try
             {
+                if (RoomIsInScene<DeathCatRoomManager>())
+                {
+                    return true;
+                }
+
+                GoHome("Death Cat room");
+                return false;
+            }
+            catch (System.Exception e)
+            {
+                Log.LogWarning($"[AP] Couldn't check for the Death Cat room, so the game's own "
+                    + $"handling stands: {e}");
                 return true;
             }
-
-            GoHome("Death Cat room");
-            return false;
         }
     }
 
-    // The game checks this room before the Death Cat one, and decides purely on story progress,
-    // never on where you are. So any death at all can be sent here.
+    // Checked before the Death Cat room, and its condition is story progress only
+    // (ForeshadowedMysticShop, OnboardedMysticShop, the Dungeon1_4 layer and
+    // RemovedStoryMomentsActive), with no test for where the player is. So any death anywhere
+    // can be routed here.
     [HarmonyPatch(typeof(MysticShopKeeperManager), nameof(MysticShopKeeperManager.Play))]
     internal static class MysticShop
     {
+        // Same fallback: the vanilla outcome beats breaking the death flow outright.
         [HarmonyPrefix]
         private static bool Prefix()
         {
-            if (RoomIsInScene<MysticShopKeeperManager>())
+            try
             {
+                if (RoomIsInScene<MysticShopKeeperManager>())
+                {
+                    return true;
+                }
+
+                StubInstance();
+                GoHome("Mystic Shop keeper room");
+                return false;
+            }
+            catch (System.Exception e)
+            {
+                Log.LogWarning($"[AP] Couldn't check for the Mystic Shop keeper room, so the "
+                    + $"game's own handling stands: {e}");
                 return true;
             }
-
-            StubInstance();
-            GoHome("Mystic Shop keeper room");
-            return false;
         }
 
-        // Skipping the room is not enough on its own: the game reaches for it again immediately
-        // afterwards and crashes when it is missing. So leave an empty stand-in for it to find.
-        // It is created switched off, so none of the real room's own startup code runs.
+        // Skipping the room is not enough on its own. The line straight after Play() reads
+        // MysticShopKeeperManager.Instance.transform, so a null Instance throws there instead.
+        // The stand-in is created switched off, so none of the real room's startup code runs.
         private static void StubInstance()
         {
             if (MysticShopKeeperManager.Instance != null)

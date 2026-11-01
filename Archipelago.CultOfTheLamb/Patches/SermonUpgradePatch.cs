@@ -6,18 +6,15 @@ namespace Archipelago.CultOfTheLamb.Patches;
 
 /// <summary>
 /// Turns "the sermon bar filled" into an Archipelago check instead of an upgrade you pick.
-/// </summary>
-/// <remarks>
+///
 /// SermonController.PlayerUpgrade() is the whole reward step: Disciple Point, tree menu, choice,
 /// then the level increment. Replacing it wholesale decouples earning an upgrade from receiving
-/// one.
+/// one, and cannot hang the sermon, because every caller clears xp around the call
+/// (SermonController.cs:97-99, :175-176, :370-373) rather than looping until an unlock is spent.
 ///
-/// Suppressing the pick can't hang the sermon. The caller resets xp to 0 immediately after
-/// (SermonController.cs:97-99) rather than looping until an unlock is consumed.
-///
-/// The level counter doubles as the location index, incremented once per fill and persisted, so
-/// it survives reconnects and sermons given while disconnected.
-/// </remarks>
+/// The level counter doubles as the location index. It is incremented once per fill and
+/// persisted, so it survives reconnects and sermons given while disconnected.
+/// </summary>
 [HarmonyPatch(typeof(SermonController))]
 internal static class SermonUpgradePatch
 {
@@ -27,15 +24,14 @@ internal static class SermonUpgradePatch
 
     /// <summary>
     /// Caps what the next Temple upgrade costs.
-    /// </summary>
-    /// <remarks>
-    /// Vanilla climbs 0.3, 0.4, 1.1 and on to 10.0 and holds there, so the last 25 of the 38
-    /// upgrades sit at the ceiling: roughly 298 XP total, or ~150 sermons at a 20-strong flock,
-    /// and a sermon is a once-a-day ritual.
     ///
-    /// PlayerUpgrade only. The five doctrine categories route through this same method on a much
-    /// steeper curve, and this world doesn't randomize them yet.
-    /// </remarks>
+    /// PlayerUpgradeTargetXP climbs 0.3, 0.4, 1.1 and on to 10.0 across 14 entries, then clamps,
+    /// so the last 24 of the 38 upgrades all sit at the ceiling: about 298 XP in total, or
+    /// roughly 150 sermons at a 20-strong flock, and a sermon is a once-a-day ritual.
+    ///
+    /// Filtered to PlayerUpgrade. The other eight sermon categories share this method, five of
+    /// them on a far steeper curve, and this world randomizes none of them yet.
+    /// </summary>
     [HarmonyPatch(typeof(DoctrineUpgradeSystem),
         nameof(DoctrineUpgradeSystem.GetXPTargetBySermon))]
     internal static class SermonXpTarget
@@ -63,32 +59,59 @@ internal static class SermonUpgradePatch
     [HarmonyPrefix]
     private static bool PlayerUpgrade_Prefix(ref IEnumerator __result)
     {
-        if (!Active)
+        try
         {
+            if (!Active)
+            {
+                return true;
+            }
+
+            // False skips the original, so no tree menu, no Disciple Point and no pick.
+            __result = SkipUpgradeChoice();
+            return false;
+        }
+        catch (Exception e)
+        {
+            // True gives them an upgrade the multiworld didn't send, which beats false replacing
+            // the sermon reward with nothing.
+            Log.LogWarning($"[AP] Couldn't suppress the sermon upgrade choice, so the vanilla "
+                + $"screen runs: {e}");
             return true;
         }
-
-        __result = SkipUpgradeChoice();
-        return false; // skip the original - no tree menu, no Disciple Point, no pick
     }
 
     private static IEnumerator SkipUpgradeChoice()
+    {
+        // This runs as the game's own coroutine, where a throw would abandon the sermon partway
+        // through instead of surfacing anywhere useful. Swallowing it costs one check.
+        try
+        {
+            RecordUpgrade();
+        }
+        catch (Exception e)
+        {
+            Log.LogWarning($"[AP] Sermon upgrade earned but recording it failed, so no check "
+                + $"was sent: {e}");
+        }
+
+        yield break;
+    }
+
+    private static void RecordUpgrade()
     {
         var dataManager = DataManager.Instance;
         if (dataManager == null)
         {
             Log.LogWarning("[AP] Sermon upgrade earned but DataManager is null - check not sent.");
-            yield break;
+            return;
         }
 
-        // Mirror what the original does at the end of PlayerUpgrade(). The game reads this
-        // elsewhere (XP targets are indexed by it), so letting it drift would slowly desync
-        // the sermon economy even though we skipped the UI.
+        // Mirrors SermonController.cs:449. XP targets are indexed by this level, so letting it
+        // drift would desync the sermon economy even though the UI was skipped.
         dataManager.Doctrine_PlayerUpgrade_Level++;
         var level = dataManager.Doctrine_PlayerUpgrade_Level;
 
         Log.LogInfo($"[AP] Sermon upgrade #{level} earned (choice screen suppressed).");
         OnSermonUpgradeEarned?.Invoke(level);
-        yield break;
     }
 }

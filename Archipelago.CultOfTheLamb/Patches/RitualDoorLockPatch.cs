@@ -1,16 +1,17 @@
+using System;
 using HarmonyLib;
 
 namespace Archipelago.CultOfTheLamb.Patches;
 
 /// <summary>
-/// Stops the tutorial from locking the base door behind a ritual the player can't perform yet.
+/// Stops the tutorial from locking the base door behind a ritual the player cannot perform yet.
+///
+/// While the BonesAndRitual objective group exists, Onboarding tops the player up to the
+/// Bonfire's bone cost and then locks the door with "Perform any Ritual"
+/// (Onboarding.cs:102-130). That assumes holding the bones means owning the Bonfire, which is
+/// true in vanilla but not here: a Ritual Bundle can arrive from the multiworld first, while the
+/// player still has to leave the base to find the first Commandment Stone.
 /// </summary>
-/// <remarks>
-/// Onboarding.Start locks the door with "Perform any Ritual" once the player holds the Bonfire's
-/// bone cost (Onboarding.cs:103-130). Vanilla bones don't drop until the Bonfire is unlocked, but
-/// a Ritual Bundle arrives earlier, while the player still has to leave to find the first
-/// Commandment Stone.
-/// </remarks>
 [HarmonyPatch(typeof(BaseGoopDoor), nameof(BaseGoopDoor.BlockGoopDoor))]
 internal static class RitualDoorLockPatch
 {
@@ -18,13 +19,31 @@ internal static class RitualDoorLockPatch
 
     private static bool logged;
 
-    // The same test the altar uses to show its Rituals button
+    // A proxy for "any ritual is unlocked", reading these two unlocks directly. The game's own
+    // SermonsAndRituals.CheckUnlocked cannot answer this: it reads UnlockedSermonsAndRituals,
+    // whose enum has no fire-pit or brainwashing member.
     private static bool CanPerformARitual =>
         UpgradeSystem.GetUnlocked(UpgradeSystem.Type.Ritual_FirePit)
         || UpgradeSystem.GetUnlocked(UpgradeSystem.Type.Ritual_Brainwashing);
 
+    // True on a throw locks the door as vanilla would, which is the lock this patch avoids. Still
+    // better than throwing out of BlockGoopDoor and breaking every caller, including load.
     [HarmonyPrefix]
     private static bool Prefix(string loc)
+    {
+        try
+        {
+            return Decide(loc);
+        }
+        catch (Exception e)
+        {
+            Log.LogWarning($"[AP] Couldn't tell whether the base door lock is the tutorial's, "
+                + $"so the game's own locking stands: {e}");
+            return true;
+        }
+    }
+
+    private static bool Decide(string loc)
     {
         var data = DataManager.Instance;
         if (data == null || CanPerformARitual)
