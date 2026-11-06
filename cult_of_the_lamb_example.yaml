@@ -264,3 +264,18 @@ Cult of the Lamb:
   # What percentage of the filler items in your seed are traps instead (0-50). Traps replace
   # filler only, never a real item, so this can't make a seed harder to complete.
   trap_percentage: 5
+
+  # ---------------------------------------------------------------------------
+  # Death Link
+  # ---------------------------------------------------------------------------
+
+  # Standard Death Link with everyone else in the multiworld who has it on.
+  # off:     no deaths sent or received
+  # classic: a received death kills you wherever you are
+  death_link: off
+
+  # How many seconds to temporarily ignore further deaths after one happens (0-300).
+  death_link_cooldown: 60
+
+  # Cult Faith a death costs you (0-30). 10 is the default death cost.
+  death_link_faith_loss: 10
