@@ -81,6 +81,18 @@ internal static class OnboardingCompatibilityPatches
             + "still off.");
     }
 
+    /// Restarts day and night on a save whose tutorial ended with the clock still frozen.
+    internal static void StartTheClockIfFrozen()
+    {
+        if (!TimeManager.PauseGameTime)
+        {
+            return;
+        }
+
+        TimeManager.PauseGameTime = false;
+        Log.LogInfo($"[AP] The game clock was frozen, day and night are running again.");
+    }
+
     /// Completes a Build Temple step that is asking for a Temple you already have.
     private static void CreditTempleStepIfBuilt(DataManager data)
     {
@@ -127,6 +139,9 @@ internal static class OnboardingCompatibilityPatches
         data.OnboardingFinished = true;
         data.ShowLoyaltyBars = true;
         data.GivenLoyaltyQuestDay = TimeManager.CurrentDay;
+
+        // Restart the clock
+        StartTheClockIfFrozen();
 
         Log.LogInfo("[AP] Closed out the tutorial");
 
@@ -262,6 +277,38 @@ internal static class OnboardingCompatibilityPatches
 
             pickUp.SetInitialSpeedAndDiraction(5f, UnityEngine.Random.Range(200f, 300f));
             pickUp.GetComponent<Interaction_DoctrineStone>()?.MagnetToPlayer(null);
+        }
+    }
+}
+
+// Onboarding.Start clears a stuck clock
+// (Onboarding.cs:168). Woolhaven's warm-cult furnace quest clears that flag
+// (Onboarding.cs:973), which switches the game's own repair off and leaves the save frozen
+[HarmonyPatch(typeof(Onboarding), "Start")]
+internal static class OnboardingClockPatch
+{
+    [HarmonyPostfix]
+    private static void Postfix()
+    {
+        try
+        {
+            // Same line as the onboarding tick: a save that never used Archipelago keeps the
+            // game's own clock handling. Usually unconnected here, since this runs on load.
+            if (ArchipelagoPlugin.Instance?.Client?.IsConnected != true
+                && !AppliedItemStore.HasHistoryFor(SaveSlot.Current))
+            {
+                return;
+            }
+
+            var data = DataManager.Instance;
+            if (data != null && data.ShowLoyaltyBars)
+            {
+                OnboardingCompatibilityPatches.StartTheClockIfFrozen();
+            }
+        }
+        catch (Exception e)
+        {
+            Log.LogWarning($"[AP] Couldn't check whether the game clock was frozen: {e.Message}");
         }
     }
 }

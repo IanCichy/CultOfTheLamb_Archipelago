@@ -73,7 +73,9 @@ Cult of the Lamb:
   # don't have, so a seed generated with this on and played without the DLC is unbeatable.
   #
   # On:  38 sermon checks, Might of the Devout runs to VII, Battler's Bludgeon is a 7th weapon,
-  #      19 extra tarot cards, and legendary_weapons below is allowed to do anything.
+  #      19 extra tarot cards, and legendary_weapons below is allowed to do anything. Woolhaven
+  #      only opens once all four Bishops are dead, so the 19 cards are dropped on a goal that
+  #      doesn't need all four. The sermons and the weapon stay, since you earn those at home.
   # Off: 32 sermon checks, Might of the Devout stops at VI, 6 weapon families, and
   #      legendary_weapons is forced off regardless of what you set it to.
   include_woolhaven: false
@@ -154,7 +156,7 @@ Cult of the Lamb:
   # now, so 30 is about one session.
   #
   # The block can be shorter than its own 38 items. Those just turn up elsewhere in the seed.
-  # This world has 80 checks that carry no items of their own (buildings, followers, broom, snail
+  # This world has 79 checks that carry no items of their own (buildings, followers, broom, snail
   # shrines, bosses) and would otherwise pay out filler, so a short block trades Bundles of Lumber
   # for real unlocks. Set it low if you'd rather earn the tree by playing than by praying.
   divine_inspiration_checks: 30
@@ -230,8 +232,8 @@ Cult of the Lamb:
   # from doctrine branches, so a check on one could be permanently unreachable.
   building_checks: true
 
-  # Send a check for each of the 10 broom levels. Sweeping raises your chore level; the levels
-  # cost 3, 5, 10, 20, 30, 50, 75, 100, 150 and 200 chore XP, so these trickle in across a run
+  # Send a check for each of the 9 broom levels. Sweeping raises your chore level; the levels
+  # cost 3, 5, 10, 20, 30, 50, 75, 100 and 150 chore XP, so these trickle in across a run
   # rather than needing to be ground for.
   broom_checks: true
 
@@ -266,12 +268,23 @@ Cult of the Lamb:
   trap_percentage: 5
 
   # ---------------------------------------------------------------------------
+  # Achievements
+  # ---------------------------------------------------------------------------
+
+  # Allow Steam achievements while playing this seed.
+  # Off by default: Archipelago hands you content you did not earn. Off holds back every
+  # achievement, not only the ones Archipelago caused, and keeps holding them on this save
+  # while you're not connected. Nothing already earned is taken away.
+  allow_achievements: false
+
+  # ---------------------------------------------------------------------------
   # Death Link
   # ---------------------------------------------------------------------------
 
   # Standard Death Link with everyone else in the multiworld who has it on.
   # off:     no deaths sent or received
   # classic: a received death kills you wherever you are
+  # true and false also work, as classic and off.
   death_link: off
 
   # How many seconds to temporarily ignore further deaths after one happens (0-300).

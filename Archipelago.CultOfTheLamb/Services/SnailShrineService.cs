@@ -2,15 +2,11 @@ using Archipelago.MultiClient.Net;
 
 namespace Archipelago.CultOfTheLamb.Services;
 
-/// <summary>
-/// Sends a check for each Snail Shrine given a Shell offering.
-/// </summary>
-/// <remarks>
-/// The game records these as five plain save booleans, DataManager.ShellsGifted_0 through _4.
-/// There is no event and no single write site worth patching, so this polls them. They are save
-/// state, so polling also catches offerings made while disconnected and re-derives after a
-/// reload.
-/// </remarks>
+// Sends Snail Shrine N once N shrines have a Shell, in any order. Logic can't see which hub holds
+// which shrine, only how many are reachable, so the checks follow the count.
+//
+// The game records them as five save booleans, ShellsGifted_0 to _4, with no event, so this polls
+// them. Being save state, that also catches offerings made while disconnected.
 internal class SnailShrineService : IService
 {
     private readonly ArchipelagoSession session;
@@ -51,16 +47,25 @@ internal class SnailShrineService : IService
             return;
         }
 
-        for (var i = 0; i < locationCount && i < sent.Length; i++)
+        var lit = 0;
+        for (var i = 0; i < 5; i++)
         {
-            if (sent[i] || !IsGifted(dataManager, i))
+            if (IsGifted(dataManager, i))
+            {
+                lit++;
+            }
+        }
+
+        for (var i = 0; i < lit && i < locationCount && i < sent.Length; i++)
+        {
+            if (sent[i])
             {
                 continue;
             }
 
             sent[i] = true;
             var checkId = locationBaseId + i;
-            Log.LogInfo($"[AP] Snail Shrine {i + 1} lit, sending check {checkId}");
+            Log.LogInfo($"[AP] {lit} Snail Shrine(s) lit, sending Snail Shrine {i + 1} ({checkId})");
             CheckSender.Send(session, checkId);
         }
     }

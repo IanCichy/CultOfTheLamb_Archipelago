@@ -8,10 +8,10 @@ using System.Collections.Concurrent;
 namespace Archipelago.CultOfTheLamb;
 
 /// <summary>
-/// Receives items from the AP server and queues them for main-thread processing.
+/// Receives items from the AP server and applies them on the main thread.
 /// Unity/game API calls (granting a follower, unlocking a doctrine, etc.) must happen
-/// on the main thread, so ItemReceived only enqueues. ArchipelagoPlugin.Update() drains
-/// the queue via ProcessQueue().
+/// on the main thread, so ArchipelagoPlugin.Update() polls the library's queue via
+/// ProcessQueue() rather than reacting to its socket-thread event.
 /// </summary>
 public partial class ArchipelagoItemLogicController : IService
 {
@@ -44,15 +44,9 @@ public partial class ArchipelagoItemLogicController : IService
 
     public void Register()
     {
-        session.Items.ItemReceived += Items_ItemReceived;
-
-        // The server replays every item the slot has ever received as part of login, and that
-        // lands before this subscription exists so reacting only to the live event drops
-        // the entire backlog. That silently breaks any reconnect (previously-unlocked regions
-        // stay locked) and breaks connecting to a seed already in progress.
-        //
-        // Draining is safe against a concurrent live event, because both paths consume the same
-        // underlying queue via DequeueItem(), so an item goes to exactly one of them.
+        // The server replays every item the slot has ever received as part of login. It is
+        // drained here only to log the count. ProcessQueue reads the same queue afterwards, all
+        // on the main thread, so the order items arrive in is the order they are applied.
         storeKey = AppliedItemStore.BuildKey(session.RoomState?.Seed, session.ConnectionInfo.Slot);
         appliedCount = AppliedItemStore.Get(storeKey);
         replaysRemaining = appliedCount;
@@ -75,12 +69,6 @@ public partial class ArchipelagoItemLogicController : IService
 
     public void Unregister()
     {
-        session.Items.ItemReceived -= Items_ItemReceived;
-    }
-
-    private void Items_ItemReceived(ReceivedItemsHelper helper)
-    {
-        pendingItemIds.Enqueue(Capture(helper.DequeueItem()));
     }
 
     // Copies what we need off the library's item object, so nothing later depends on its shape
@@ -121,8 +109,18 @@ public partial class ArchipelagoItemLogicController : IService
     }
 
     // Call once per frame from the main thread (see ArchipelagoPlugin.Update)
+    //
+    // Polled rather than subscribed. The ItemReceived event fires on the socket thread, and a live
+    // item dequeued there while Register drained the backlog could be queued ahead of an older
+    // one. Replays are told apart purely by position, so that swap granted an old item twice and
+    // treated the new one as already received.
     public void ProcessQueue()
     {
+        while (session.Items.Any())
+        {
+            pendingItemIds.Enqueue(Capture(session.Items.DequeueItem()));
+        }
+
         while (pendingItemIds.TryDequeue(out var item))
         {
             ApplyItem(item.ItemId, item.SenderName, item.IsTrap);

@@ -60,7 +60,9 @@ game.
 > come back when you disconnect, but a card you unlock while disconnected sends no check and
 > is taken back. Adding the mod to an existing game has not been tested.
 >
-> Saves that have received Archipelago items show an AP icon on the save select screen.
+> Saves that have been connected to Archipelago show an AP icon on the save select screen.
+> Loading a save that never has asks you first, and connecting a save that was played on a
+> different seed or slot stops and asks before anything is given to it.
 
    - Launch Cult of the Lamb through **r2modman** (click *start modded*). Launching from Steam
      runs the game without the mod, and none of the Archipelago menus will appear.
@@ -78,6 +80,8 @@ game.
       - The main menu has the same panel, so you can type your details in early. Connecting still needs a save loaded
       - If it doesn't connect, the box says why. A wrong slot name is the usual cause, and it
         has to match the `name:` in your YAML exactly
+   - Quitting to the main menu disconnects you, so the connection can't follow you into a
+     different save. Connect again once you've loaded back in.
 
 >[!TIP]
 >There is an AP icon in the upper-left of the screen. When the icon is in full color that confirms that you're connected to an AP world. The icon will be washed out if you aren't connected.
@@ -93,10 +97,11 @@ game.
 - Checks for every Bishop, miniboss and Witness
 - Toggleable checks: follower recruitment, snail shrine, tarot shop, construction, sweeping
 - Multiple goal options (Bishops, Witnesses, or Narinder)
-- Woolhaven DLC support (currently weapons and curses) (only enable `include_woolhaven` in your YAML if you actually own it)
+- Woolhaven DLC support: its sermon upgrades, Battler's Bludgeon, its curses, and 19 tarot cards on a goal that needs all four Bishops (only enable `include_woolhaven` in your YAML if you actually own it)
 - Resource bundle filler items
 - One trap so far
 - Death Link, with a cooldown and an optional cult Faith penalty
+- Steam achievements are held back by default. Set `allow_achievements: true` in your YAML to keep them
 - In-game ways to view your progress
 
 ### What's **NOT** Included

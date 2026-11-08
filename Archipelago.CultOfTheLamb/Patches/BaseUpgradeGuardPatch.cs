@@ -6,29 +6,28 @@ using Lamb.UI;
 namespace Archipelago.CultOfTheLamb.Patches;
 
 /// <summary>
-/// Stops a Temple or Shrine upgrade from locking up the game when it runs while the base isn't
-/// loaded
+/// Stops a Temple or Shrine upgrade from locking up the game when it runs while the base is not
+/// loaded.
+///
+/// UpgradeBaseRoutine blocks menus and deactivates every player (BiomeBaseManager.cs:915-918)
+/// before it checks anything. If it then throws for want of a Shrine, nothing gives either back,
+/// so the player is left with no character and no input and has to quit.
+///
+/// We cause it by granting the upgrade the moment the item arrives. The game holds it in
+/// UnlocksToReveal and drains it at the next reveal, which can happen somewhere the base is not
+/// loaded: RelicsUnlockRoom.cs:94 in a dungeon, or RatauHomeShop.cs:55. Vanilla is far less
+/// exposed, since base upgrades are normally bought at the Shrine.
+///
+/// The upgrade is delayed rather than skipped, since skipping would record the unlock without
+/// swapping in the new buildings. This guards the symptom only; not granting building upgrades
+/// away from the Shrine is tracked separately.
 /// </summary>
-/// <remarks>
-/// BiomeBaseManager.UpgradeBaseRoutine hides the player and blocks menus before it checks anything.
-/// If it then throws because there's no Shrine to find, nothing puts them back. You're left with no
-/// character and no input, and have to quit.
-///
-/// It happens because we grant the upgrade the moment the item arrives, and the game runs
-/// it later during an altar interaction, when the base buildings aren't loaded. Normal play can't
-/// hit it, since you buy base upgrades at the Shrine.
-///
-/// The upgrade is delayed, not skipped. Skipping would record the unlock without swapping in the
-/// new buildings.
-///
-/// This only guards the symptom. The real fix is not granting building upgrades outside the Shrine,
-/// which is tracked separately.
-/// </remarks>
 [HarmonyPatch]
 internal static class BaseUpgradeGuardPatch
 {
-    // The upgrade held back because the base wasn't ready, or null. Only ever one, since the
-    // three Temple tiers are sequential
+    // The upgrade held back because the base wasn't ready, or null. Nothing enforces one at a
+    // time, since UnlockAbility does no prerequisite check, so a second would overwrite this.
+    // The downgrade branch and RepairIfBehind cover that case.
     private static UpgradeSystem.Type? deferred;
 
     // Stops the waiting message repeating every tick
@@ -93,17 +92,11 @@ internal static class BaseUpgradeGuardPatch
         return null;
     }
 
-    // The routine grabs both of these without checking, since it swaps the Shrine and Temple
-    // together:
-    //
-    //     BuildingShrine.Shrines[0]                                        // :920
-    //     StructureManager.GetAllStructuresOfType<Structures_Temple>()[0]  // :994
-    //
-    // Checking only the Shrine isn't enough. A new save has a Shrine but no Temple, and the throw
-    // at :994 is the worse one, since the player is back but can't move.
-    //
-    // Menus are checked too, because the routine plays a camera sequence that shouldn't start
-    // under an open menu.
+    // The routine swaps Shrine and Temple together and indexes both unguarded, at
+    // BiomeBaseManager.cs:920 and :994. Checking only the Shrine is not enough: a new save has a
+    // Shrine but no Temple, and the :994 throw is the worse one because the player is visible
+    // again by then but cannot move. Menus are checked too, since the routine plays a camera
+    // sequence that should not start under an open menu.
     private static bool BaseIsReady()
     {
         if (BuildingShrine.Shrines == null || BuildingShrine.Shrines.Count == 0)
@@ -121,10 +114,12 @@ internal static class BaseUpgradeGuardPatch
         return ui == null || !ui.ForceBlockMenus;
     }
 
-    // Whether every player is walking around normally. Coming back from a crusade, the teleporter
-    // holds the player in a locked CustomAnimation with a black silhouette material, and only its
-    // warp-in-burst_end animation event clears it. Starting the upgrade in that window swallows the
-    // event and leaves the player black until the next scene change
+    // Whether every player is walking around normally. Arriving back from a crusade the
+    // teleporter holds the player in a locked CustomAnimation with a black silhouette
+    // (Interaction_BaseTeleporter.cs:328-329), cleared by its warp-in-burst_end event at
+    // :378-385. Starting the upgrade in that window swallows the event and leaves the player
+    // black until the next scene change. The lock itself has a 2.5s fallback at :351-355; the
+    // silhouette does not.
     private static bool PlayerIsFree()
     {
         if (PlayerFarming.players == null || PlayerFarming.players.Count == 0)
@@ -160,14 +155,11 @@ internal static class BaseUpgradeGuardPatch
             return true;
         }
 
-        // The routine doesn't check what you already have. It removes the current Shrine and
-        // Temple and places whichever tier it was handed. Run it with a tier at or below the one
-        // standing and it silently downgrades the base. Vanilla never does, because tiers are
-        // bought in ascending order at the shrine. We can, because they arrive from the multiworld
-        // and the game defers each reveal into UnlocksToReveal until the next altar visit, by
-        // which point a later tier may already have been applied.
-        //
-        // For example, a queued Building_Temple2 landing on a tier IV base would rebuild it as II.
+        // The routine places whichever tier it was handed without checking what is standing, so
+        // a tier at or below the current one silently downgrades the base. Vanilla buys tiers in
+        // ascending order at the Shrine; ours arrive from the multiworld and sit in
+        // UnlocksToReveal until the next altar visit, by which point a later tier may already be
+        // applied. A queued Building_Temple2 landing on a tier IV base would rebuild it as II.
         var requested = TierOf(upgradeType);
         var current = CurrentTier();
 
@@ -247,15 +239,11 @@ internal static class BaseUpgradeGuardPatch
         UpgradeBaseMethod.Invoke(manager, new object[] { upgrade });
     }
 
-    // Rebuilds the base when the structures have fallen behind what the save says is unlocked.
-    // The prefix's repair branch only fires when something calls UpgradeBase, and after a
-    // downgrade nothing is left in UnlocksToReveal to call it, so that path is unreachable.
-    //
-    // That leaves the Temple and Shrine at tier II while UnlockedUpgrades holds Temple_IV, after a
-    // queued Building_Temple2 lands on an already upgraded base.
-    //
-    // Runs at most once per session, or a repair that doesn't take re-fires a multi second
-    // cutscene every tick
+    // Rebuilds the base when the structures have fallen behind what the save records. The
+    // prefix's repair branch needs something to call UpgradeBase, and after a downgrade nothing
+    // is left in UnlocksToReveal to do so, which leaves the Temple and Shrine at tier II while
+    // UnlockedUpgrades holds Temple_IV. Runs at most once per session, because a repair that does
+    // not take would re-fire a multi-second cutscene every tick.
     private static void RepairIfBehind()
     {
         if (repairAttempted || !BaseIsReady())
@@ -283,9 +271,9 @@ internal static class BaseUpgradeGuardPatch
     }
 
     // Hands back what the routine took if it throws for a reason the prefix didn't anticipate.
-    // Patched manually rather than by attribute because the target is a compiler-generated
-    // iterator, and a failed attribute patch would take the whole plugin down. Here a miss
-    // costs a warning
+    // Patched by hand against the iterator's MoveNext. [HarmonyPatch] with MethodType.Enumerator
+    // would also reach it, but would need its own nested class since this one already carries
+    // method-level targets. A miss costs a warning.
     internal static void ApplyRoutineFinalizer(Harmony harmony)
     {
         try
@@ -340,10 +328,9 @@ internal static class BaseUpgradeGuardPatch
 
                 player.gameObject.SetActive(true);
 
-                // The one that strands you at the later throw site. :991 puts the player
-                // into CustomAnimation immediately before the Temple lookup at :994, so by then
-                // it is visible and reactivated but unable to move. Restoring activation alone,
-                // which is all the first version of this did, fixes nothing.
+                // What strands you at the later throw site: :991 sets CustomAnimation
+                // immediately before the Temple lookup at :994, so the player is reactivated but
+                // unable to move. Restoring activation alone fixes nothing.
                 if (player.state != null)
                 {
                     player.state.CURRENT_STATE = StateMachine.State.Idle;
@@ -355,9 +342,9 @@ internal static class BaseUpgradeGuardPatch
                 }
             }
 
-            // :938 pins the camera to the shrine and :939-940 put the game into conversation
-            // framing. Neither is undone on the failure path, so without this the view stays on
-            // the shrine even once the player can move again.
+            // :938 pins the camera to the shrine and :939-940 add conversation framing.
+            // Neither is undone on the failure path, so the view would stay on the shrine even
+            // once the player can move again.
             var camera = GameManager.GetInstance()?.CamFollowTarget;
             if (camera != null)
             {

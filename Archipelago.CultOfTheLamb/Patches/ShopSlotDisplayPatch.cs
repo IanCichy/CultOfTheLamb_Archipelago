@@ -7,13 +7,11 @@ using UnityEngine;
 namespace Archipelago.CultOfTheLamb.Patches;
 
 /// <summary>
-/// Everything needed to turn a tarot shop slot into an Archipelago check. That means which
-/// slots the shop puts out, what they look like, what they say, and what buying one grants. They
-/// live together because the game splits that one concern across shopKeeperManager,
-/// Interaction_BuyItem, UITarotDisplay and TarotCards.
-///
-/// The hooks re-raise as events or ask through delegates, so ShopIconService stays the only
-/// place that knows about locations. This file knows about slots.
+/// Turns a tarot shop slot into an Archipelago check: which slots the shop puts out, what they
+/// look like, what they say, and what buying one grants. One file because the game splits that
+/// concern across shopKeeperManager, Interaction_BuyItem, UITarotDisplay and TarotCards.
+/// Everything here re-raises as an event or asks through a delegate, so this file knows about
+/// slots and ShopIconService stays the only place that knows about locations.
 /// </summary>
 [HarmonyPatch]
 internal static class ShopSlotDisplayPatch
@@ -24,15 +22,12 @@ internal static class ShopSlotDisplayPatch
     // Raised after a slot rebuilds its prompt. Handlers rewrite it via ReplaceLabel
     internal static event Action<Interaction_BuyItem> OnLabelBuilt;
 
-    // Interaction.label, the field behind the Label property. Resolved once, because
-    // FieldRefAccess does the reflection at construction, so the accessor is a direct field
-    // access.
     private static readonly AccessTools.FieldRef<Interaction, string> LabelField =
         AccessTools.FieldRefAccess<Interaction, string>("label");
 
-    // Overwrites a slot's prompt. Writes the field, not the property, because Interaction.Label's
-    // getter calls GetLabel() (Interaction.cs:128-143). Reading it from a GetLabel postfix, which
-    // is the only place a handler runs, recurses until the stack runs out
+    // Writes the backing field directly. Interaction.Label's getter calls GetLabel()
+    // (Interaction.cs:136), and handlers only ever run from a GetLabel postfix, so reading the
+    // property from one would recurse.
     internal static void ReplaceLabel(Interaction_BuyItem buyItem, string label)
     {
         if (buyItem == null || string.IsNullOrEmpty(label))
@@ -43,18 +38,16 @@ internal static class ShopSlotDisplayPatch
         LabelField(buyItem) = label;
     }
 
-    // Answers "has this card's shop slot been spent?". True if its check is already sent,
-    // false if it's still there to buy, and null for cards that aren't AP locations at all,
-    // which the game then answers for itself. Set by ShopIconService while connected, and null
-    // the rest of the time, which leaves every patch here inert
+    // Has this card's slot been spent? Null means it is not an AP location, so the game
+    // answers for itself. Set by ShopIconService while connected, null otherwise, which leaves
+    // this whole file inert.
     internal static Func<TarotCards.Card, bool?> SlotIsSpent;
 
-    // Set only for the duration of InitTarotShop, so the TrinketUnlocked override below can't
-    // leak into the tarot menu, the collection screen, or anything else that asks.
+    // Scopes the TrinketUnlocked override below to InitTarotShop, so it cannot leak into the
+    // tarot menu or the collection screen.
     private static bool initialisingTarotShop;
 
-    // InitTarotShop is the only initialiser the tarot hub shops run (shopKeeperManager.Start
-    // branches on the TarotCardShop flag). Private, which Harmony doesn't care about.
+    // The only initialiser a tarot shop runs: shopKeeperManager.Start branches on TarotCardShop.
     [HarmonyPatch(typeof(shopKeeperManager), "InitTarotShop")]
     [HarmonyPrefix]
     private static void InitTarotShop_Prefix()
@@ -66,13 +59,19 @@ internal static class ShopSlotDisplayPatch
     [HarmonyPostfix]
     private static void InitTarotShop_Postfix(shopKeeperManager __instance)
     {
-        OnShopInitialised?.Invoke(__instance);
+        // A subscriber failing must not abandon the shop the game just finished building.
+        try
+        {
+            OnShopInitialised?.Invoke(__instance);
+        }
+        catch (Exception e)
+        {
+            Log.LogWarning($"[AP] A tarot shop opened but marking its slots failed: {e}");
+        }
     }
 
-    // Clears the flag even when InitTarotShop throws, which a postfix wouldn't. Without this a
-    // single exception leaves TrinketUnlocked overridden for the rest of the session, answering
-    // location state to every caller that asks, meaning the tarot menu, the collection screen,
-    // the lot
+    // A finalizer, not a postfix, because it also runs when InitTarotShop throws. One escaped
+    // exception would otherwise leave TrinketUnlocked overridden for the rest of the session.
     [HarmonyPatch(typeof(shopKeeperManager), "InitTarotShop")]
     [HarmonyFinalizer]
     private static void InitTarotShop_Finalizer()
@@ -80,14 +79,10 @@ internal static class ShopSlotDisplayPatch
         initialisingTarotShop = false;
     }
 
-    // Decides which tarot slots a shop shows, by answering the one question it asks
-    //
-    // The shop only shows a slot if you don't own the card. That breaks once slots are checks: a
-    // card from the multiworld hides the slot and strands its check, and a slot you already bought
-    // keeps coming back.
-    //
-    // So we answer from the check's state instead. Overriding this one call keeps everything else
-    // the game sets up, like price, stock and the sold out sign
+    // InitTarotShop shows a slot only if you don't own the card (shopKeeperManager.cs:362).
+    // Once slots are checks that breaks both ways: a card arriving from the multiworld hides the
+    // slot and strands its check, and a slot you already bought comes back. Answering from check
+    // state instead fixes both and leaves price, stock and the sold out sign alone.
     [HarmonyPatch(typeof(DataManager), nameof(DataManager.TrinketUnlocked))]
     [HarmonyPrefix]
     private static bool TrinketUnlocked_Prefix(TarotCards.Card card, ref bool __result)
@@ -97,7 +92,20 @@ internal static class ShopSlotDisplayPatch
             return true;
         }
 
-        var spent = SlotIsSpent(card);
+        bool? spent;
+        try
+        {
+            spent = SlotIsSpent(card);
+        }
+        catch (Exception e)
+        {
+            // Falls back to the game's own answer. A wrong-looking slot beats throwing out
+            // of InitTarotShop and leaving the shop empty.
+            Log.LogWarning($"[AP] Couldn't read the check state for tarot slot {card}, so the "
+                + $"shop decides for itself: {e}");
+            return true;
+        }
+
         if (!spent.HasValue)
         {
             return true;
@@ -111,11 +119,20 @@ internal static class ShopSlotDisplayPatch
     [HarmonyPostfix]
     private static void GetLabel_Postfix(Interaction_BuyItem __instance)
     {
-        OnLabelBuilt?.Invoke(__instance);
+        // Mid-build of the prompt the player is about to read, so a throw would cost the
+        // whole prompt rather than just the AP wording.
+        try
+        {
+            OnLabelBuilt?.Invoke(__instance);
+        }
+        catch (Exception e)
+        {
+            Log.LogWarning($"[AP] Couldn't rewrite a shop slot label: {e}");
+        }
     }
 
-    // Raised after the floating card panel fills itself in, with the card it's describing.
-    // Handlers rewrite it through SetTarotDisplayText
+    // Raised once the floating card panel fills in. Handlers rewrite it through
+    // SetTarotDisplayText.
     internal static event Action<UITarotDisplay, TarotCards.Card> OnTarotDisplayBuilt;
 
     private static readonly AccessTools.FieldRef<UITarotDisplay, TarotCards.Card> DisplayCardField =
@@ -127,14 +144,23 @@ internal static class ShopSlotDisplayPatch
     private static readonly AccessTools.FieldRef<UITarotDisplay, TMP_Text> DisplayDescriptionField =
         AccessTools.FieldRefAccess<UITarotDisplay, TMP_Text>("descriptionText");
 
-    // The panel that floats over a shop slot. LocalizeText rather than Play, because it writes
-    // the three text fields and catches the re-fill on a language change too. No scoping is
-    // needed, since UITarotDisplay is only ever spawned by TarotCardDisplay on the slot itself
+    // LocalizeText rather than Play: Play calls it, and it is also subscribed to
+    // OnLocalizeEvent, so this catches the language-change refill too. Needs no scoping because
+    // TarotCardDisplay is the only thing that spawns a UITarotDisplay.
     [HarmonyPatch(typeof(UITarotDisplay), "LocalizeText")]
     [HarmonyPostfix]
     private static void LocalizeText_Postfix(UITarotDisplay __instance)
     {
-        OnTarotDisplayBuilt?.Invoke(__instance, DisplayCardField(__instance));
+        // The field refs resolve by name, so a drifted game build lands here. A wrong-looking
+        // panel beats one that throws every time it opens.
+        try
+        {
+            OnTarotDisplayBuilt?.Invoke(__instance, DisplayCardField(__instance));
+        }
+        catch (Exception e)
+        {
+            Log.LogWarning($"[AP] Couldn't rewrite the floating tarot panel: {e}");
+        }
     }
 
     // Overwrites the floating panel's three lines. Null leaves a line as it was
@@ -168,21 +194,21 @@ internal static class ShopSlotDisplayPatch
     // Cards whose next unlock belongs to the multiworld, with the time each entry goes stale.
     private static readonly Dictionary<TarotCards.Card, float> suppressedUnlocks = new();
 
-    // Generous, because the window it has to cover is the purchase cutscene. The card flies to
-    // the player, the reveal menu opens, and only then does the unlock fire, several seconds
-    // after the purchase that armed this.
+    // Spans the purchase sequence, which runs about 1.5 seconds from the buy to the unlock
+    // (Interaction_BuyItem.cs:346 through UITarotCardsMenuController.cs:52). Deliberately far
+    // longer than measured, since the cost of overshooting is only a stale entry.
     private const float SuppressionWindowSeconds = 15f;
 
-    // Marks the next unlock of card as already paid for. An AP slot is a
-    // location, not a purchase, so without this one action would pay out twice
+    // Marks the next unlock of this card as already paid for. An AP slot is a location, not a
+    // purchase, so without this one action pays out twice.
     internal static void SuppressNextUnlock(TarotCards.Card card)
     {
         suppressedUnlocks[card] = Time.unscaledTime + SuppressionWindowSeconds;
     }
 
-    // Whether this unlock was a shop purchase we've already accounted for, clearing the mark as
-    // it answers. A stale entry counts as no suppression, so the failure mode is a card earned
-    // normally rather than one silently swallowed
+    // Whether this unlock was an already-accounted shop purchase, clearing the mark as it
+    // answers. A stale entry reads as no suppression, so the failure lands on a card counted as
+    // earned normally rather than one silently swallowed.
     internal static bool ConsumeSuppressedUnlock(TarotCards.Card card)
     {
         if (!suppressedUnlocks.TryGetValue(card, out var expiresAt))

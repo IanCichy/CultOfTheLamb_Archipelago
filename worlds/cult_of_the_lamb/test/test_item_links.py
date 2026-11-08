@@ -8,6 +8,7 @@ import unittest
 from test.general import setup_multiworld
 
 from .. import CultOfTheLambWorld
+from ..items import trap_table
 
 GAME = "Cult of the Lamb"
 
@@ -23,7 +24,10 @@ class TestGroupWorldCanMakeFiller(unittest.TestCase):
         item = group.create_filler()
 
         self.assertIsNotNone(item)
-        self.assertIn(item.name, CultOfTheLambWorld.weighted_filler)
+
+        # Traps count. get_filler_item_name rolls trap_percentage first and returns a trap on a
+        # hit, so asserting on weighted_filler alone failed about one run in five.
+        self.assertIn(item.name, list(CultOfTheLambWorld.weighted_filler) + list(trap_table))
 
     def test_weighted_filler_is_on_the_class(self):
         """Not an instance attribute, or a group world would never see it."""

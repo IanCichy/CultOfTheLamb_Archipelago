@@ -4,17 +4,17 @@ using HarmonyLib;
 namespace Archipelago.CultOfTheLamb.Patches;
 
 /// <summary>
-/// Catches miniboss and Witness kills. DataManager.AddKilledBoss(string) is the only write site
-/// for KilledBosses in the whole assembly, so one patch covers all 12 minibosses, all 4
-/// Witnesses and their post-game "_P2" variants (DcplIdx 3a).
-/// </summary>
-/// <remarks>
-/// Separate from InteractionMonsterHeartPatch, which covers the four Bishops. Those are
-/// FollowerLocation values in BossesCompleted, and the two never overlap.
+/// Catches miniboss and Witness kills. DataManager.AddKilledBoss is the only place anything is
+/// added to KilledBosses in the whole assembly, so this one patch covers every miniboss, every
+/// Witness and their post-game "_P2" variants (DcplIdx 3a).
 ///
-/// The game suppresses AddKilledBoss while DungeonSandboxManager.Active, so Endless-mode kills
-/// correctly send nothing without us checking for it.
-/// </remarks>
+/// Separate from InteractionMonsterHeartPatch, which covers the four Bishops. Those are
+/// FollowerLocation values in BossesCompleted rather than strings in KilledBosses, so the two
+/// lists never overlap.
+///
+/// Every caller guards on !DungeonSandboxManager.Active, so Endless-mode kills never reach here
+/// and correctly send nothing without this patch testing for it.
+/// </summary>
 [HarmonyPatch(typeof(DataManager))]
 internal static class DataManagerKilledBossPatch
 {
@@ -29,7 +29,18 @@ internal static class DataManagerKilledBossPatch
     [HarmonyPrefix]
     private static void AddKilledBoss_Prefix(DataManager __instance, string BossSkin, out bool __state)
     {
-        __state = __instance?.KilledBosses != null && !__instance.KilledBosses.Contains(BossSkin);
+        // False on a failure, which only costs the check. This sits in front of the game's own
+        // kill bookkeeping, so throwing would mean the kill is never recorded at all.
+        __state = false;
+        try
+        {
+            __state = __instance?.KilledBosses != null && !__instance.KilledBosses.Contains(BossSkin);
+        }
+        catch (Exception e)
+        {
+            Log.LogWarning($"[AP] Couldn't tell whether \"{BossSkin}\" was a first kill, so no "
+                + $"check will be sent for it: {e}");
+        }
     }
 
     [HarmonyPatch(nameof(DataManager.AddKilledBoss))]
@@ -42,6 +53,16 @@ internal static class DataManagerKilledBossPatch
         }
 
         Log.LogInfo($"[AP] Boss kill recorded: \"{BossSkin}\"");
-        OnBossKillRecorded?.Invoke(BossSkin);
+
+        // Subscribers send the check, and this runs inside the boss death. A send that throws
+        // shouldn't leave the fight unresolved.
+        try
+        {
+            OnBossKillRecorded?.Invoke(BossSkin);
+        }
+        catch (Exception e)
+        {
+            Log.LogWarning($"[AP] Couldn't report the kill of \"{BossSkin}\": {e}");
+        }
     }
 }

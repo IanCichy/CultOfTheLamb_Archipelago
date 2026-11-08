@@ -2,9 +2,10 @@ from typing import TYPE_CHECKING
 
 from BaseClasses import Region
 
-from .items import TAROT_CARDS
+from .items import BROOM_LEVEL_COUNT, BROOM_REACHABLE_LEVELS, TAROT_CARDS
 from .locations import (
     DIVINE_INSPIRATION_COUNT, CultOfTheLambLocation, get_locations_for_region, location_name_to_id,
+    location_table,
 )
 
 if TYPE_CHECKING:
@@ -26,6 +27,16 @@ def create_regions(world: "CultOfTheLambWorld") -> None:
     multiworld = world.multiworld
 
     include_dlc = bool(world.options.include_woolhaven)
+
+    # On a goal that doesn't need all four Bishops, Woolhaven's cards sit past the win. Dropped
+    # rather than ruled, like POSTGAME_TAROT_CARDS, so no other player's item gets stranded there.
+    # Cards only: the sermons and Battler's Bludgeon are earned at home.
+    woolhaven_out = set()
+    if include_dlc and not world.goal_reaches_all_bishops:
+        woolhaven_out = {
+            name for name, data in location_table.items()
+            if data.dlc and data.category == "TarotCard"
+        }
 
     menu = Region("Menu", player, multiworld)
     cult = Region("Cult", player, multiworld)
@@ -90,7 +101,7 @@ def create_regions(world: "CultOfTheLambWorld") -> None:
         add_locations(cult, [
             name for name in get_locations_for_region(
                 "Cult", include_dlc, categories=cult_categories)
-            if name not in starting
+            if name not in starting and name not in woolhaven_out and name not in UNREACHABLE_BROOM
         ], player)
 
     # Boss checks are always in. Tarot shop checks only when that option is on.
@@ -110,10 +121,16 @@ def create_regions(world: "CultOfTheLambWorld") -> None:
         add_locations(region, [
             name for name in get_locations_for_region(
                 region_name, include_dlc, categories=region_categories)
-            if name not in starting
+            if name not in starting and name not in woolhaven_out
         ], player)
         multiworld.regions.append(region)
         cult.connect(region, f"Cult -> {region_name}")
+
+
+# Broom levels past what the game can reach. See BROOM_REACHABLE_LEVELS.
+UNREACHABLE_BROOM = {
+    f"Broom Level {n}" for n in range(BROOM_REACHABLE_LEVELS + 1, BROOM_LEVEL_COUNT + 1)
+}
 
 
 def add_locations(region: Region, location_names, player: int) -> None:

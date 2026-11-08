@@ -1,18 +1,20 @@
 import logging
 from typing import Any, Dict, List, Optional, Tuple
 
+from BaseClasses import ItemClassification
+
 from Options import OptionError
 from worlds.AutoWorld import WebWorld, World
 
 from .items import (
-    BROOM_LEVEL_COUNT, BUILDINGS,
+    BROOM_REACHABLE_LEVELS, BUILDINGS,
     CURSES, DI_CURATED_BUNDLES, DI_CURATED_ITEM_NAMES, DI_CURATED_PROGRESSIVE,
     DI_EARLY_ITEM_NAMES,
     DI_CURATED_SINGLES, DI_FREE_UPGRADES, DI_INTERNAL_BY_DISPLAY,
     DI_POINT, DI_TIER_THRESHOLDS, DIVINE_INSPIRATION,
     SERMON_ITEM_UPGRADES, TAROT_CARDS, WEAPONS, CultOfTheLambItem, EquipmentData,
     PROGRESSIVE_REGION_ACCESS, TarotCardData, create_item, item_table,
-    ap_item_name, poolable_equipment, poolable_tarot_cards, sermon_item_counts,
+    ap_item_name, di_tech_item, poolable_equipment, poolable_tarot_cards, sermon_item_counts,
     sermon_item_name, trap_table,
     weighted_filler_names,
 )
@@ -34,7 +36,7 @@ from .rules import set_rules
 # Sent in slot data and logged by the client next to its own version, so a player's log says which
 # apworld built the seed. It is not enforced. A mismatch is something to notice while reading a
 # log, not a reason to refuse a connection. Keep in step with ArchipelagoPlugin.PluginVersion.
-MOD_VERSION = "0.9.5"
+MOD_VERSION = "0.9.6"
 
 
 class CultOfTheLambWeb(WebWorld):
@@ -313,6 +315,15 @@ class CultOfTheLambWorld(World):
                 "include_woolhaven is off, so it has been forced off"
             )
 
+        if opts.include_woolhaven and not self.goal_reaches_all_bishops:
+            ignored.append(
+                "include_woolhaven is on, but this seed's goal does not need all four Bishops "
+                "and Woolhaven only opens once they are dead, so its tarot card checks have "
+                "been dropped rather than left sitting past the win condition. The Woolhaven "
+                "sermon tiers and Battler's Bludgeon are still in, because those are earned in "
+                "the base"
+            )
+
         if not opts.archipelago_objective_guide and opts.objective_guide_pinning != ObjectiveGuidePinning.default:
             ignored.append(
                 "objective_guide_pinning is set, but archipelago_objective_guide is off, so "
@@ -503,6 +514,17 @@ class CultOfTheLambWorld(World):
         return False
 
     @property
+    def goal_reaches_all_bishops(self) -> bool:
+        """Whether winning already needs every Bishop dead, which is what opens Woolhaven.
+
+        The Yngya shrine waits for four Bishops (Interaction_DLCShrine.cs:103), and a Witness goal
+        counts because a Witness only appears once its Bishop is dead (MiniBossManager.cs:52-57).
+        """
+        if self.options.goal == "narinder":
+            return True
+        return self.options.required_count.value >= len(REGION_NAMES)
+
+    @property
     def regions_are_gated(self) -> bool:
         """False only for all_unlocked, where no access items exist at all."""
         return self.options.region_access_order != RegionAccessOrder.option_all_unlocked
@@ -513,8 +535,40 @@ class CultOfTheLambWorld(World):
         create_regions(self)
 
     def create_item(self, name: str) -> CultOfTheLambItem:
-        """One item by name, with the classification `item_table` records for it."""
-        return create_item(name, self.player)
+        """One item by name, with the classification `item_table` records for it.
+
+        Except a tech a building check names, which has to be progression or the fill never
+        collects it and the check reads as unreachable.
+        """
+        item = create_item(name, self.player)
+        if name in self.building_tech_items:
+            item.classification = ItemClassification.progression
+        return item
+
+    @property
+    def building_tech_requirements(self) -> Dict[str, Tuple[str, int]]:
+        """Building check -> the item that unlocks the building, and how many copies.
+
+        Only where Archipelago hands out the techs. In the other modes the player picks them, so
+        the tier bands stand in. The free tier-1 buildings need nothing.
+        """
+        try:
+            if not self.options.building_checks or not self.divine_inspiration_grants_upgrades:
+                return {}
+        except AttributeError:
+            # An item-link group world has no options of its own
+            return {}
+
+        curated = self.divine_inspiration_is_curated
+        return {
+            f"Build - {b.display}": di_tech_item(b.upgrade, curated)
+            for b in BUILDINGS
+            if b.upgrade not in DI_FREE_UPGRADES
+        }
+
+    @property
+    def building_tech_items(self) -> set:
+        return {item for item, _ in self.building_tech_requirements.values()}
 
     def create_items(self) -> None:
         """Fills the item pool, then pads with filler and traps to exactly match the location
@@ -633,6 +687,7 @@ class CultOfTheLambWorld(World):
     def fill_slot_data(self) -> Dict[str, Any]:
         """The wire contract with the C# client: every id map and option the mod reads at connect.
         Keys here are matched by literal string on the client side, so renaming one breaks it."""
+        created = {location.name for location in self.multiworld.get_locations(self.player)}
         return {
             "worldVersion": MOD_VERSION,
 
@@ -645,6 +700,10 @@ class CultOfTheLambWorld(World):
             "deathLink": self.options.death_link.value,
             "deathLinkCooldown": self.options.death_link_cooldown.value,
             "deathLinkFaithLoss": self.options.death_link_faith_loss.value,
+
+            # Off means hold every achievement back. The client defaults to the game's own
+            # behaviour when this key is missing, so older seeds are unaffected.
+            "allowAchievements": int(bool(self.options.allow_achievements.value)),
 
             # Guidance only. No location, no item, no rule. The client renders these as an
             # objective group in the game's own quest log, reading each line's progress back
@@ -703,15 +762,13 @@ class CultOfTheLambWorld(World):
             "startingTarotCards": [card.internal for card in self.starting_tarot_cards],
             # "Tarot Card - <name>" ids, so the client can turn an unlock into a check.
             #
-            # Two exclusions, both of which must agree with what regions.py created: shop cards,
-            # whose check is the slot itself, and starting cards, whose unlock the player can
-            # still trigger (their card was never written into the game's collection) but whose
-            # location was never made. Leaving them out makes the client swallow the unlock.
+            # Only cards whose location regions.py created. Shop cards are checked at the slot,
+            # starting cards and dropped Woolhaven cards have no location, and the client swallows
+            # an unlock of any of them rather than send a check that doesn't exist.
             "tarotCardLocations": {
                 card.internal: location_name_to_id[f"Tarot Card - {card.display}"]
                 for card in self.tarot_cards
-                if card not in self.starting_tarot_cards
-                and f"Tarot Card - {card.display}" in location_name_to_id
+                if f"Tarot Card - {card.display}" in created
             },
 
             "randomizeWeapons": bool(self.options.randomize_weapons.value),
@@ -803,7 +860,7 @@ class CultOfTheLambWorld(World):
             # "Broom Level N" ids are contiguous from here, so the client turns
             # DataManager.ChoreXPLevel straight into a check id.
             "broomLocationBaseId": location_name_to_id["Broom Level 1"],
-            "broomLocationCount": BROOM_LEVEL_COUNT,
+            "broomLocationCount": BROOM_REACHABLE_LEVELS,
 
             "snailShrineChecks": bool(self.options.snail_shrine_checks.value),
             # ShellsGifted_0.._4 map to contiguous ids from here.

@@ -12,7 +12,7 @@ temptation to add "just one more building" to the list is permanent.
 
 from test.bases import WorldTestBase
 
-from ..items import BROOM_LEVEL_COUNT, BUILDINGS, DIVINE_INSPIRATION
+from ..items import BROOM_LEVEL_COUNT, BROOM_REACHABLE_LEVELS, BUILDINGS, DIVINE_INSPIRATION
 
 # Divine Inspiration upgrades gated behind systems the player may never unlock, and the
 # structures they gate. Read from the F4 prerequisite dump.
@@ -104,20 +104,24 @@ class TestBroomOn(BuildingTestBase):
     options = {"broom_checks": True}
 
     def test_locations_and_contiguity(self):
+        # Level 10 is in the table but never created: the game stops at 9.
+        self.assertNotIn(
+            f"Broom Level {BROOM_LEVEL_COUNT}",
+            {location.name for location in self.multiworld.get_locations(1)})
         names = self.location_names
-        for n in range(1, BROOM_LEVEL_COUNT + 1):
+        for n in range(1, BROOM_REACHABLE_LEVELS + 1):
             self.assertIn(f"Broom Level {n}", names)
 
         slot_data = self.world.fill_slot_data()
-        self.assertEqual(slot_data["broomLocationCount"], BROOM_LEVEL_COUNT)
+        self.assertEqual(slot_data["broomLocationCount"], BROOM_REACHABLE_LEVELS)
         self.assertEqual(
             slot_data["broomLocationBaseId"],
             self.multiworld.get_location("Broom Level 1", 1).address,
         )
 
         # Contiguity is the contract: the client turns ChoreXPLevel into base + N - 1.
-        last = self.multiworld.get_location(f"Broom Level {BROOM_LEVEL_COUNT}", 1).address
-        self.assertEqual(last, slot_data["broomLocationBaseId"] + BROOM_LEVEL_COUNT - 1)
+        last = self.multiworld.get_location(f"Broom Level {BROOM_REACHABLE_LEVELS}", 1).address
+        self.assertEqual(last, slot_data["broomLocationBaseId"] + BROOM_REACHABLE_LEVELS - 1)
 
 
 class TestBroomOff(BuildingTestBase):

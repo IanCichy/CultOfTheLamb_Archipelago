@@ -43,6 +43,27 @@ public partial class ArchipelagoClient
     // Asks the reconnect loop to stop at its next opportunity. See StopReconnecting
     private bool cancelReconnect;
 
+    // Why the last login was dropped. Null when there is nothing to confirm
+    public string SaveWarning { get; private set; }
+
+    // Reference key for the save that triggered the warning, so it can be waived if the player accepts it
+    private string warnedKey;
+    // Reference key for the save that the player accepted the warning for, so it can be waived if the player reconnects to it
+    private string waivedKey;
+
+    // The player saw the warning and wants to connect anyway
+    public void AcceptSaveWarning()
+    {
+        waivedKey = warnedKey;
+        SaveWarning = null;
+    }
+
+    public void DismissSaveWarning()
+    {
+        warnedKey = null;
+        SaveWarning = null;
+    }
+
     // Connects without blocking the game. Logging in can take a few seconds, and with a mistyped
     // address that would freeze the game with nothing on screen.
     //
@@ -71,6 +92,7 @@ public partial class ArchipelagoClient
         Log.LogInfo($"[AP] Attempting to connect to Archipelago at {url}.");
         Connecting = true;
         LastError = null;
+        SaveWarning = null;
         loginRefused = false;
 
         // Here rather than in ConnectToServer, which runs on the connect thread below. Teardown
@@ -149,7 +171,7 @@ public partial class ArchipelagoClient
         }
         catch (Exception e)
         {
-            Log.LogWarning($"Failed to create session: {e.Message}");
+            Log.LogWarning($"[AP] Failed to create session: {e.Message}");
             return null;
         }
 
@@ -205,6 +227,40 @@ public partial class ArchipelagoClient
         }
 
         var successResult = (LoginSuccessful)result;
+
+        // Services write into the save as they register, so there has to be one. The panel checks
+        // this too, but a reconnect never goes through the panel. Not a refusal: a reconnect that
+        // lands during a loading screen should try again, and the menu patch stops it at the menu.
+        if (!SaveSlot.IsLoaded)
+        {
+            Log.LogWarning("[AP] Logged in with no save loaded, so the session was closed. Load a save and connect again.");
+            TeardownSession(disconnect: true);
+            LastError = "Load a save before connecting.";
+            OnClientDisconnect?.Invoke(LastError);
+            return;
+        }
+
+        // Before ItemLogic replays items into the save. Dropped, not held open.
+        var storeKey = AppliedItemStore.BuildKey(session.RoomState?.Seed, session.ConnectionInfo.Slot);
+        var warning = storeKey == waivedKey ? null : SaveOwnership.Warning(storeKey);
+        if (warning != null)
+        {
+            Log.LogWarning($"[AP] Connection held for the player to confirm: {warning} [{storeKey}]");
+            TeardownSession(disconnect: true);
+            warnedKey = storeKey;
+            SaveWarning = warning;
+
+            // Also stops the reconnect loop
+            loginRefused = true;
+            LastError = "Waiting for you to confirm this save.";
+            OnClientDisconnect?.Invoke(LastError);
+            return;
+        }
+
+        // From the first connect on we recognize this save even if no item has arrived
+        waivedKey = null;
+        AppliedItemStore.Claim(storeKey);
+
         Log.LogInfo("[AP] Connected!");
 
         // Before any service is constructed, because both mappings are empty until this runs and
@@ -277,7 +333,10 @@ public partial class ArchipelagoClient
 
         LocationCheckService = new LocationCheckService(session);
         LocationCheckService.Register();
-        RegionUnlockService = new RegionUnlockService(regionOrder);
+        // Missing means a seed older than the key, and those were always gated.
+        var regionsGated = !successResult.SlotData.TryGetValue("randomizeRegionAccess", out var gatedObj)
+            || Convert.ToBoolean(gatedObj);
+        RegionUnlockService = new RegionUnlockService(regionOrder, regionsGated);
         RegionUnlockService.Register();
         GoalService = new GoalService(session, goal, requiredCount);
         GoalService.Register();
@@ -418,6 +477,12 @@ public partial class ArchipelagoClient
             DivineInspirationService.Register();
         }
 
+        // A seed from before this option has no key, and GetLong reads a missing key as 0,
+        // which would block. So no key means the game's own behaviour.
+        Patches.AchievementSuppression.Apply(
+            !successResult.SlotData.ContainsKey("allowAchievements")
+            || SlotData.GetLong(successResult.SlotData, "allowAchievements") > 0);
+
         // Guidance only, so it creates no location and sends no check. It reads the same
         // slot-data keys the services above were gated on, so it can never advertise a block that
         // isn't running this seed.
@@ -533,47 +598,30 @@ public partial class ArchipelagoClient
         ArchipelagoConsoleCommand.OnArchipelagoReconnectCommandCalled -=
             ArchipelagoConsoleCommand_OnArchipelagoReconnectCommandCalled;
 
-        LocationCheckService?.Unregister();
-        LocationCheckService = null;
-        RegionUnlockService?.Unregister();
-        RegionUnlockService = null;
-        GoalService?.Unregister();
-        DeathLinkService?.Unregister();
-        GoalService = null;
-        SermonService?.Unregister();
-        SermonService = null;
-        FollowerMilestoneService?.Unregister();
-        FollowerMilestoneService = null;
-        TarotShopService?.Unregister();
-        TarotShopService = null;
-        ShopIconService?.Unregister();
-        ShopIconService = null;
-        TarotService?.Unregister();
-        TarotService = null;
-        SnailShrineService?.Unregister();
-        SnailShrineService = null;
-        WeaponPoolService?.Unregister();
-        WeaponPoolService = null;
-        CursePoolService?.Unregister();
-        CursePoolService = null;
-        EquipmentDisplayService?.Unregister();
-        EquipmentDisplayService = null;
-        DivineInspirationService?.Unregister();
-        DivineInspirationService = null;
-        BuildingService?.Unregister();
-        BuildingService = null;
-        BroomService?.Unregister();
-        BroomService = null;
-        QuestGuideService?.Unregister();
-        QuestGuideService = null;
-        QuestTrimService?.Unregister();
-        QuestTrimService = null;
-        EconomyService?.Unregister();
-        EconomyService = null;
+        Patches.AchievementSuppression.Reset();
+
+        LocationCheckService = Drop(LocationCheckService);
+        RegionUnlockService = Drop(RegionUnlockService);
+        GoalService = Drop(GoalService);
+        DeathLinkService = Drop(DeathLinkService);
+        SermonService = Drop(SermonService);
+        FollowerMilestoneService = Drop(FollowerMilestoneService);
+        TarotShopService = Drop(TarotShopService);
+        ShopIconService = Drop(ShopIconService);
+        TarotService = Drop(TarotService);
+        SnailShrineService = Drop(SnailShrineService);
+        WeaponPoolService = Drop(WeaponPoolService);
+        CursePoolService = Drop(CursePoolService);
+        EquipmentDisplayService = Drop(EquipmentDisplayService);
+        DivineInspirationService = Drop(DivineInspirationService);
+        BuildingService = Drop(BuildingService);
+        BroomService = Drop(BroomService);
+        QuestGuideService = Drop(QuestGuideService);
+        QuestTrimService = Drop(QuestTrimService);
+        EconomyService = Drop(EconomyService);
         CheckNotifier.Scouts = null;
         Scouts = null;
-        ItemLogic?.Unregister();
-        ItemLogic = null;
+        ItemLogic = Drop(ItemLogic);
 
         // Seed-specific, so they must not survive into the next connection.
         BossKeyMapping.Clear();
@@ -585,6 +633,14 @@ public partial class ArchipelagoClient
         }
 
         session = null;
+    }
+
+    // One line per service in TeardownSession, so a service can't be unregistered and left set,
+    // which is how DeathLinkService outlived its session.
+    private static T Drop<T>(T service) where T : class, IService
+    {
+        service?.Unregister();
+        return null;
     }
 
     public void Dispose()
@@ -663,7 +719,7 @@ public partial class ArchipelagoClient
     // instead of twenty
     public IEnumerator AttemptReconnection()
     {
-        Log.LogDebug("Attempting to reconnect!");
+        Log.LogDebug("[AP] Attempting to reconnect.");
         cancelReconnect = false;
         ReconnectAttempt = 0;
 
@@ -728,7 +784,7 @@ public partial class ArchipelagoClient
     // besides connecting or being refused. Both connecting manually and disconnecting go
     // through here, which is what keeps the panel usable while a retry is pending.
     //
-    // `reconnecting` drops immediately rather than when the coroutine notices, so the UI responds
+    // Reconnecting drops immediately rather than when the coroutine notices, so the UI responds
     // to the click instead of to the end of the current backoff
     public void StopReconnecting()
     {

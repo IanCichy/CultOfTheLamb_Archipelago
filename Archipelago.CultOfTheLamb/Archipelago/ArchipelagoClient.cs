@@ -63,7 +63,7 @@ public partial class ArchipelagoClient : IDisposable
     internal ShopIconService ShopIconService { get; private set; }
 
     // Quest Services:
-    // The in game Archipelago checklist. Guidance only sends no checks
+    // The in game Archipelago checklist. Guidance only, sends no checks
     internal QuestGuideService QuestGuideService { get; private set; }
     // Takes most of the games own follower quests out of rotation
     internal QuestTrimService QuestTrimService { get; private set; }
@@ -73,6 +73,6 @@ public partial class ArchipelagoClient : IDisposable
     // What the multiworld put at each location. Shared by the shop panels and the sent check popups
     internal ScoutCache Scouts { get; private set; }
 
-    // The seed's pacing caps. Always registers : see EconomyService
+    // The seed's pacing caps. Always registers, see EconomyService
     internal EconomyService EconomyService { get; private set; }
 }

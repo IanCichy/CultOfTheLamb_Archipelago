@@ -6,7 +6,7 @@ the copy that opens your fourth region behind "Sermon Upgrade 32", and the whole
 one grind with nothing else to do.
 """
 
-from BaseClasses import ItemClassification, LocationProgressType
+from BaseClasses import CollectionState, ItemClassification, LocationProgressType
 from test.bases import WorldTestBase
 from worlds.AutoWorld import call_all
 
@@ -16,7 +16,7 @@ from ..regions import REGION_NAMES
 
 # Blocks that live in "Cult" and so need bands imposed on them. Everything else is gated by
 # the region graph and gets its depth from real logic.
-BANDED_CATEGORIES = ("Sermon", "Follower", "Snail", "TarotCard")
+BANDED_CATEGORIES = ("Sermon", "Follower", "TarotCard")
 
 
 class RulesTestBase(WorldTestBase):
@@ -140,6 +140,50 @@ class TestDepthBands(RulesTestBase):
             )
 
 
+class TestWoolhavenLeavesBaseBandsAlone(RulesTestBase):
+    """Turning Woolhaven on must not move a base-game location into a shallower band. The DLC
+    sermons and cards used to widen every band, which loosened base logic for no reason."""
+
+    options = {
+        "randomize_tarot_cards": 1,
+        "randomize_sermon_upgrades": 1,
+        "region_access_order": 1,  # randomized, so the bands exist
+        "starting_tarot_cards": 0,  # so both seeds create the same card locations
+        "goal": "narinder",
+        "include_woolhaven": 1,
+    }
+
+    def band_profile(self):
+        """Per base-game Sermon and TarotCard location: copies needed, and whether excluded."""
+        world = self.multiworld.worlds[1]
+        states = []
+        for count in range(len(REGION_NAMES)):
+            state = CollectionState(self.multiworld)
+            for _ in range(count):
+                state.collect(world.create_item(PROGRESSIVE_REGION_ACCESS), True)
+            states.append(state)
+
+        profile = {}
+        for location in self.multiworld.get_locations(1):
+            data = location_table.get(location.name)
+            if data is None or data.dlc or data.category not in ("Sermon", "TarotCard"):
+                continue
+            needed = next(
+                (n for n, state in enumerate(states) if location.access_rule(state)), None)
+            profile[location.name] = (needed, location.progress_type)
+        return profile
+
+    def test_base_bands_match_a_seed_without_woolhaven(self):
+        with_dlc = self.band_profile()
+
+        self.options = {**self.options, "include_woolhaven": 0}
+        self.world_setup()
+        without_dlc = self.band_profile()
+
+        self.assertTrue(without_dlc)
+        self.assertEqual(with_dlc, without_dlc)
+
+
 class TestNoGatingMeansNoBands(RulesTestBase):
     """`all_unlocked` creates no progression items at all, so bands would make the deeper
     ones genuinely unreachable. set_depth_rules must stay skipped entirely."""
@@ -161,9 +205,12 @@ class TestNoGatingMeansNoBands(RulesTestBase):
         )
 
     def test_nothing_is_excluded(self):
+        # Only the banded blocks. Neptune's Curse (a region card) is excluded on purpose in every
+        # seed (set_unmodelled_card_rules), since the exclusion is the only true thing to say.
         excluded = [
             location.name
             for location in self.multiworld.get_locations(1)
             if location.progress_type == LocationProgressType.EXCLUDED
+            and location_table[location.name].category in ("Sermon", "TarotCard")
         ]
         self.assertEqual(excluded, [])

@@ -6,51 +6,60 @@ using Lamb.UI;
 namespace Archipelago.CultOfTheLamb.Patches;
 
 /// <summary>
-/// Shows your Archipelago cards to the in-run draw pool and the collection screen, while keeping
+/// Shows your Archipelago cards to the in-run draw pool and the collection screen while keeping
 /// them out of PlayerFoundTrinkets everywhere else. See ManagedCollection for why.
-/// </summary>
-/// <remarks>
-/// Both lend the cards to the list for one call, then take them back. Lending instead of editing
-/// the result means the draw pool keeps all of the game's own filtering.
 ///
-/// Everything else that reads the list is left alone. Completion percentage and the all-tarots
-/// achievement read low while connected and fix themselves on disconnect. That achievement writes
-/// a permanent unlock, which is exactly what this class is here to stop.
-/// </remarks>
+/// Both patches lend the cards to the list for one call and take them back after. Lending rather
+/// than editing the result keeps the game's own filtering intact.
+///
+/// Every other reader is left alone deliberately. Completion percentage and the all-tarots
+/// achievement read low while connected and correct themselves on disconnect, and that
+/// achievement writes a permanent unlock, which is the thing this class exists to prevent.
+/// </summary>
 internal static class TarotVisibility
 {
     // The cards Archipelago has granted. Set by TarotService while connected, and null the rest
     // of the time, which leaves the game entirely alone
     internal static Func<IEnumerable<TarotCards.Card>> GrantedCards;
 
-    // Adds the granted cards, returning exactly the ones it added so Take removes
-    // those and nothing else. Null when there was nothing to lend, which is the common case
+    // Returns exactly the cards it added, so Take removes those and nothing else, or null when
+    // there was nothing to lend. Catching here rather than in the prefixes means a partial
+    // failure still hands back whatever did get added: a card left on loan is a permanent unlock
+    // in the save.
     private static List<TarotCards.Card> Lend()
     {
-        var granted = GrantedCards?.Invoke();
-        if (granted == null)
-        {
-            return null;
-        }
-
-        var found = DataManager.Instance?.PlayerFoundTrinkets;
-        if (found == null)
-        {
-            return null;
-        }
-
         List<TarotCards.Card> lent = null;
 
-        foreach (var card in granted)
+        try
         {
-            // Already there means it isn't ours to take back out again.
-            if (found.Contains(card))
+            var granted = GrantedCards?.Invoke();
+            if (granted == null)
             {
-                continue;
+                return null;
             }
 
-            (lent ??= new List<TarotCards.Card>()).Add(card);
-            found.Add(card);
+            var found = DataManager.Instance?.PlayerFoundTrinkets;
+            if (found == null)
+            {
+                return null;
+            }
+
+            foreach (var card in granted)
+            {
+                // Already there means it isn't ours to take back out again.
+                if (found.Contains(card))
+                {
+                    continue;
+                }
+
+                (lent ??= new List<TarotCards.Card>()).Add(card);
+                found.Add(card);
+            }
+        }
+        catch (Exception e)
+        {
+            Log.LogWarning($"[AP] Couldn't lend the Archipelago cards to the game's list, so "
+                + $"some may not show up: {e}");
         }
 
         return lent;
@@ -63,15 +72,25 @@ internal static class TarotVisibility
             return;
         }
 
-        var found = DataManager.Instance?.PlayerFoundTrinkets;
-        if (found == null)
+        // Logged as an error, not a warning: anything still on loan here is now a permanent
+        // unlock in the player's save.
+        try
         {
-            return;
-        }
+            var found = DataManager.Instance?.PlayerFoundTrinkets;
+            if (found == null)
+            {
+                return;
+            }
 
-        foreach (var card in lent)
+            foreach (var card in lent)
+            {
+                found.Remove(card);
+            }
+        }
+        catch (Exception e)
         {
-            found.Remove(card);
+            Log.LogError($"[AP] Couldn't take back {lent.Count} lent card(s), so they may now "
+                + $"count as permanently found: {e}");
         }
     }
 
@@ -89,9 +108,8 @@ internal static class TarotVisibility
             __state = Lend();
         }
 
-        // A finalizer rather than a postfix, because it runs even if the original throws.
-        // Cards left on loan would silently become permanently owned, which is the exact
-        // failure this whole class exists to avoid.
+        // A finalizer rather than a postfix, so it still runs if the original throws. Cards
+        // left on loan would silently become permanent unlocks.
         [HarmonyFinalizer]
         private static void Finalizer(List<TarotCards.Card> __state)
         {
@@ -100,8 +118,8 @@ internal static class TarotVisibility
     }
 
     /// <summary>
-    /// The collection screen. It asks TarotCards.IsUnlocked which entries to show as owned, so
-    /// lending for the length of the build is enough to light up Archipelago's cards.
+    /// The collection screen, which reads PlayerFoundTrinkets directly and through
+    /// TarotCards.IsUnlocked, so lending for the length of the build lights up our cards.
     /// </summary>
     [HarmonyPatch(typeof(UITarotCardsMenuController), "OnShowStarted")]
     internal static class CollectionScreen

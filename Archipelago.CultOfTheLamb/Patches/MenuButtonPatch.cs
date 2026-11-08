@@ -44,7 +44,7 @@ internal static class MenuButtonPatch
     private static void PauseMenu_Start_Postfix(UIPauseMenuController __instance)
     {
         // Twitch Settings carries a glyph beside its label, so the clone gets ours.
-        TryAddButton(TwitchButtonField(__instance), "pause menu", donorHasGlyph: true);
+        TryAddButton(() => TwitchButtonField(__instance), "pause menu", donorHasGlyph: true);
     }
 
     [HarmonyPatch(typeof(MainMenu), "Start")]
@@ -52,16 +52,20 @@ internal static class MenuButtonPatch
     private static void MainMenu_Start_Postfix(MainMenu __instance)
     {
         // The main menu is text-only, so no button there has a glyph to replace.
-        TryAddButton(SettingsButtonField(__instance), "main menu", donorHasGlyph: false);
+        TryAddButton(() => SettingsButtonField(__instance), "main menu", donorHasGlyph: false);
     }
 
     // Never lets a UI failure take a menu down with it. A thrown exception in a Start postfix
-    // leaves the menu half-initialised, which is a far worse outcome than a missing button
-    private static void TryAddButton(Button donor, string where, bool donorHasGlyph)
+    // leaves the menu half-initialised, which is a far worse outcome than a missing button.
+    //
+    // The donor arrives as a delegate so that resolving it happens inside this try. The field refs
+    // above are static readonly AccessTools handles, which throw from the type initialiser when the
+    // game renames a field, and evaluating one as an argument put that throw in the game's Start.
+    private static void TryAddButton(Func<Button> donor, string where, bool donorHasGlyph)
     {
         try
         {
-            AddButton(donor, where, donorHasGlyph);
+            AddButton(donor(), where, donorHasGlyph);
         }
         catch (Exception e)
         {

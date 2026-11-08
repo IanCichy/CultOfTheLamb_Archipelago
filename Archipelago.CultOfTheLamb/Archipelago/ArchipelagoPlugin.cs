@@ -22,7 +22,7 @@ public class ArchipelagoPlugin : BaseUnityPlugin
     public const string PluginName = "Archipelago.CultOfTheLamb";
     // Keep in step with manifest.json, the csproj VersionPrefix, and MOD_VERSION in
     // worlds/cult_of_the_lamb/__init__.py
-    public const string PluginVersion = "0.9.5";
+    public const string PluginVersion = "0.9.6";
 
     internal static ArchipelagoPlugin Instance { get; private set; }
 
@@ -32,6 +32,11 @@ public class ArchipelagoPlugin : BaseUnityPlugin
     public static ConfigEntry<string> PasswordEntry { get; set; }
 
     private ArchipelagoClient AP;
+
+    // For patches that need to ask whether a session is live. Read-only on purpose: starting and
+    // stopping one goes through ArchipelagoConsoleCommand so every trigger takes the same path.
+    internal ArchipelagoClient Client => AP;
+
     private ArchipelagoConnectPanel connectPanel;
     private Harmony harmony;
     private bool isReconnecting;
@@ -40,34 +45,65 @@ public class ArchipelagoPlugin : BaseUnityPlugin
     {
         Log.Init(Logger);
 
-        harmony = new Harmony(PluginGUID);
-        harmony.PatchAll();
+        // Before anything that can fail. Patches reach the plugin through Instance?.Client, so one
+        // that dies part-way through still has to be able to answer them with a null.
+        Instance = this;
+
+        try
+        {
+            harmony = new Harmony(PluginGUID);
+
+            // Configuration first, because the connect panel reads these entries in its
+            // constructor.
+            CreateConfigurations();
+
+            AP = new ArchipelagoClient();
+
+            // The panel reads and writes the config entries directly, so the entered values live
+            // in one place rather than being copied between the form, statics and the config.
+            connectPanel = new ArchipelagoConnectPanel(
+                AP, ServerNameEntry, PortEntry, SlotNameEntry, PasswordEntry);
+            connectPanel.AttachTo(gameObject.AddComponent<ApPanelHost>());
+
+            ArchipelagoHudIndicator.IsConnected = () => AP.IsConnected;
+
+            // Toggle, not Open: a second click on the menu button is a way out of a panel that
+            // opened and never drew, and it needs no rendering of its own to work (BUG-013).
+            MenuButtonPatch.OnArchipelagoButtonPressed += () => connectPanel.Toggle();
+            AP.OnClientDisconnect += AP_OnClientDisconnect;
+            ArchipelagoConsoleCommand.OnArchipelagoCommandCalled += ArchipelagoConsoleCommand_OnArchipelagoCommandCalled;
+            ArchipelagoConsoleCommand.OnArchipelagoDisconnectCommandCalled += () => AP.Disconnect();
+
+            // Patching is last so the pause-menu button can never exist before the panel it
+            // opens. Awake is one synchronous call, so nothing a patch targets can run part-way
+            // through this.
+            ApplyPatches();
+        }
+        catch (System.Exception e)
+        {
+            // Without the config, panel and commands above there is nothing to patch for, so stop
+            // here with an error the player can find rather than a button that does nothing.
+            Log.LogError($"{PluginName} v{PluginVersion} FAILED to start, so nothing is randomized "
+                + $"and no checks will be sent this session: {e}");
+            return;
+        }
+
+        // Separable features from here down, each on its own, because none is worth the whole mod.
 
         // Cleanup needs to be an event subscription, not a patch
-        Services.SaveSlotCleanup.Register();
+        TryStep("the save slot cleanup", Services.SaveSlotCleanup.Register);
 
-        // Manual: its target is a compiler-generated iterator PatchAll cannot reach by
-        // attribute, and a miss should cost a warning rather than the plugin.
-        BaseUpgradeGuardPatch.ApplyRoutineFinalizer(harmony);
+        TryStep("the debug keys", () => DebugCommands.Init(Config));
+
+        // By hand against a compiler-generated iterator's MoveNext, which would otherwise need
+        // its own nested patch class. It carries its own try/catch, so a miss costs a warning.
+        TryStep("the base upgrade guard",
+            () => BaseUpgradeGuardPatch.ApplyRoutineFinalizer(harmony));
 
         // Same reason: its target lives inside a coroutine and a miss should not cost the plugin.
-        OnboardingCompatibilityPatches.BossChestFragments.Apply(harmony);
+        TryStep("the boss chest fallback",
+            () => OnboardingCompatibilityPatches.BossChestFragments.Apply(harmony));
 
-        CreateConfigurations();
-        DebugCommands.Init(Config);
-
-        Instance = this;
-        AP = new ArchipelagoClient();
-
-        // The panel reads and writes the config entries directly, so the entered values live in
-        // one place rather than being copied between the form, statics and the config.
-        connectPanel = new ArchipelagoConnectPanel(
-            AP, ServerNameEntry, PortEntry, SlotNameEntry, PasswordEntry);
-        connectPanel.AttachTo(gameObject.AddComponent<ApPanelHost>());
-
-        ArchipelagoHudIndicator.IsConnected = () => AP.IsConnected;
-
-        MenuButtonPatch.OnArchipelagoButtonPressed += () => connectPanel.Open();
         DebugCommands.OnDebugKeyPressed += () => DebugActions.DumpState(AP);
 #if AP_DEBUG_KEYS
         DebugCommands.OnConnectKeyPressed += () => connectPanel.Toggle();
@@ -75,16 +111,70 @@ public class ArchipelagoPlugin : BaseUnityPlugin
         DebugCommands.OnCompleteBishopsKeyPressed += () => DebugActions.CompleteBishopsAndOpenGateway(AP);
         DebugCommands.OnDeathLinkKeyPressed += () => DebugActions.SimulateDeathLink(AP);
 #endif
-        AP.OnClientDisconnect += AP_OnClientDisconnect;
-        ArchipelagoConsoleCommand.OnArchipelagoCommandCalled += ArchipelagoConsoleCommand_OnArchipelagoCommandCalled;
-        ArchipelagoConsoleCommand.OnArchipelagoDisconnectCommandCalled += () => AP.Disconnect();
 
         Log.LogInfo($"{PluginName} v{PluginVersion} loaded.");
+    }
+
+    // One separable piece of the mod. A failure costs that piece and a warning, where letting it
+    // escape would cost the whole plugin.
+    private static void TryStep(string what, System.Action step)
+    {
+        try
+        {
+            step();
+        }
+        catch (System.Exception e)
+        {
+            Log.LogWarning($"[AP] Could not set up {what}, so it is off for this session: {e}");
+        }
+    }
+
+    // Per type rather than PatchAll, which has no exception handling at all: the first
+    // unresolvable target escapes Awake and BepInEx drops the plugin. Wrapping the call is not
+    // enough, because the throw abandons its loop and every class after the bad one is silently
+    // skipped. We compile against a pinned GameLibs package, not the installed game, so a target
+    // can exist at build time and be gone at run time.
+    //
+    // The unit of isolation is the class, not the patch method, so patches that should be able to
+    // fail independently belong in separate classes.
+    private void ApplyPatches()
+    {
+        System.Type[] types;
+        try
+        {
+            types = AccessTools.GetTypesFromAssembly(
+                System.Reflection.Assembly.GetExecutingAssembly());
+        }
+        catch (System.Exception e)
+        {
+            // Logged rather than rethrown, because Awake would otherwise report the whole mod dead
+            // over something no single patch can recover.
+            Log.LogError($"[AP] Could not list this assembly's patch classes, so none of the "
+                + $"patches are installed this session: {e}");
+            return;
+        }
+
+        foreach (var type in types)
+        {
+            try
+            {
+                harmony.CreateClassProcessor(type).Patch();
+            }
+            catch (System.Exception e)
+            {
+                Log.LogWarning($"[AP] Patch class {type.FullName} did not apply, so whatever it "
+                    + $"adds is off for this session: {e.Message}");
+            }
+        }
     }
 
     public void Update()
     {
         DebugCommands.Update();
+
+        // The panels' escape keys. Here rather than on the panel's own OnGUI host, because the
+        // host not running is one of the things this is there to catch.
+        ApPanelBase.TickAll();
 
 #if AP_DEBUG_KEYS
         GodMode.Tick();
@@ -119,12 +209,15 @@ public class ArchipelagoPlugin : BaseUnityPlugin
             // Hands over the free Divine Inspiration upgrades once the tutorial ends
             AP?.DivineInspirationService?.Tick();
 
-            // Not gated on a session: a held-back Temple upgrade is already in the save, so it
-            // has to complete whether or not Archipelago is still connected.
-            BaseUpgradeGuardPatch.Tick();
-
-            // A stalled opening is in the save either way, so this is not gated on a session.
-            OnboardingCompatibilityPatches.Tick();
+            // Gated on the save rather than on a session: a held-back Temple upgrade or a stalled
+            // opening is already in an AP save, so it has to finish whether or not Archipelago is
+            // still connected. A save that has never used Archipelago is left alone, because
+            // both of these rewrite tutorial and base state that vanilla play still relies on.
+            if (AP?.IsConnected == true || AppliedItemStore.HasHistoryFor(SaveSlot.Current))
+            {
+                BaseUpgradeGuardPatch.Tick();
+                OnboardingCompatibilityPatches.Tick();
+            }
 
             // Re-places the base podiums after a scene load and lights newly arrived families.
             AP?.EquipmentDisplayService?.Tick();
@@ -194,7 +287,7 @@ public class ArchipelagoPlugin : BaseUnityPlugin
         PasswordEntry = Config.Bind("Archipelago", "Password", "", "Change the default password");
 
         // Weapons and curses are the only randomized system the game cannot show natively, so
-        // the mod puts crusade podiums in the base. Ctrl+F6 prints your current coordinates.
+        // the mod puts crusade podiums in the base.
         PedestalsEnabled = Config.Bind("Displays", "EquipmentPedestals", true,
             "Show weapon and curse podiums in the base.");
         // Each display anchors itself. Measuring them off the end of the weapon row made the

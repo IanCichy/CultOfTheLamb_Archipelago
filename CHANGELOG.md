@@ -1,5 +1,34 @@
 # Changelog
 
+## 0.9.6
+
+### Fixed
+
+- The day/night cycle should no longer freeze when a tutorial step is skipped
+- Woolhaven tarot cards should no longer hold items out of logic. They now need all four
+  Bishops, and are left out of seeds whose goal doesn't go that far.
+- Sermon checks could stop for good if the last sermon upgrade arrived before you'd preached them
+  all. The sermon meter now keeps filling while sermon checks remain.
+- Building checks need the tech that unlocks the building correctly now in the universal tracker.
+- `region_access_order: all_unlocked` now correctly opens every region.
+- Broom Level 10 is gone. Turns out there are only 9.
+- Snail Shrines now need Anura, in the universal tracker.
+- The Archipelago panel no longer freezes if it fails to draw. Escape or the pause button should
+  always close it.
+- An item arriving just as you connect can no longer be given twice by accident.
+- Death Link no longer stays attached after you disconnect.
+- `death_link: true` and `death_link: false` no longer fail generation.
+
+### Added
+
+- Loading a save that has never used AP asks first. Connecting a save that was played on
+  a different seed or slot stops and asks before anything is given to it.
+- Quitting to the main menu now disconnects automatically, so a server cant follow you into another save.
+  It also stops a reconnect that was still retrying.
+- The example YAML now lists the Death Link options.
+- Achievements are now a toggle so you can disable them. Since some of this mod will literally give you hard to earn
+  achievements for free.
+
 ## 0.9.5
 
 ### Fixed

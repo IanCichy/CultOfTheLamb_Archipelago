@@ -13,11 +13,13 @@ namespace Archipelago.CultOfTheLamb.Services;
 internal class RegionUnlockService : IService
 {
     private readonly List<string> regionOrder;
+    private readonly bool gated;
     private int unlockedCount;
 
-    internal RegionUnlockService(List<string> regionOrder)
+    internal RegionUnlockService(List<string> regionOrder, bool gated)
     {
         this.regionOrder = regionOrder;
+        this.gated = gated;
     }
 
     public void Register()
@@ -32,6 +34,19 @@ internal class RegionUnlockService : IService
         // Enforce locking only once we know the seed's region order. Otherwise the door
         // patches would hold every managed region shut with no way to open them.
         RegionLockState.Active = true;
+
+        // all_unlocked has no Progressive Bishop's Domain items, so every region opens now.
+        if (!gated)
+        {
+            Log.LogInfo("[AP] All regions unlocked this seed.");
+            foreach (var region in regionOrder)
+            {
+                UnlockRegion(region);
+            }
+            unlockedCount = regionOrder.Count;
+            return;
+        }
+
         Log.LogInfo($"[AP] Region order this seed: {string.Join(" -> ", regionOrder.ToArray())} "
             + "(first is free, the rest open in that order).");
         UnlockRegion(regionOrder[0]);

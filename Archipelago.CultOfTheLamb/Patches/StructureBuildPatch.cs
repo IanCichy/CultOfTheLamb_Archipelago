@@ -4,18 +4,19 @@ using HarmonyLib;
 namespace Archipelago.CultOfTheLamb.Patches;
 
 /// <summary>
-/// Reports every finished building
+/// Reports every finished building.
+///
+/// The game's own OnBuildComplete is a parameterless Action, so it says something finished but
+/// not what. Build() is patched instead because it knows the structure type.
+///
+/// Simple buildings and multi-stage projects use two separate classes, Structures_BuildSite and
+/// Structures_BuildSiteProject. Patching only the first would leave every multi-stage building
+/// silent.
+///
+/// Decorations are not filtered here. BuildingService only reports structures named in the
+/// buildingLocations map the seed sends it, drawn from the apworld's 25 buildings, and filtering
+/// in two places is two places to get it wrong.
 /// </summary>
-/// <remarks>
-/// OnBuildComplete says something finished but not what, so we patch Build(), which knows the
-/// building type.
-///
-/// Simple buildings and multi-stage ones use two different classes. Patch only the first and the
-/// multi-stage buildings never report.
-///
-/// Decorations aren't filtered here. The service already works from a list of 25 buildings, and
-/// filtering in two places is two places to get it wrong.
-/// </remarks>
 internal static class StructureBuildPatch
 {
     // Set by BuildingService while connected. Null leaves the game untouched
@@ -41,6 +42,8 @@ internal static class StructureBuildPatch
         }
     }
 
+    // Guarded here rather than in each postfix, since both call sites want the same thing: a
+    // failed send shouldn't leave a building half finished in the player's base.
     private static void Report(StructuresData data)
     {
         if (data == null)
@@ -48,7 +51,14 @@ internal static class StructureBuildPatch
             return;
         }
 
-        Built?.Invoke(data.ToBuildType);
+        try
+        {
+            Built?.Invoke(data.ToBuildType);
+        }
+        catch (Exception e)
+        {
+            Log.LogWarning($"[AP] A building finished but reporting it failed: {e}");
+        }
     }
 
     // Ceiling for BuildDurationGameMinutes. 0 leaves it alone
@@ -58,16 +68,17 @@ internal static class StructureBuildPatch
     /// Caps how much build progress a structure needs.
     ///
     /// Despite the name, BuildDurationGameMinutes returns a progress total, not a duration.
-    /// Interaction_PlayerBuild adds 5 per hammer swing; FollowerTask_Build adds game time
-    /// scaled by the Follower's productivity, which is where the name comes from.
+    /// Interaction_PlayerBuild adds a flat 5 per hammer swing, while FollowerTask_Build adds
+    /// elapsed game time scaled by the Follower's ProductivityMultiplier, which is where the
+    /// misleading name comes from.
     ///
-    /// Vanilla values are 10, 15, 20, 30, 60, 120, 180, then 300 for Temple III and IV and 600
-    /// for the shrine upgrades and repairables. The two Temple extensions are 6000 and 9000,
-    /// but those are follower building projects rather than something hammered out.
+    /// The method ends in two defaults, 120 for AESTHETIC types and 300 for everything else not
+    /// named in its switch. Only 4 of the apworld's buildings have an explicit value (Temple 120,
+    /// Sleeping Bag, Body Pit and Farm Plot 30); the other 21 take the 300 default.
     ///
-    /// Capping at 30 is six hammer swings. Most buildings only lose a few seconds to it; the
-    /// 300 and 600 tier is what it really flattens. Pure quality of life, and it matters more
-    /// here than in vanilla because building is now a check.
+    /// So capping at 30, which is six hammer swings, flattens most building checks rather than a
+    /// rare deep tier. Pure quality of life, and it matters more here than in vanilla because
+    /// building is now a check.
     /// </summary>
     [HarmonyPatch(typeof(StructuresData), nameof(StructuresData.BuildDurationGameMinutes))]
     internal static class BuildDuration

@@ -190,6 +190,20 @@ class TestTarotWithWoolhaven(TarotTestBase):
         self.assert_slot_data_ids_exist()
 
 
+class TestTarotWoolhavenPastTheGoal(TarotTestBase):
+    # Two Bishops never opens Woolhaven, so its cards get no location and must not be sent.
+    options = {
+        "randomize_tarot_cards": 1,
+        "tarot_shop_checks": 1,
+        "include_woolhaven": 1,
+        "goal": "bishops",
+        "required_count": 2,
+    }
+
+    def test_slot_data_ids_exist(self):
+        self.assert_slot_data_ids_exist()
+
+
 class TestTarotStartingPoolAny(TarotTestBase):
     """`any` can draw a shop card as a starting card, which used to strand its shop slot."""
 

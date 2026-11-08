@@ -187,10 +187,10 @@ class BuildingChecks(Toggle):
 
 
 class BroomChecks(Toggle):
-    """Send a check for each of the 10 broom levels.
+    """Send a check for each of the 9 broom levels.
 
-    Sweeping raises your chore level, which makes cleaning faster. The ten levels cost 3, 5, 10,
-    20, 30, 50, 75, 100, 150 and 200 chore XP, so they trickle in across a run."""
+    Sweeping raises your chore level, which makes cleaning faster. The nine levels cost 3, 5, 10,
+    20, 30, 50, 75, 100 and 150 chore XP, so they trickle in across a run."""
     display_name = "Broom Checks"
     default = True
 
@@ -258,6 +258,22 @@ class StartingTarotPool(Choice):
     option_vanilla_defaults = 0
     option_any = 1
     default = 0
+
+
+class AllowAchievements(Toggle):
+    """Allow Steam achievements while playing this seed.
+
+    Off by default. Archipelago hands you content you did not earn and the achievements
+    that content triggers are not really yours.
+
+    Off holds back ALL achievements, and keeps holding them on this save while you're not
+    connected.
+
+    Nothing is ever taken away. Steam keeps whatever it already has, so this only stops new ones.
+
+    On follows the game's default behavior."""
+    display_name = "Allow Achievements"
+    default = False
 
 
 class RandomizeWeapons(Toggle):
@@ -380,7 +396,7 @@ class DivineInspirationChecks(Range):
     """How many Divine Inspiration checks the game has, in curated_checks mode.
     Only used when Divine Inspiration Mode is curated_checks.
 
-    You can just pick how many check out want. The default game has 69 but the mod default is 30 for a nice round number.
+    You can just pick how many checks you want. The default game has 69 but the mod default is 30 for a nice round number.
     Set it to 20, 40, 15, whatever you want for however long of a run you want.
 
     Setting this very low while also turning most other check blocks off can leave more items
@@ -435,6 +451,10 @@ class DeathLink(Choice):
     display_name = "Death Link"
     option_off = 0
     option_classic = 1
+    # Most games make death_link a Toggle, so group YAMLs set it to true or false. Without these a
+    # plain `death_link: true` fails generation, because a Choice only matches its own names.
+    alias_true = 1
+    alias_false = 0
     default = 0
 
 
@@ -484,6 +504,7 @@ class CultOfTheLambOptions(PerGameCommonOptions):
     randomize_tarot_cards: RandomizeTarotCards
     starting_tarot_cards: StartingTarotCards
     starting_tarot_pool: StartingTarotPool
+    allow_achievements: AllowAchievements
     randomize_weapons: RandomizeWeapons
     starting_weapons: StartingWeapons
     legendary_weapons: LegendaryWeapons

@@ -7,18 +7,18 @@ using Lamb.UI.Assets;
 namespace Archipelago.CultOfTheLamb.Patches;
 
 /// <summary>
-/// Opens every tier of the Divine Inspiration tree in curated_checks, where Archipelago grants the
-/// upgrades and there are no ability points to spend on opening a row.
-/// </summary>
-/// <remarks>
-/// Patches the reader, not the data. Zeroing the serialized _numRequiredToUnlock changes
-/// nothing on screen, because TierLockIcon and UpgradeTreeNode read through their own config
-/// reference.
+/// Opens every tier of the Divine Inspiration tree in curated_checks, where Archipelago grants
+/// the upgrades and there are no ability points to spend on opening a row.
 ///
-/// Filtered by tree in both patches. NumRequiredNodesForTier is the tier-unlock test, not
-/// just the lock icon, and GameManager holds three of these configs. Unfiltered, this opens
-/// the player and Woolhaven trees too.
-/// </remarks>
+/// Patches the reader rather than the data because the data is not reachable:
+/// NumRequiredToUnlock is a getter-only property over a private field, inside a private
+/// _tierConfigurations list.
+///
+/// Both patches filter by tree. NumRequiredNodesForTier is the tier-unlock test rather than just
+/// the lock icon, and GameManager holds three of these configs (UpgradeTreeConfiguration,
+/// UpgradePlayerConfiguration, DLCUpgradeTreeConfiguration), so unfiltered this would open the
+/// player and Woolhaven trees too.
+/// </summary>
 [HarmonyPatch(typeof(UpgradeTreeConfiguration),
     nameof(UpgradeTreeConfiguration.NumRequiredNodesForTier))]
 internal static class DivineInspirationTierReveal
@@ -69,28 +69,37 @@ internal static class DivineInspirationTierReveal
     }
 
     /// <summary>
-    /// Hides the divider itself, not just its padlock: TierLockIcon.Configure answers an open tier
-    /// by hiding the lock and filling the divider lines in, leaving a rule across a boundary that
-    /// no longer exists.
+    /// Hides the divider, not just its padlock. Given an open tier, TierLockIcon.Configure hides
+    /// the lock and fills both divider lines in, which would leave a rule drawn across a boundary
+    /// that no longer exists.
     /// </summary>
     [HarmonyPatch(typeof(TierLockIcon), nameof(TierLockIcon.Configure))]
     internal static class HideDivider
     {
-        // The icon's own serialized tree reference, which is what says the icon belongs to. Read
-        // through FieldRef rather than a `____config` parameter: Harmony strips three underscores
-        // as its prefix, so a field named _config needs four, and getting that wrong throws at
-        // patch time and takes the rest of PatchAll with it.
+        // The icon's own tree reference, which is what it belongs to. Read through FieldRef
+        // rather than a `____config` parameter, because Harmony strips three underscores as its
+        // prefix so a field named _config needs four, and getting that wrong throws at patch time.
         private static readonly AccessTools.FieldRef<TierLockIcon, UpgradeTreeConfiguration> Config =
             AccessTools.FieldRefAccess<TierLockIcon, UpgradeTreeConfiguration>("_config");
 
+        // Resolved by field name, so a rename would throw on every icon the tree paints and
+        // make the menu unusable. A visible divider is the harmless outcome.
         private static void Postfix(TierLockIcon __instance)
         {
-            if (!active || !ReferenceEquals(Config(__instance), DivineInspirationPatch.Tree))
+            try
             {
-                return;
-            }
+                if (!active || !ReferenceEquals(Config(__instance), DivineInspirationPatch.Tree))
+                {
+                    return;
+                }
 
-            __instance.gameObject.SetActive(false);
+                __instance.gameObject.SetActive(false);
+            }
+            catch (System.Exception e)
+            {
+                Log.LogWarning($"[AP] Couldn't hide a tier divider on the Divine Inspiration "
+                    + $"tree: {e}");
+            }
         }
     }
 }

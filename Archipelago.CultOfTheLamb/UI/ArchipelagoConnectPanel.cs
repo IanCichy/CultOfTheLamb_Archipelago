@@ -38,6 +38,7 @@ internal class ArchipelagoConnectPanel : ApPanelBase
 
     private GUIStyle labelStyle;
     private GUIStyle statusStyle;
+    private GUIStyle warningStyle;
 
     internal ArchipelagoConnectPanel(
         ArchipelagoClient client,
@@ -73,6 +74,14 @@ internal class ArchipelagoConnectPanel : ApPanelBase
 
         GUILayout.Space(10f);
 
+        // In place of the normal buttons
+        if (client.SaveWarning != null && !client.Connecting)
+        {
+            DrawSaveWarning();
+            GUI.DragWindow(new Rect(0f, 0f, window.width, 24f));
+            return;
+        }
+
         // Read once, because the button's enabled state and the line explaining it must agree,
         // and IMGUI needs the Layout and Repaint passes to agree with each other too.
         var canConnectHere = HasLoadedSave();
@@ -101,9 +110,10 @@ internal class ArchipelagoConnectPanel : ApPanelBase
         }
 
         GUI.enabled = true;
-        if (GUILayout.Button("Close", GUILayout.Height(34f)))
+
+        if (GUILayout.Button("Close (Esc)", GUILayout.Height(34f)))
         {
-            Close();
+            Close("the Close button");
         }
 
         GUILayout.EndHorizontal();
@@ -121,6 +131,29 @@ internal class ArchipelagoConnectPanel : ApPanelBase
 
         // Only the title bar drags, so the fields underneath stay clickable.
         GUI.DragWindow(new Rect(0f, 0f, window.width, 24f));
+    }
+
+    private void DrawSaveWarning()
+    {
+        GUILayout.Label(client.SaveWarning, warningStyle);
+        GUILayout.Space(8f);
+
+        GUILayout.BeginHorizontal();
+
+        if (GUILayout.Button("Connect anyway", GUILayout.Height(34f)))
+        {
+            client.AcceptSaveWarning();
+            Save();
+            ArchipelagoConsoleCommand.Connect(server.Trim(), ParsePort(), slot.Trim(), password);
+        }
+
+        if (GUILayout.Button("Cancel", GUILayout.Height(34f)))
+        {
+            client.DismissSaveWarning();
+        }
+
+        GUILayout.EndHorizontal();
+        GUILayout.Space(4f);
     }
 
     private string Field(string label, string value, bool secret = false)
@@ -196,5 +229,7 @@ internal class ArchipelagoConnectPanel : ApPanelBase
 
         labelStyle = new GUIStyle(GUI.skin.label) { wordWrap = true };
         statusStyle = new GUIStyle(GUI.skin.label) { wordWrap = true, fontStyle = FontStyle.Bold };
+        warningStyle = new GUIStyle(statusStyle);
+        warningStyle.normal.textColor = new Color(1f, 0.78f, 0.3f);
     }
 }

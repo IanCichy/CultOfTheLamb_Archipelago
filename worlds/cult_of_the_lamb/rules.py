@@ -1,10 +1,12 @@
 from typing import TYPE_CHECKING
 
 from BaseClasses import LocationProgressType
-from worlds.generic.Rules import set_rule
+from worlds.generic.Rules import add_rule, set_rule
 
-from .items import DI_GATE_ITEM, PROGRESSIVE_REGION_ACCESS
-from .locations import location_table
+from .items import (
+    BUILDINGS, DI_GATE_ITEM, PROGRESSIVE_REGION_ACCESS, TAROT_CARDS,
+)
+from .locations import SNAIL_SHRINE_COUNT, location_table
 from .regions import REGION_NAMES
 
 # The progressive item the curated Divine Inspiration block gates on, and how many copies exist.
@@ -48,8 +50,6 @@ def set_rules(world: "CultOfTheLambWorld") -> None:
             set_depth_rules(world, "Sermon")
         if world.options.follower_milestone_checks:
             set_depth_rules(world, "Follower")
-        if world.options.snail_shrine_checks:
-            set_depth_rules(world, "Snail")
         if world.options.randomize_tarot_cards:
             set_depth_rules(world, "TarotCard")
 
@@ -71,16 +71,28 @@ def set_rules(world: "CultOfTheLambWorld") -> None:
         if world.divine_inspiration_enabled and not world.divine_inspiration_is_curated:
             set_depth_rules(world, "DivineInspiration", exclude_tail=False)
 
-        # Buildings are gated behind Divine Inspiration upgrades, but Archipelago can't express
-        # that: in every mode except checks_and_techs the player chooses which upgrades to
-        # buy, so the multiworld never learns which buildings are available. Bands instead -
-        # and locations.py orders this block by the unlocking upgrade's tier, so they at least
-        # approximate the truth rather than keying off an arbitrary list order.
-        if world.options.building_checks:
-            set_depth_rules(world, "Building")
+        # Where the player picks the techs, the multiworld can't know which buildings exist, so
+        # they're banded by real tier (BUG-010). The modes that hand out techs get a real rule.
+        if world.options.building_checks and not world.building_tech_requirements:
+            set_building_depth_rules(world)
 
         if world.options.broom_checks:
             set_depth_rules(world, "Broom")
+
+    # Not gated on regions_are_gated: the rule asks for the Bishops, so it holds in an
+    # all_unlocked seed too.
+    if world.goal_reaches_all_bishops:
+        set_woolhaven_rules(world)
+
+    # Outside the gated block, since a tech item is a real requirement in an all_unlocked seed too.
+    set_building_tech_rules(world)
+
+    # Tarot shops need only their own region, which the region entrance already says. Finding the
+    # hub costs runs, not an item, so anything stricter would be a guess.
+    set_unmodelled_card_rules(world)
+
+    if world.options.snail_shrine_checks:
+        set_snail_shrine_rules(world)
 
     # Outside the block above for the same reason as the equipment rules below: curated_checks
     # gates on Progressive Cult, which exists in every curated seed regardless of how region
@@ -125,6 +137,17 @@ _MAX_REGION_COPIES = len(REGION_NAMES) - 1
 
 # Bands per repeatable block: 0, 1, 2 ... _MAX_REGION_COPIES copies required.
 _BANDS = _MAX_REGION_COPIES + 1
+
+# Divine Inspiration tier -> domain copies a building check needs. Five tiers but only three
+# copies, so the top two share the deepest band.
+_BUILDING_TIER_COPIES = {1: 0, 2: 1, 3: 2, 4: 3, 5: 3}
+
+# Cards whose region is only the first of several gates, none of them items. Excluded rather than
+# ruled. Internal names, matched against TAROT_CARDS.
+_UNMODELLED_REGION_CARDS = {"NeptunesCurse"}
+
+# The only region whose dungeons have the snails that drop Shells.
+SHELL_REGION = "Anura"
 
 
 def set_equipment_rules(world: "CultOfTheLambWorld", prefix, families, starting) -> None:
@@ -208,10 +231,19 @@ def set_depth_rules(
     if not locations:
         return
 
-    band_size = max(1, len(locations) // _BANDS)
+    # Base-game locations are banded on the base-game count alone, so turning Woolhaven on doesn't
+    # make them shallower. DLC ones keep their place in the whole list, as before.
+    base_count = sum(1 for name in locations if not location_table[name].dlc)
+    base_band = max(1, base_count // _BANDS)
+    full_band = max(1, len(locations) // _BANDS)
+    base_index = 0
 
     for index, location_name in enumerate(locations):
-        required = min(index // band_size, _MAX_REGION_COPIES)
+        if location_table[location_name].dlc:
+            required = min(index // full_band, _MAX_REGION_COPIES)
+        else:
+            required = min(base_index // base_band, _MAX_REGION_COPIES)
+            base_index += 1
         location = world.multiworld.get_location(location_name, player)
 
         if required > 0:
@@ -265,3 +297,118 @@ def set_curated_di_rules(world: "CultOfTheLambWorld") -> None:
             world.multiworld.get_location(location_name, player),
             lambda state, count=required: state.has(PROGRESSIVE_CULT, player, count),
         )
+
+
+def set_woolhaven_rules(world: "CultOfTheLambWorld") -> None:
+    """Puts Woolhaven's tarot cards behind all four Bishops, which is what reaching it takes.
+
+    With no rule, the fill put a domain item on a card that needed it (BUG-012). Asks for the
+    Bishop locations, which carry their own gates, and uses add_rule to keep the depth band.
+    """
+    player = world.player
+
+    for name, data in location_table.items():
+        if not data.dlc or data.category != "TarotCard":
+            continue
+        try:
+            location = world.multiworld.get_location(name, player)
+        except KeyError:
+            # Not in this seed: a starting card, or tarot randomization is off.
+            continue
+        add_rule(
+            location,
+            lambda state: all(
+                state.can_reach_location(bishop, player)
+                for bishop in BISHOP_LOCATIONS.values()
+            ))
+
+
+def set_building_depth_rules(world: "CultOfTheLambWorld") -> None:
+    """Band the building checks by the tier the game gates them on.
+
+    Equal quarters put Missionary, a tier 2 building, in the free band (BUG-010). Still pacing, not
+    logic: the real rule would name the unlocking item, which most modes don't have.
+    """
+    player = world.player
+    created = {location.name for location in world.multiworld.get_locations(player)}
+
+    for building in BUILDINGS:
+        location_name = f"Build - {building.display}"
+        if location_name not in created:
+            continue
+
+        required = _BUILDING_TIER_COPIES.get(building.tier, _MAX_REGION_COPIES)
+        location = world.multiworld.get_location(location_name, player)
+
+        if required > 0:
+            set_rule(
+                location,
+                lambda state, count=required: state.has(
+                    PROGRESSIVE_REGION_ACCESS, player, count
+                ),
+            )
+
+        # The deepest band is excluded rather than called unreachable, as in set_depth_rules.
+        if required == _MAX_REGION_COPIES:
+            location.progress_type = LocationProgressType.EXCLUDED
+
+
+def set_building_tech_rules(world: "CultOfTheLambWorld") -> None:
+    """Gate each building check on the item that unlocks its structure.
+
+    Only in checks_and_techs and curated_checks. The table is the type StructuresData.GetUnlocked
+    checks before the structure can be placed.
+    """
+    player = world.player
+    created = {location.name for location in world.multiworld.get_locations(player)}
+
+    for location_name, (item, count) in world.building_tech_requirements.items():
+        if location_name not in created:
+            continue
+        set_rule(
+            world.multiworld.get_location(location_name, player),
+            lambda state, item=item, count=count: state.has(item, player, count),
+        )
+
+
+def set_snail_shrine_rules(world: "CultOfTheLambWorld") -> None:
+    """Snail Shrine N is the Nth shrine lit, in any order, so it needs N shrines you can reach.
+
+    Shells only come from Anura's snails, and there is one shrine at the Lonely Shack plus one in
+    each region's hub. With Anura open that is two shrines, and each other open region adds one.
+    """
+    player = world.player
+    created = {location.name for location in world.multiworld.get_locations(player)}
+    others = [region for region in REGION_NAMES if region != SHELL_REGION]
+
+    for n in range(1, SNAIL_SHRINE_COUNT + 1):
+        name = f"Snail Shrine {n}"
+        if name not in created:
+            continue
+        set_rule(
+            world.multiworld.get_location(name, player),
+            lambda state, extra=max(0, n - 2): state.can_reach_region(SHELL_REGION, player)
+            and sum(state.can_reach_region(region, player) for region in others) >= extra,
+        )
+
+
+def set_unmodelled_card_rules(world: "CultOfTheLambWorld") -> None:
+    """Keep progression off region-tied cards whose region is only the first gate.
+
+    Neptune's Curse needs Darkwood and then a 25-Crystal quest before the fisherman appears
+    (HubShoreManager.cs:94). The region rule stays, but the card holds nothing important.
+    """
+    player = world.player
+    created = {location.name for location in world.multiworld.get_locations(player)}
+
+    for card in TAROT_CARDS:
+        if card.internal not in _UNMODELLED_REGION_CARDS:
+            continue
+
+        # Not created for a starting card, or with tarot randomization off.
+        location_name = f"Tarot Card - {card.display}"
+        if location_name not in created:
+            continue
+
+        location = world.multiworld.get_location(location_name, player)
+        location.progress_type = LocationProgressType.EXCLUDED

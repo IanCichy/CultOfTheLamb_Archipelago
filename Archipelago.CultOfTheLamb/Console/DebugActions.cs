@@ -1280,6 +1280,7 @@ internal static class DebugActions
             + $" | slot: '{ap?.LastSlotName}'"
             + $" | server: {ap?.LastServerUrl}");
         Log.LogInfo($"[AP] Region locking active: {RegionLockState.Active}");
+        Log.LogInfo($"[AP] Achievements held back this session: {Patches.AchievementSuppression.HeldBack} (blocking {(Patches.AchievementSuppression.ShouldHold() ? "on" : "off")})");
 
         DumpTutorialState();
 

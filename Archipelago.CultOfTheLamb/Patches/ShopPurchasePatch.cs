@@ -4,8 +4,9 @@ using HarmonyLib;
 namespace Archipelago.CultOfTheLamb.Patches;
 
 /// <summary>
-/// Catches purchases from any hub shop. Interaction_BuyItem is the universal shop-slot class,
-/// covering tarot, decorations and plain stalls alike, so one patch covers every shop in the game.
+/// Catches purchases from the slot shops shopKeeperManager drives, covering tarot, decorations
+/// and plain stalls alike. Not every shop: the Mystic Shop, spider shop, seed shop and others are
+/// independent classes that take payment themselves.
 ///
 /// Activate() is the purchase-completed step, patched rather than subscribing to its own
 /// OnItemBought, which is per-instance and would mean hooking every slot object as it spawns. The
@@ -39,6 +40,15 @@ internal static class ShopPurchasePatch
             + $"decoration={entry.Decoration} item={entry.itemToBuy} "
             + $"cost={entry.itemCost} {entry.costType}");
 
-        OnItemPurchased?.Invoke(entry);
+        // Activate() runs 0.25s after the purchase, from DelayOnActivate, so a subscriber that
+        // throws cannot unwind it. Caught anyway so a failed send stays a logged warning.
+        try
+        {
+            OnItemPurchased?.Invoke(entry);
+        }
+        catch (Exception e)
+        {
+            Log.LogWarning($"[AP] A shop purchase completed but reporting it failed: {e}");
+        }
     }
 }

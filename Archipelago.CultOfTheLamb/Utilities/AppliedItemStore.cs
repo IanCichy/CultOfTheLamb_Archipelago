@@ -95,17 +95,31 @@ internal static class AppliedItemStore
     // folds Woolhaven's slot+10 down like SaveSlot.Current
     internal static bool HasHistoryFor(int rawSaveSlot)
     {
+        return KeysFor(rawSaveSlot).Count > 0;
+    }
+
+    // Every seed and AP slot this save has been played on, as full store keys
+    internal static List<string> KeysFor(int rawSaveSlot)
+    {
         var prefix = $"save{Fold(rawSaveSlot)}:";
+        var result = new List<string>();
 
         foreach (var key in CachedKeys())
         {
             if (key.StartsWith(prefix, StringComparison.Ordinal))
             {
-                return true;
+                result.Add(key);
             }
         }
 
-        return false;
+        return result;
+    }
+
+    // Records the key with its current count, so a save that has connected but received nothing
+    // yet still reads as belonging to this seed
+    internal static void Claim(string key)
+    {
+        Set(key, Get(key));
     }
 
     // Re-read only when the store file changes, since the menu asks once per row

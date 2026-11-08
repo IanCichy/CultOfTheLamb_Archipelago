@@ -485,6 +485,30 @@ rather than minting new ones, so only the grouped items above need id space.
 
 DI_INTERNAL_BY_DISPLAY: Dict[str, str] = {u.display: u.internal for u in DIVINE_INSPIRATION}
 
+
+def di_tech_item(upgrade: str, curated: bool) -> Tuple[str, int]:
+    """The item that grants one Divine Inspiration upgrade, and how many copies it takes.
+
+    One copy everywhere except a progressive family, where the Nth tier is the Nth copy. Raises
+    KeyError for an upgrade no item carries, so a rule can never name an item the pool lacks.
+    """
+    if not curated:
+        for u in DIVINE_INSPIRATION:
+            if u.internal == upgrade:
+                return u.item_name, 1
+        raise KeyError(f"no Divine Inspiration item grants {upgrade}")
+
+    for g in DI_CURATED_PROGRESSIVE:
+        if upgrade in g.upgrades:
+            return g.item_name, g.upgrades.index(upgrade) + 1
+    for g in DI_CURATED_BUNDLES:
+        if upgrade in g.upgrades:
+            return g.item_name, 1
+    for display in DI_CURATED_SINGLES:
+        if DI_INTERNAL_BY_DISPLAY[display] == upgrade:
+            return ap_item_name("DivineInspiration", display), 1
+    raise KeyError(f"no curated Divine Inspiration item grants {upgrade}")
+
 # Only the grouped names need ids of their own. DI_CURATED_SINGLES reuses DI_ITEM_OFFSET entries.
 DI_CURATED_ITEM_OFFSET = 800
 DI_CURATED_GROUPS: Tuple[DivineInspirationGroup, ...] = (
@@ -536,48 +560,55 @@ class BuildingData(NamedTuple):
     display: str
     internal: str  # StructureBrain.TYPES
     tier: int      # of the DI upgrade that unlocks it
+    # The UpgradeSystem.Type that StructuresData.GetUnlocked checks before the structure can be
+    # placed. Not always the same name as the building: Compost Bin is Followers_Compost.
+    upgrade: str
 
 
 BUILDINGS = [
     # Tier 1 is buildable from the start.
-    BuildingData("Temple", "TEMPLE", 1),
+    BuildingData("Temple", "TEMPLE", 1, "Building_Temple"),
     # "Sleeping Bag", singular, is the structure. The Divine Inspiration upgrade that unlocks
     # it is "Sleeping Bags", plural. Both are right, because they're different things.
-    BuildingData("Sleeping Bag", "BED", 1),
-    BuildingData("Body Pit", "BODY_PIT", 1),
-    BuildingData("Farm Plot", "FARM_PLOT", 1),
-    BuildingData("Farmer Station", "FARM_STATION", 1),
+    BuildingData("Sleeping Bag", "BED", 1, "Building_Beds"),
+    BuildingData("Body Pit", "BODY_PIT", 1, "Building_BodyPit"),
+    BuildingData("Farm Plot", "FARM_PLOT", 1, "Building_Farms"),
+    BuildingData("Farmer Station", "FARM_STATION", 1, "Building_FollowerFarming"),
     # Tier 2
-    BuildingData("Missionary", "MISSIONARY", 2),
-    BuildingData("Offering Statue", "OFFERING_STATUE", 2),
-    BuildingData("Tabernacle", "SHRINE_PASSIVE", 2),
-    BuildingData("Shelter", "BED_2", 2),
-    BuildingData("Prison", "PRISON", 2),
-    BuildingData("Lumberyard", "LUMBERJACK_STATION", 2),
-    BuildingData("Stone Mine", "BLOODSTONE_MINE", 2),
-    BuildingData("Demonic Summoning Circle", "DEMON_SUMMONER", 2),
+    BuildingData("Missionary", "MISSIONARY", 2, "Building_Missionary"),
+    BuildingData("Offering Statue", "OFFERING_STATUE", 2, "Shrine_OfferingStatue"),
+    BuildingData("Tabernacle", "SHRINE_PASSIVE", 2, "Shrine_PassiveShrines"),
+    BuildingData("Shelter", "BED_2", 2, "Building_BetterBeds"),
+    BuildingData("Prison", "PRISON", 2, "Building_Prison"),
+    BuildingData("Lumberyard", "LUMBERJACK_STATION", 2, "Economy_Lumberyard"),
+    BuildingData("Stone Mine", "BLOODSTONE_MINE", 2, "Economy_Mine"),
+    BuildingData("Demonic Summoning Circle", "DEMON_SUMMONER", 2, "Building_DemonSummoner"),
     # Tier 3
-    BuildingData("Confession Booth", "CONFESSION_BOOTH", 3),
-    BuildingData("Refinery", "REFINERY", 3),
-    BuildingData("Healing Bay", "HEALING_BAY", 3),
-    BuildingData("Outhouse", "OUTHOUSE", 3),
-    BuildingData("Janitor Station", "JANITOR_STATION", 3),
-    BuildingData("Fertiliser Silo", "SILO_FERTILISER", 3),
-    BuildingData("Harvest Totem", "HARVEST_TOTEM", 3),
+    BuildingData("Confession Booth", "CONFESSION_BOOTH", 3, "Building_ConfessionBooth"),
+    BuildingData("Refinery", "REFINERY", 3, "Economy_Refinery"),
+    BuildingData("Healing Bay", "HEALING_BAY", 3, "Building_HealingBay"),
+    BuildingData("Outhouse", "OUTHOUSE", 3, "Building_Outhouse"),
+    BuildingData("Janitor Station", "JANITOR_STATION", 3, "Building_JanitorStation"),
+    BuildingData("Fertiliser Silo", "SILO_FERTILISER", 3, "Building_SiloFertiliser"),
+    BuildingData("Harvest Totem", "HARVEST_TOTEM", 3, "Building_HarvestTotem"),
     # Tier 4
     # The structure is the "Compost Bin". "Compost" is the upgrade that unlocks it.
-    BuildingData("Compost Bin", "COMPOST_BIN", 4),
-    BuildingData("Shared Shelter", "SHARED_HOUSE", 4),
-    BuildingData("Morgue", "MORGUE_1", 4),
+    BuildingData("Compost Bin", "COMPOST_BIN", 4, "Followers_Compost"),
+    BuildingData("Shared Shelter", "SHARED_HOUSE", 4, "Building_Shared_House"),
+    BuildingData("Morgue", "MORGUE_1", 4, "Building_Morgue_1"),
     # Tier 5
-    BuildingData("Kitchen", "KITCHEN", 5),
-    BuildingData("Leader Tent", "LEADER_TENT", 5),
+    BuildingData("Kitchen", "KITCHEN", 5, "Building_Kitchen"),
+    BuildingData("Leader Tent", "LEADER_TENT", 5, "Building_LeaderTent"),
 ]
 
 # Broom levels. Sweeping raises DataManager.ChoreXPLevel, which is monotonic and save-persisted,
 # the same shape as the sermon and Divine Inspiration counters, so the Nth level is the Nth
 # check. Ten levels, costing 3/5/10/20/30/50/75/100/150/200 chore XP (DataManager.TargetChoreXP).
 BROOM_LEVEL_COUNT = 10
+
+# The game stops raising ChoreXPLevel at 9 (PlayerChoreXPBarController.cs:140), so level 10 can
+# never fire. Its location stays in the table so no id moves, but a seed never creates it.
+BROOM_REACHABLE_LEVELS = 9
 
 
 # Every tarot card the game has (DataManager.AllTrinkets, 85 of them), whether or not a seed

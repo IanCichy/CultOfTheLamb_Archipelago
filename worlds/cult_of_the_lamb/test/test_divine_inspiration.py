@@ -151,7 +151,11 @@ class TestChecksAndTechs(DITestBase):
     def test_techs_do_not_gate_the_checks(self):
         names = [u.item_name for u in DIVINE_INSPIRATION]
         self.assert_items_are_not_gates(names)
-        self.assert_items_are_useful_not_progression(names)
+
+        # A building check's rule names its tech, so those are progression on purpose
+        # (test_building_techs.py covers them).
+        self.assert_items_are_useful_not_progression(
+            [n for n in names if n not in self.world.building_tech_items])
 
 
 class TestShuffleIsLogicNeutral(DITestBase):

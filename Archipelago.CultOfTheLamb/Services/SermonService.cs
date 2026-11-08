@@ -43,6 +43,7 @@ internal class SermonService : IService
     {
         SermonUpgradePatch.OnSermonUpgradeEarned += HandleSermonUpgradeEarned;
         SermonUpgradePatch.Active = true;
+        SermonUpgradePatch.CheckCount = locationCount;
         Log.LogInfo($"[AP] Sermon randomization active: {itemToUpgrades.Count} item(s), "
             + $"{locationCount} location(s) from id {locationBaseId}.");
 
@@ -83,6 +84,7 @@ internal class SermonService : IService
         SermonUpgradePatch.OnSermonUpgradeEarned -= HandleSermonUpgradeEarned;
         // Hand the vanilla pick-an-upgrade flow back, so a disconnected save is playable.
         SermonUpgradePatch.Active = false;
+        SermonUpgradePatch.CheckCount = 0;
         progressive.Clear();
     }
 
