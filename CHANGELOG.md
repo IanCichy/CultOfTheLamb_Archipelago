@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.9.7
+
+### Fixed
+
+- Saves that never performed a ritual during the tutorial could stay stuck on day 1 forever.
+
 ## 0.9.6
 
 ### Fixed

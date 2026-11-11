@@ -36,7 +36,7 @@ from .rules import set_rules
 # Sent in slot data and logged by the client next to its own version, so a player's log says which
 # apworld built the seed. It is not enforced. A mismatch is something to notice while reading a
 # log, not a reason to refuse a connection. Keep in step with ArchipelagoPlugin.PluginVersion.
-MOD_VERSION = "0.9.6"
+MOD_VERSION = "0.9.7"
 
 
 class CultOfTheLambWeb(WebWorld):

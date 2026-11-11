@@ -1241,7 +1241,8 @@ internal static class DebugActions
             + $" | teleporter={d.UnlockBaseTeleporter}"
             + $" | enabledSpells={d.EnabledSpells}"
             + $" | ratauOwesCurses={d.RatauToGiveCurseNextRun}"
-            + $" | goopDoorLocked={d.BaseGoopDoorLocked} '{d.BaseGoopDoorLoc}'");
+            + $" | goopDoorLocked={d.BaseGoopDoorLocked} '{d.BaseGoopDoorLoc}'"
+            + $" | clockPaused={TimeManager.PauseGameTime} | day={TimeManager.CurrentDay}");
 
         Log.LogInfo($"[AP] Doctrine: firstStone={d.FirstDoctrineStone}"
             + $" | initialStone={d.InitialDoctrineStone}"

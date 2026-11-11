@@ -1,5 +1,5 @@
-using System;
 using HarmonyLib;
+using System;
 using UnityEngine;
 
 namespace Archipelago.CultOfTheLamb.Patches;
@@ -185,11 +185,48 @@ internal static class OnboardingCompatibilityPatches
     }
 
     // The step only ever asks for the first tier, so an upgraded Temple would never satisfy it.
-    private static bool TempleIsBuilt() =>
+    internal static bool TempleIsBuilt() =>
         StructureManager.AccumulateOnAllStructures(
             FollowerLocation.Base,
             s => s != null && s.Data != null && IsTemple(s.Data.Type) ? 1 : 0,
             0) > 0;
+
+    // Teleporter and casting, which a player who has crusaded and built a Temple has in vanilla.
+    // The Woolhaven furnace hold is respected like ReenableTeleporterIfStranded does.
+    internal static void RepairPastFirstCrusade(DataManager data)
+    {
+        var furnaceHold = data.WinterModeActive && !data.BuiltFurnace
+            && UpgradeSystem.GetUnlocked(UpgradeSystem.Type.Building_Furnace);
+        if (!data.UnlockBaseTeleporter && !furnaceHold)
+        {
+            data.UnlockBaseTeleporter = true;
+            Log.LogInfo("[AP] The base teleporter was still off from the tutorial, so it is on again.");
+        }
+
+        if (!data.EnabledSpells)
+        {
+            data.EnabledSpells = true;
+            Log.LogInfo("[AP] Casting was still off from the tutorial, so curses are on again.");
+        }
+    }
+
+    internal static bool TempleInSave(DataManager data)
+    {
+        if (data?.BaseStructures == null)
+        {
+            return false;
+        }
+
+        foreach (var structure in data.BaseStructures)
+        {
+            if (structure != null && IsTemple(structure.Type))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     private static bool IsTemple(StructureBrain.TYPES type) =>
         type == StructureBrain.TYPES.TEMPLE
@@ -281,9 +318,9 @@ internal static class OnboardingCompatibilityPatches
     }
 }
 
-// Onboarding.Start clears a stuck clock
-// (Onboarding.cs:168). Woolhaven's warm-cult furnace quest clears that flag
-// (Onboarding.cs:973), which switches the game's own repair off and leaves the save frozen
+// Restarts the clock, and turns the teleporter and casting back on, for a save that has a
+// Temple but never finished the tutorial. The game only does this after the first ritual
+// (Onboarding.cs:168, :353), and an AP save can skip it when rituals arrive late.
 [HarmonyPatch(typeof(Onboarding), "Start")]
 internal static class OnboardingClockPatch
 {
@@ -292,23 +329,27 @@ internal static class OnboardingClockPatch
     {
         try
         {
-            // Same line as the onboarding tick: a save that never used Archipelago keeps the
-            // game's own clock handling. Usually unconnected here, since this runs on load.
-            if (ArchipelagoPlugin.Instance?.Client?.IsConnected != true
-                && !AppliedItemStore.HasHistoryFor(SaveSlot.Current))
+            if (ArchipelagoPlugin.Instance?.Client?.IsConnected != true && !AppliedItemStore.HasHistoryFor(SaveSlot.Current))
             {
                 return;
             }
 
             var data = DataManager.Instance;
-            if (data != null && data.ShowLoyaltyBars)
+            if (data == null || !OnboardingCompatibilityPatches.TempleInSave(data))
             {
-                OnboardingCompatibilityPatches.StartTheClockIfFrozen();
+                return;
+            }
+
+            OnboardingCompatibilityPatches.StartTheClockIfFrozen();
+
+            if (data.KilledBosses != null && data.KilledBosses.Count > 0)
+            {
+                OnboardingCompatibilityPatches.RepairPastFirstCrusade(data);
             }
         }
         catch (Exception e)
         {
-            Log.LogWarning($"[AP] Couldn't check whether the game clock was frozen: {e.Message}");
+            Log.LogWarning($"[AP] Couldn't check the save for a stalled tutorial: {e.Message}");
         }
     }
 }
